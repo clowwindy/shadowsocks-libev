@@ -23,7 +23,7 @@
 #include "server.h"
 
 #define SERVER "127.0.0.1"
-#define REMOTE_PORT "8499"
+#define REMOTE_PORT "8387"
 #define PORT "1080"
 #define KEY "foobar!"
 
@@ -105,14 +105,16 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
 		close_and_free_server(EV_A_ server);
 		return;
 	}
-	// if remote is not created, use server->buf for both read & write
-	char *buf = server->buf;
-	int *buf_len = &server->buf_len;
-	if (remote != NULL) {
-		buf = remote->buf;
-		buf_len = &remote->buf_len;
-	}
+	printf("server_recv_cb %d\n", server?server->stage:-1);
+
 	while (1) {
+		// if remote is not created, use server->buf for both read & write
+		char *buf = server->buf;
+		int *buf_len = &server->buf_len;
+		if (remote != NULL) {
+			buf = remote->buf;
+			buf_len = &remote->buf_len;
+		}
 		ssize_t r = recv(server->fd, buf, BUF_SIZE, 0);
 		if (r == 0) {
 			// connection closed
@@ -160,49 +162,33 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
 				break;
 			}
 		} else if (server->stage == 0) {
-			struct method_select_response response;
-			response.ver = SOCKS_VERSION;
-			response.method = 0;
-			char *send_buf = (char *)&response;
-			send_encrypt(server->fd, send_buf, sizeof(response), MSG_NOSIGNAL);
-			server->stage = 1;
-			return;
-		} else if (server->stage == 1) {
-			struct socks5_request *request = (struct socks5_request *)server->buf;
-			if (request->cmd != 1) {
-				fprintf(stderr, "unsupported cmd: %d\n", request->cmd);
-				struct socks5_response response;
-				response.ver = SOCKS_VERSION;
-				response.rep = SOCKS_CMD_NOT_SUPPORTED;
-				response.rsv = 0;
-				response.atyp = 1;
-				char *send_buf = (char *)&response;
-				send_encrypt(server->fd, send_buf, 4, MSG_NOSIGNAL);
-				close_and_free_server(EV_A_ server);
-				return;
-			}
-
 			struct addrinfo remote_addrinfo;
 			struct sockaddr remote_sockaddr;
 			int rv;
+			int addr_len = 0;
 
 			// get remote addr and port
-			if (request->atyp == 1) {
+			if (buf[0] == 1) {
 				// IP V4
 				struct sockaddr_in *addrp = (struct sockaddr_in *)&remote_sockaddr;
 				struct in_addr *in_addr;
-				in_addr = (struct in_addr *)(server->buf + 4);
+				in_addr = (struct in_addr *)(server->buf + 1);
 				addrp->sin_addr = *in_addr;
 				// get port
-				addrp->sin_port = *(unsigned short *)(server->buf + 4 + 4);
-			} else if (request->atyp == 3) {
+				addrp->sin_port = *(unsigned short *)(server->buf + 1 + 4);
+				char addr_str[256];
+				inet_ntop(AF_INET, server->buf + 1, addr_str, 256);
+				printf("IP: %s\n", addr_str);
+				// TODO
+				addr_len = 7;
+			} else if (buf[0] == 3) {
 				struct addrinfo hints, *res;
 				memset(&hints, 0, sizeof hints);
 				hints.ai_family = AF_UNSPEC;
 				hints.ai_socktype = SOCK_STREAM;
 				char name_buf[256];
-				unsigned char name_len = *(unsigned char *)(server->buf + 4);
-				memcpy(name_buf, server->buf + 4 + 1, name_len);
+				unsigned char name_len = *(unsigned char *)(server->buf + 1);
+				memcpy(name_buf, server->buf + 2, name_len);
 				name_buf[name_len] = 0; // append NUL
 				fprintf(stderr, "connecting: %s\n", name_buf);
 				if ((rv = getaddrinfo(name_buf, "80", &hints, &res)) != 0) {
@@ -212,40 +198,50 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
 					return;
 				}
 				remote_addrinfo = *res;
-				remote_sockaddr = *(res->ai_addr);
-				remote_addrinfo.ai_addr = &remote_sockaddr;
+				//remote_sockaddr = *(res->ai_addr);
+				//remote_addrinfo.ai_addr = &remote_sockaddr;
 
 				// get port
 				struct sockaddr_in *addrp = (struct sockaddr_in *)&remote_sockaddr;
-				addrp->sin_port = *(unsigned short *)(server->buf + 4 + 1 + name_len);
+				addrp->sin_port = *(unsigned short *)(server->buf + 2 + 1 + name_len);
 				freeaddrinfo(res);
+				addr_len = name_len + 4;
 			} else {
-				fprintf(stderr, "unsupported addrtype: %d\n", request->atyp);
+				fprintf(stderr, "unsupported addrtype: %d\n", buf[0]);
 				// TODO send reply
 				close_and_free_server(EV_A_ server);
 				return;
 			}
-			
 
 			int sockfd;
 			sockfd = socket(remote_addrinfo.ai_family, remote_addrinfo.ai_socktype,
-				remote_addrinfo.ai_protocol);
+					remote_addrinfo.ai_protocol);
 			if (sockfd < 0) {
 				perror("socket");
 				close(sockfd);
-				// TODO send reply
 				close_and_free_server(EV_A_ server);
 				close_and_free_remote(EV_A_ remote);
 				return;
 			}
+
+
 			setnonblocking(sockfd);
 			remote = new_remote(sockfd);
 			server->remote = remote;
 			remote->server = server;
-			connect(sockfd, remote_addrinfo.ai_addr, remote_addrinfo.ai_addrlen);
-			ev_io_stop(EV_A_ &server->recv_ctx->io);
-			ev_io_start(EV_A_ &remote->send_ctx->io);
 			server->stage = 4;
+
+			if (r > addr_len) {
+				memcpy(remote->buf, buf + addr_len, r - addr_len);
+				remote->buf_len = r - addr_len;
+			} else {
+				remote->buf_len = 0;
+			}
+			printf("stage turn into 4\n");
+			
+			ev_io_stop(EV_A_ &server->recv_ctx->io);
+			connect(sockfd, remote_addrinfo.ai_addr, remote_addrinfo.ai_addrlen);
+			ev_io_start(EV_A_ &remote->send_ctx->io);
 			return;
 		}
 	}
@@ -300,6 +296,7 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
 	struct remote_ctx *remote_recv_ctx = (struct remote_ctx *)w;
 	struct remote *remote = remote_recv_ctx->remote;
 	struct server *server = remote->server;
+	printf("remote recv cb\n");
 	if (server == NULL) {
 		close_and_free_remote(EV_A_ remote);
 		return;
@@ -370,42 +367,15 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
 		int r = getpeername(remote->fd, (struct sockaddr*)&addr, &len);
 		if (r == 0) {
 			remote_send_ctx->connected = 1;
-
-			printf("send reply\n");
-			// send reply
-			struct sockaddr_in sockaddr;
-			socklen_t sockaddrlen = sizeof(sockaddr);
-			int rv = getsockname(remote->fd, (struct sockaddr *)&sockaddr, &sockaddrlen);
-			if (rv == -1) {
-				perror("getsockname");
-				close_and_free_remote(EV_A_ remote);
-				close_and_free_server(EV_A_ server);
-				return;
-			}
-			struct socks5_response response;
-			response.ver = SOCKS_VERSION;
-			response.rep = 0;
-			response.rsv = 0;
-			response.atyp = 1;
-
-			memcpy(server->buf, &response, 4);
-			memcpy(server->buf + 4, &sockaddr.sin_addr, sizeof(struct in_addr));
-			memcpy(server->buf + 4 + sizeof(struct in_addr), &sockaddr.sin_port, 
-					sizeof(struct in_addr));
-
-			fprintf(stderr, "send reply\n");
-			int r = send_encrypt(server->fd, server->buf, 4 + sizeof(struct in_addr) + 
-					sizeof(unsigned short), 0);
-			if (r < 4 + sizeof(struct in_addr) + sizeof(unsigned short)) {
-				fprintf(stderr, "header not complete sent\n");
-				close_and_free_remote(EV_A_ remote);
-				close_and_free_server(EV_A_ server);
-			}
 			server->stage = 5;
 
-			ev_io_stop(EV_A_ &remote_send_ctx->io);
-			ev_io_start(EV_A_ &server->recv_ctx->io);
-			ev_io_start(EV_A_ &remote->recv_ctx->io);
+			if (remote->buf_len == 0) {
+				ev_io_stop(EV_A_ &remote_send_ctx->io);
+				ev_io_start(EV_A_ &server->recv_ctx->io);
+				ev_io_start(EV_A_ &remote->recv_ctx->io);
+				return;
+			}
+			// continue to send
 		} else {
 			perror("getpeername");
 			// not connected
@@ -446,7 +416,9 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
 				// all sent out, wait for reading
 				ev_io_stop(EV_A_ &remote_send_ctx->io);
 				if (server != NULL) {
+					ev_io_stop(EV_A_ &remote_send_ctx->io);
 					ev_io_start(EV_A_ &server->recv_ctx->io);
+					ev_io_start(EV_A_ &remote->recv_ctx->io);
 				} else {
 					close_and_free_remote(EV_A_ remote);
 					close_and_free_server(EV_A_ server);
@@ -541,26 +513,26 @@ static void accept_cb (EV_P_ ev_io *w, int revents)
 			perror("accept");
 			break;
 		}
- 		setnonblocking(serverfd);
+		setnonblocking(serverfd);
 		struct server *server = new_server(serverfd);
-// 		struct addrinfo hints, *res;
-// 		int sockfd;
-// 		memset(&hints, 0, sizeof hints);
-// 		hints.ai_family = AF_UNSPEC;
-// 		hints.ai_socktype = SOCK_STREAM;
-// 		getaddrinfo(SERVER, REMOTE_PORT, &hints, &res);
-// 		sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-// 		if (sockfd < 0) {
-// 			perror("socket");
-// 			close(sockfd);
-// 			free_server(server);
-// 			continue;
-// 		}
-// 		setnonblocking(sockfd);
- 		server->remote = NULL;
-// 		connect(sockfd, res->ai_addr, res->ai_addrlen);
-// 		// listen to remote connected event
-// 		ev_io_start(EV_A_ &remote->send_ctx->io);
+		// 		struct addrinfo hints, *res;
+		// 		int sockfd;
+		// 		memset(&hints, 0, sizeof hints);
+		// 		hints.ai_family = AF_UNSPEC;
+		// 		hints.ai_socktype = SOCK_STREAM;
+		// 		getaddrinfo(SERVER, REMOTE_PORT, &hints, &res);
+		// 		sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+		// 		if (sockfd < 0) {
+		// 			perror("socket");
+		// 			close(sockfd);
+		// 			free_server(server);
+		// 			continue;
+		// 		}
+		// 		setnonblocking(sockfd);
+		server->remote = NULL;
+		// 		connect(sockfd, res->ai_addr, res->ai_addrlen);
+		// 		// listen to remote connected event
+		// 		ev_io_start(EV_A_ &remote->send_ctx->io);
 		ev_io_start(EV_A_ &server->recv_ctx->io);
 		break;
 	}

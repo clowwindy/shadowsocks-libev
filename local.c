@@ -22,7 +22,7 @@
 #include "encrypt.h"
 
 #define REPLY "HTTP/1.1 200 OK\n\nhello"
-#define LOG(a...) printf(a)
+#define LOG(a...) printf(a);printf("\n");
 
 #define min(a,b) (((a)<(b))?(a):(b))
 
@@ -581,7 +581,7 @@ int main (int argc, char** argv)
 
     _server = "127.0.0.1";
     _remote_port = "8387";
-    char key[] = "onebox!";
+    char key[] = "foobar!";
 
     LOG("calculating ciphers");
     get_table(key);
