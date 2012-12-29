@@ -161,7 +161,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
 			}
 		} else if (server->stage == 0) {
 			struct method_select_response response;
-			response.ver = VERSION;
+			response.ver = SOCKS_VERSION;
 			response.method = 0;
 			char *send_buf = (char *)&response;
 			send_encrypt(server->fd, send_buf, sizeof(response), MSG_NOSIGNAL);
@@ -172,8 +172,8 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
 			if (request->cmd != 1) {
 				fprintf(stderr, "unsupported cmd: %d\n", request->cmd);
 				struct socks5_response response;
-				response.ver = VERSION;
-				response.rep = CMD_NOT_SUPPORTED;
+				response.ver = SOCKS_VERSION;
+				response.rep = SOCKS_CMD_NOT_SUPPORTED;
 				response.rsv = 0;
 				response.atyp = 1;
 				char *send_buf = (char *)&response;
@@ -383,7 +383,7 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
 				return;
 			}
 			struct socks5_response response;
-			response.ver = VERSION;
+			response.ver = SOCKS_VERSION;
 			response.rep = 0;
 			response.rsv = 0;
 			response.atyp = 1;

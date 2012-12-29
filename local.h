@@ -1,5 +1,6 @@
 #pragma once
 
+#include <sys/socket.h>
 #include <ev.h>
 
 #define BUF_SIZE 1500
@@ -13,6 +14,7 @@ struct listen_ctx {
 struct server {
 	int fd;
 	char buf[BUF_SIZE]; // server send from, remote recv into
+	char stage;
 	int buf_len;
 	struct server_ctx *recv_ctx;
 	struct server_ctx *send_ctx;
