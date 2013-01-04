@@ -14,7 +14,7 @@ Edit local.c, change server hostname.
 
 Install the following package:
 
-    sudo apt-get install build-essential autoconf libtool libev-dev libssl-dev
+    sudo apt-get install build-essential autoconf libtool libev4 libev-dev libssl-dev
     autoreconf
     ./configure && make
 
