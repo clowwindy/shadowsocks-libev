@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.68])
-AC_INIT([libev-hello], [0.1], [clowwindy42@gmail.com])
+AC_PREREQ([2.67])
+AC_INIT([shaodowsocks], [0.1], [clowwindy42@gmail.com])
 AC_CONFIG_SRCDIR([encrypt.c])
 AC_CONFIG_HEADERS([config.h])
 
@@ -13,7 +13,7 @@ AC_PROG_CC
 
 # Checks for libraries.
 AC_SEARCH_LIBS([MD5], [crypto], [ ], AC_MSG_ERROR([libcrypto not found.]))
-AC_SEARCH_LIBS([ev_io_start], [ev], [ ], AC_MSG_ERROR([libev not found.]))
+AC_SEARCH_LIBS([ev_run], [ev], [ ], AC_MSG_ERROR([libev not found.]))
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h langinfo.h locale.h netdb.h netinet/in.h stdlib.h string.h strings.h sys/socket.h unistd.h])
