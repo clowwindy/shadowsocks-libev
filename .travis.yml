@@ -1,0 +1,7 @@
+language: c
+compiler:
+  - clang
+  - gcc
+install:
+  - sudo apt-get install build-essential autoconf libtool libev4 libev-dev libssl-dev
+
