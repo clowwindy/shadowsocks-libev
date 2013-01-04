@@ -5,37 +5,37 @@
 #define BUF_SIZE 1500
 
 struct listen_ctx {
-	ev_io io;
-	int fd;
-	struct sockaddr sock;
+    ev_io io;
+    int fd;
+    struct sockaddr sock;
 };
 
 struct server {
-	int fd;
-	char buf[BUF_SIZE]; // server send from, remote recv into
-	int buf_len;
-	char stage;
-	struct server_ctx *recv_ctx;
-	struct server_ctx *send_ctx;
-	struct remote *remote;
+    int fd;
+    char buf[BUF_SIZE]; // server send from, remote recv into
+    int buf_len;
+    char stage;
+    struct server_ctx *recv_ctx;
+    struct server_ctx *send_ctx;
+    struct remote *remote;
 };
 struct server_ctx {
-	ev_io io;
-	int connected;
-	struct server *server;
+    ev_io io;
+    int connected;
+    struct server *server;
 };
 struct remote {
-	int fd;
-	char buf[BUF_SIZE]; // remote send from, server recv into
-	int buf_len;
-	struct remote_ctx *recv_ctx;
-	struct remote_ctx *send_ctx;
-	struct server *server;
+    int fd;
+    char buf[BUF_SIZE]; // remote send from, server recv into
+    int buf_len;
+    struct remote_ctx *recv_ctx;
+    struct remote_ctx *send_ctx;
+    struct server *server;
 };
 struct remote_ctx {
-	ev_io io;
-	int connected;
-	struct remote *remote;
+    ev_io io;
+    int connected;
+    struct remote *remote;
 };
 
 
