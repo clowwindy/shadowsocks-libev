@@ -21,7 +21,7 @@
 #include "socks5.h"
 #include "encrypt.h"
 
-#define LOG(a...) printf(a);printf("\n");
+#define LOG(a...) printf(a);printf("\n");fflush(stdout);
 
 #define ADDR_STR_LEN 512
 
