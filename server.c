@@ -410,7 +410,7 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
             if (r < remote->buf_len) {
                 // partly sent, move memory, wait for the next time to send
                 char *pt;
-                char *et = server->buf + server->buf_len;
+                char *et = remote->buf + remote->buf_len;
                 for (pt = remote->buf; pt + r < et; pt++) {
                     *pt = *(pt + r);
                 }
