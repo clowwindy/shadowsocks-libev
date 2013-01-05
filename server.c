@@ -73,6 +73,7 @@ int create_and_bind(char *port) {
         listen_sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         int opt = 1;
         setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
         if (listen_sock == -1)
             continue;
 
@@ -101,20 +102,21 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
     struct server_ctx *server_recv_ctx = (struct server_ctx *)w;
     struct server *server = server_recv_ctx->server;
     struct remote *remote = server->remote;
+    printf("server_recv_cb %d\n", server?server->stage:-1);
     if (server->stage == 5 && remote == NULL) {
+        printf("remote is null\n");
         close_and_free_server(EV_A_ server);
         return;
     }
-    printf("server_recv_cb %d\n", server?server->stage:-1);
 
     while (1) {
-        // if remote is not created, use server->buf for both read & write
-        char *buf = server->buf;
-        int *buf_len = &server->buf_len;
-        if (remote != NULL) {
-            buf = remote->buf;
-            buf_len = &remote->buf_len;
+        char *buf = remote->buf;
+        int *buf_len = &remote->buf_len;
+        if (server->stage != 5) {
+            buf = server->buf;
+            buf_len = &server->buf_len;
         }
+
         ssize_t r = recv(server->fd, buf, BUF_SIZE, 0);
         if (r == 0) {
             // connection closed
@@ -125,12 +127,12 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
             }
             return;
         } else if(r < 0) {
-            perror("recv");
             if (errno == EAGAIN) {
                 // no data
                 // continue to wait for recv
                 break;
             } else {
+                perror("recv");
                 close_and_free_server(EV_A_ server);
                 close_and_free_remote(EV_A_ remote);
                 return;
@@ -163,7 +165,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 break;
             }
         } else if (server->stage == 0) {
-            struct addrinfo remote_addrinfo;
+            struct addrinfo remote_addrinfo, *res;
             struct sockaddr remote_sockaddr;
             int rv;
             int addr_len = 0;
@@ -183,7 +185,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 // TODO
                 addr_len = 7;
             } else if (buf[0] == 3) {
-                struct addrinfo hints, *res;
+                struct addrinfo hints;
                 memset(&hints, 0, sizeof hints);
                 hints.ai_family = AF_UNSPEC;
                 hints.ai_socktype = SOCK_STREAM;
@@ -205,7 +207,6 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 // get port
                 struct sockaddr_in *addrp = (struct sockaddr_in *)&remote_sockaddr;
                 addrp->sin_port = *(unsigned short *)(server->buf + 2 + 1 + name_len);
-                freeaddrinfo(res);
                 addr_len = name_len + 4;
             } else {
                 fprintf(stderr, "unsupported addrtype: %d\n", buf[0]);
@@ -242,6 +243,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
 
             ev_io_stop(EV_A_ &server->recv_ctx->io);
             connect(sockfd, remote_addrinfo.ai_addr, remote_addrinfo.ai_addrlen);
+            freeaddrinfo(res);
             ev_io_start(EV_A_ &remote->send_ctx->io);
             return;
         }
@@ -261,12 +263,12 @@ static void server_send_cb (EV_P_ ev_io *w, int revents) {
         ssize_t r = send(server->fd, server->buf,
                 server->buf_len, 0);
         if (r < 0) {
-            perror("send");
             if (errno != EAGAIN) {
                 close_and_free_server(EV_A_ server);
                 close_and_free_remote(EV_A_ remote);
                 return;
             }
+            perror("send");
             return;
         }
         if (r < server->buf_len) {
@@ -330,13 +332,13 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
         int w = send(server->fd, server->buf, r, MSG_NOSIGNAL);
         // printf("after send: w=%d\n", w);
         if(w == -1) {
-            perror("send");
             if (errno == EAGAIN) {
                 // no data, wait for send
                 ev_io_stop(EV_A_ &remote_recv_ctx->io);
                 ev_io_start(EV_A_ &server->send_ctx->io);
                 break;
             } else {
+                perror("send");
                 close_and_free_server(EV_A_ server);
                 close_and_free_remote(EV_A_ remote);
                 return;
