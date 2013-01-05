@@ -102,9 +102,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
     struct server_ctx *server_recv_ctx = (struct server_ctx *)w;
     struct server *server = server_recv_ctx->server;
     struct remote *remote = server->remote;
-    printf("server_recv_cb %d\n", server?server->stage:-1);
     if (server->stage == 5 && remote == NULL) {
-        printf("remote is null\n");
         close_and_free_server(EV_A_ server);
         return;
     }
@@ -181,7 +179,6 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 addrp->sin_port = *(unsigned short *)(server->buf + 1 + 4);
                 char addr_str[256];
                 inet_ntop(AF_INET, server->buf + 1, addr_str, 256);
-                printf("IP: %s\n", addr_str);
                 // TODO
                 addr_len = 7;
             } else if (buf[0] == 3) {
@@ -239,7 +236,6 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
             } else {
                 remote->buf_len = 0;
             }
-            printf("stage turn into 4\n");
 
             ev_io_stop(EV_A_ &server->recv_ctx->io);
             connect(sockfd, remote_addrinfo.ai_addr, remote_addrinfo.ai_addrlen);
@@ -272,8 +268,6 @@ static void server_send_cb (EV_P_ ev_io *w, int revents) {
             return;
         }
         if (r < server->buf_len) {
-            // printf("r=%d\n", r);
-            // printf("server->buf_len=%d\n", server->buf_len);
             // partly sent, move memory, wait for the next time to send
             char *pt;
             char *et = server->buf + server->buf_len;
@@ -300,14 +294,12 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
     struct remote_ctx *remote_recv_ctx = (struct remote_ctx *)w;
     struct remote *remote = remote_recv_ctx->remote;
     struct server *server = remote->server;
-    printf("remote recv cb\n");
     if (server == NULL) {
         close_and_free_remote(EV_A_ remote);
         return;
     }
     while (1) {
         ssize_t r = recv(remote->fd, server->buf, BUF_SIZE, 0);
-        // printf("after recv: r=%d\n", r);
         if (r == 0) {
             // connection closed
             server->buf_len = 0;
@@ -330,7 +322,6 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
         }
         encrypt(server->buf, r);
         int w = send(server->fd, server->buf, r, MSG_NOSIGNAL);
-        // printf("after send: w=%d\n", w);
         if(w == -1) {
             if (errno == EAGAIN) {
                 // no data, wait for send
@@ -360,10 +351,8 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
     struct remote_ctx *remote_send_ctx = (struct remote_ctx *)w;
     struct remote *remote = remote_send_ctx->remote;
     struct server *server = remote->server;
-    printf("remote_send_cb\n");
     if (!remote_send_ctx->connected) {
 
-        printf("not connected\n");
         socklen_t len;
         struct sockaddr_storage addr;
         char ipstr[INET6_ADDRSTRLEN];
@@ -389,7 +378,6 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
             return;
         }
     } else {
-        printf("is connected\n");
         if (remote->buf_len == 0) {
             // close and free
             close_and_free_remote(EV_A_ remote);
@@ -449,7 +437,6 @@ struct remote* new_remote(int fd) {
     remote->send_ctx->remote = remote;
     remote->send_ctx->connected = 0;
     remote->buf_len = 0;
-    fprintf(stderr, "new remote\n");
     return remote;
 }
 void free_remote(struct remote *remote) {
@@ -460,7 +447,6 @@ void free_remote(struct remote *remote) {
         free(remote->recv_ctx);
         free(remote->send_ctx);
         free(remote);
-        fprintf(stderr, "free remote\n");
     }
 }
 void close_and_free_remote(EV_P_ struct remote *remote) {
@@ -487,7 +473,6 @@ struct server* new_server(int fd) {
     server->send_ctx->connected = 0;
     server->stage = 0;
     server->buf_len = 0;
-    fprintf(stderr, "new server\n");
     return server;
 }
 void free_server(struct server *server) {
@@ -498,7 +483,6 @@ void free_server(struct server *server) {
         free(server->recv_ctx);
         free(server->send_ctx);
         free(server);
-        fprintf(stderr, "free server\n");
     }
 }
 void close_and_free_server(EV_P_ struct server *server) {
@@ -523,24 +507,7 @@ static void accept_cb (EV_P_ ev_io *w, int revents)
         }
         setnonblocking(serverfd);
         struct server *server = new_server(serverfd);
-        // 		struct addrinfo hints, *res;
-        // 		int sockfd;
-        // 		memset(&hints, 0, sizeof hints);
-        // 		hints.ai_family = AF_UNSPEC;
-        // 		hints.ai_socktype = SOCK_STREAM;
-        // 		getaddrinfo(SERVER, REMOTE_PORT, &hints, &res);
-        // 		sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-        // 		if (sockfd < 0) {
-        // 			perror("socket");
-        // 			close(sockfd);
-        // 			free_server(server);
-        // 			continue;
-        // 		}
-        // 		setnonblocking(sockfd);
         server->remote = NULL;
-        // 		connect(sockfd, res->ai_addr, res->ai_addrlen);
-        // 		// listen to remote connected event
-        // 		ev_io_start(EV_A_ &remote->send_ctx->io);
         ev_io_start(EV_A_ &server->recv_ctx->io);
         break;
     }
