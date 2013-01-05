@@ -1,7 +1,7 @@
 shadowsocks-libev
 ===========
 
-[![Build Status](https://travis-ci.org/clowwindy/shadowsocks-libev.png?branch=dev)](https://travis-ci.org/clowwindy/shadowsocks-libev)  
+[![Build Status](https://travis-ci.org/clowwindy/shadowsocks-libev.png)](https://travis-ci.org/clowwindy/shadowsocks-libev)  
 Current Version: 0.1.2
 
 shadowsocks-libev is a lightweight tunnel proxy which can help you get through
