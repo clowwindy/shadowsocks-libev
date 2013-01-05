@@ -153,7 +153,8 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 }
             } else if(w < r) {
                 char *pt;
-                for (pt = remote->buf; pt < pt + min(w, BUF_SIZE); pt++) {
+                char *et = remote->buf + r;
+                for (pt = remote->buf; pt + w < et; pt++) {
                     *pt = *(pt + w);
                 }
                 remote->buf_len = r - w;
@@ -273,7 +274,8 @@ static void server_send_cb (EV_P_ ev_io *w, int revents) {
             // printf("server->buf_len=%d\n", server->buf_len);
             // partly sent, move memory, wait for the next time to send
             char *pt;
-            for (pt = server->buf; pt < pt + min(r, BUF_SIZE); pt++) {
+            char *et = server->buf + server->buf_len;
+            for (pt = server->buf; pt + r < et; pt++) {
                 *pt = *(pt + r);
             }
             server->buf_len -= r;
@@ -341,7 +343,8 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
             }
         } else if(w < r) {
             char *pt;
-            for (pt = server->buf; pt < pt + min(w, BUF_SIZE); pt++) {
+            char *et = server->buf + r;
+            for (pt = server->buf; pt + w < et; pt++) {
                 *pt = *(pt + w);
             }
             server->buf_len = r - w;
@@ -407,7 +410,8 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
             if (r < remote->buf_len) {
                 // partly sent, move memory, wait for the next time to send
                 char *pt;
-                for (pt = remote->buf; pt < pt + min(r, BUF_SIZE); pt++) {
+                char *et = server->buf + server->buf_len;
+                for (pt = remote->buf; pt + r < et; pt++) {
                     *pt = *(pt + r);
                 }
                 remote->buf_len -= r;
@@ -442,6 +446,7 @@ struct remote* new_remote(int fd) {
     remote->recv_ctx->connected = 0;
     remote->send_ctx->remote = remote;
     remote->send_ctx->connected = 0;
+    remote->buf_len = 0;
     fprintf(stderr, "new remote\n");
     return remote;
 }
@@ -479,6 +484,7 @@ struct server* new_server(int fd) {
     server->send_ctx->server = server;
     server->send_ctx->connected = 0;
     server->stage = 0;
+    server->buf_len = 0;
     fprintf(stderr, "new server\n");
     return server;
 }
