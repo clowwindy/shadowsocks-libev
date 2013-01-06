@@ -22,6 +22,12 @@
 #include "socks5.h"
 #include "server.h"
 
+#ifdef MSG_NOSIGNAL
+#define SEND_FLAGS MSG_NOSIGNAL
+#else
+#define SEND_FLAGS 0
+#endif
+
 #define SERVER "127.0.0.1"
 #define REMOTE_PORT "8387"
 #define PORT "1080"
@@ -71,12 +77,14 @@ int create_and_bind(char *port) {
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         listen_sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (listen_sock == -1)
+            continue;
         int opt = 1;
         setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
         setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
-        if (listen_sock == -1)
-            continue;
-
+#ifdef SO_NOSIGPIPE 
+        setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
             /* We managed to bind successfully! */
@@ -138,7 +146,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
         }
         decrypt(buf, r);
         if (server->stage == 5) {
-            int w = send(remote->fd, remote->buf, r, 0);
+            int w = send(remote->fd, remote->buf, r, SEND_FLAGS);
             if(w == -1) {
                 perror("send");
                 if (errno == EAGAIN) {
@@ -222,9 +230,12 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 close_and_free_remote(EV_A_ remote);
                 return;
             }
-
-
+            setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+            setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
             setnonblocking(sockfd);
+
             remote = new_remote(sockfd);
             server->remote = remote;
             remote->server = server;
@@ -257,7 +268,7 @@ static void server_send_cb (EV_P_ ev_io *w, int revents) {
     } else {
         // has data to send
         ssize_t r = send(server->fd, server->buf,
-                server->buf_len, 0);
+                server->buf_len, SEND_FLAGS);
         if (r < 0) {
             if (errno != EAGAIN) {
                 close_and_free_server(EV_A_ server);
@@ -321,7 +332,7 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
             }
         }
         encrypt(server->buf, r);
-        int w = send(server->fd, server->buf, r, 0);
+        int w = send(server->fd, server->buf, r, SEND_FLAGS);
         if(w == -1) {
             if (errno == EAGAIN) {
                 // no data, wait for send
@@ -386,7 +397,7 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
         } else {
             // has data to send
             ssize_t r = send(remote->fd, remote->buf,
-                    remote->buf_len, 0);
+                    remote->buf_len, SEND_FLAGS);
             if (r < 0) {
                 perror("send");
                 if (errno != EAGAIN) {
@@ -506,6 +517,10 @@ static void accept_cb (EV_P_ ev_io *w, int revents)
             break;
         }
         setnonblocking(serverfd);
+        setsockopt(serverfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE 
+        setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
         struct server *server = new_server(serverfd);
         server->remote = NULL;
         ev_io_start(EV_A_ &server->recv_ctx->io);

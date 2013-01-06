@@ -21,6 +21,12 @@
 #include "socks5.h"
 #include "encrypt.h"
 
+#ifdef MSG_NOSIGNAL
+#define SEND_FLAGS MSG_NOSIGNAL
+#else
+#define SEND_FLAGS 0
+#endif
+
 #define LOG(a...) printf(a);printf("\n");fflush(stdout);
 
 #define ADDR_STR_LEN 512
@@ -57,12 +63,14 @@ int create_and_bind(const char *port) {
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
         listen_sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (listen_sock == -1)
+            continue;
         int opt = 1;
         setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
         setsockopt(listen_sock, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
-        //setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
-        if (listen_sock == -1)
-            continue;
+#ifdef SO_NOSIGPIPE 
+        setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
@@ -130,7 +138,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
         // local socks5 server
         if (server->stage == 5) {
             encrypt(remote->buf, r);
-            int w = send(remote->fd, remote->buf, r, 0);
+            int w = send(remote->fd, remote->buf, r, SEND_FLAGS);
             if(w == -1) {
                 if (errno == EAGAIN) {
                     // no data, wait for send
@@ -160,7 +168,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
             response.ver = SOCKS_VERSION;
             response.method = 0;
             char *send_buf = (char *)&response;
-            send(server->fd, send_buf, sizeof(response), 0);
+            send(server->fd, send_buf, sizeof(response), SEND_FLAGS);
             server->stage = 1;
             return;
         } else if (server->stage == 1) {
@@ -174,7 +182,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 response.rsv = 0;
                 response.atyp = SOCKS_IPV4;
                 char *send_buf = (char *)&response;
-                send(server->fd, send_buf, 4, 0);
+                send(server->fd, send_buf, 4, SEND_FLAGS);
                 close_and_free_server(EV_A_ server);
                 close_and_free_remote(EV_A_ remote);
                 return;
@@ -240,7 +248,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 = (unsigned short) htons(atoi(_remote_port));
 
             int reply_size = 4 + sizeof(struct in_addr) + sizeof(unsigned short);
-            int r = send(server->fd, server->buf, reply_size, 0);
+            int r = send(server->fd, server->buf, reply_size, SEND_FLAGS);
             if (r < reply_size) {
                 LOG("header not complete sent\n");
                 close_and_free_remote(EV_A_ remote);
@@ -268,7 +276,7 @@ static void server_send_cb (EV_P_ ev_io *w, int revents) {
     } else {
         // has data to send
         ssize_t r = send(server->fd, server->buf,
-                server->buf_len, 0);
+                server->buf_len, SEND_FLAGS);
         if (r < 0) {
             if (errno != EAGAIN) {
                 perror("send");
@@ -335,7 +343,7 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
             }
         }
         decrypt(server->buf, r);
-        int w = send(server->fd, server->buf, r, 0);
+        int w = send(server->fd, server->buf, r, SEND_FLAGS);
         if(w == -1) {
             if (errno == EAGAIN) {
                 // no data, wait for send
@@ -394,7 +402,7 @@ static void remote_send_cb (EV_P_ ev_io *w, int revents) {
         } else {
             // has data to send
             ssize_t r = send(remote->fd, remote->buf,
-                    remote->buf_len, 0);
+                    remote->buf_len, SEND_FLAGS);
             if (r < 0) {
                 if (errno != EAGAIN) {
                     perror("send");
@@ -511,7 +519,9 @@ static void accept_cb (EV_P_ ev_io *w, int revents)
         setnonblocking(serverfd);
         int opt = 1;
         setsockopt(serverfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
-        //setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+        setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
         struct server *server = new_server(serverfd);
         struct addrinfo hints, *res;
         int sockfd;
@@ -520,15 +530,18 @@ static void accept_cb (EV_P_ ev_io *w, int revents)
         hints.ai_socktype = SOCK_STREAM;
         getaddrinfo(_server, _remote_port, &hints, &res);
         sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-        setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
-        //setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
         if (sockfd < 0) {
             perror("socket");
             close(sockfd);
             free_server(server);
             continue;
         }
+        setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+        setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
         setnonblocking(sockfd);
+
         struct remote *remote = new_remote(sockfd);
         server->remote = remote;
         remote->server = server;
