@@ -138,7 +138,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
         }
         decrypt(buf, r);
         if (server->stage == 5) {
-            int w = send(remote->fd, remote->buf, r, MSG_NOSIGNAL);
+            int w = send(remote->fd, remote->buf, r, 0);
             if(w == -1) {
                 perror("send");
                 if (errno == EAGAIN) {
@@ -321,7 +321,7 @@ static void remote_recv_cb (EV_P_ ev_io *w, int revents) {
             }
         }
         encrypt(server->buf, r);
-        int w = send(server->fd, server->buf, r, MSG_NOSIGNAL);
+        int w = send(server->fd, server->buf, r, 0);
         if(w == -1) {
             if (errno == EAGAIN) {
                 // no data, wait for send

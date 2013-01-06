@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.67])
+AC_PREREQ([2.61])
 AC_INIT([shadowsocks], [0.1], [clowwindy42@gmail.com])
 AC_CONFIG_SRCDIR([encrypt.c])
 AC_CONFIG_HEADERS([config.h])
