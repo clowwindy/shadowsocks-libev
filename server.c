@@ -230,6 +230,7 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 close_and_free_remote(EV_A_ remote);
                 return;
             }
+            int opt = 1;
             setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE
             setsockopt(sockfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
@@ -517,6 +518,7 @@ static void accept_cb (EV_P_ ev_io *w, int revents)
             break;
         }
         setnonblocking(serverfd);
+        int opt = 1;
         setsockopt(serverfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE 
         setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
