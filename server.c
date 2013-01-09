@@ -196,10 +196,14 @@ static void server_recv_cb (EV_P_ ev_io *w, int revents) {
                 hints.ai_socktype = SOCK_STREAM;
                 char name_buf[256];
                 unsigned char name_len = *(unsigned char *)(server->buf + 1);
+                unsigned int port = *(unsigned char *)(server->buf + 2 + name_len + 1) + ((*(unsigned char *)(server->buf + 2 + name_len)) << 8);
+                char port_buf[16];
+                sprintf(port_buf, "%d", port);
+
                 memcpy(name_buf, server->buf + 2, name_len);
                 name_buf[name_len] = 0; // append NUL
                 fprintf(stderr, "connecting: %s\n", name_buf);
-                if ((rv = getaddrinfo(name_buf, "80", &hints, &res)) != 0) {
+                if ((rv = getaddrinfo(name_buf, port_buf, &hints, &res)) != 0) {
                     perror("getaddrinfo");
                     // TODO send reply
                     close_and_free_server(EV_A_ server);
