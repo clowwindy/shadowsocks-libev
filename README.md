@@ -1,6 +1,10 @@
 shadowsocks-libev
 ===========
 
+***This project is currently maintaineb by @madeye***
+
+***Please visit https://github.com/madeye/shadowsocks-libev***
+
 [![Build Status](https://travis-ci.org/clowwindy/shadowsocks-libev.png)](https://travis-ci.org/clowwindy/shadowsocks-libev)  
 Current Version: 0.1.3
 
