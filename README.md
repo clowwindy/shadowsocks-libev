@@ -1,7 +1,7 @@
 shadowsocks-libev
 ===========
 
-***This project is currently maintaineb by @madeye***
+***This project is currently maintained by @madeye***
 
 ***Please visit https://github.com/madeye/shadowsocks-libev***
 
