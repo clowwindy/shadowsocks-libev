@@ -9,12 +9,25 @@ proxy for embedded devices and low end boxes.
 
 It is a port of [shadowsocks](https://github.com/clowwindy/shadowsocks) 
 created by [@clowwindy](https://github.com/clowwindy) maintained by 
-[@madeye](https://github.com/madeye).
+[@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 1.3.2 [![Build Status](https://travis-ci.org/madeye/shadowsocks-libev.png?branch=master)](https://travis-ci.org/madeye/shadowsocks-libev)
+Current version: 1.4.0 | [![Build Status](https://travis-ci.org/madeye/shadowsocks-libev.png?branch=master)](https://travis-ci.org/madeye/shadowsocks-libev)
 
 Changelog
 ---------
+
+1.4.1 -- Tue, 12 Nov 2013 03:57:21 +0000
+
+  * Add multi-port support.
+  * Add PolarSSL support by @linusyang.
+
+1.4.0 -- Sun, 08 Sep 2013 02:20:40 +0000
+
+  * Add standard socks5 udp support.
+
+1.3.3 -- Fri, 21 Jun 2013 09:59:20 +0800
+
+  * Provide more info in verbose mode.
 
 1.3.2 -- Sun, 09 Jun 2013 09:52:31 +0000
 
@@ -47,7 +60,7 @@ Features
 
 Shadowsocks-libev is writen in pure C and only depends on
 [libev](http://software.schmorp.de/pkg/libev.html) and 
-[openssl](http://www.openssl.org/).
+[openssl](http://www.openssl.org/) or [polarssl](https://polarssl.org/).
 
 In normal usage, the memory consumption is about 600KB and the CPU utilization is 
 no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU, 
@@ -56,12 +69,111 @@ no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU
 Installation
 ------------
 
-Build the binary like this:
+__Note__: Default crypto library is OpenSSL. To build against PolarSSL,
+specify `--with-crypto-library=polarssl` and  `--with-polarssl=/path/to/polarssl`
+when running `./configure`.
+
+### Linux
+
+For Unix-like systems, especially Debian-based systems, 
+e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
-    sudo apt-get install build-essential autoconf libtool libssl-dev
-    ./configure && make
-    sudo make install
+sudo apt-get install build-essential autoconf libtool libssl-dev
+./configure && make
+sudo make install
+```
+
+### FreeBSD
+
+```bash
+su
+cd /usr/ports/net/shadowsocks-libev
+make install
+```
+
+Then add your configuration into /etc/rc.conf file:
+
+```
+# RECOMMENDED
+shadowsocks_libev_enable="YES"
+shadowsocks_libev_flags="-c /PATH/TO/CONFIG.JSON"
+```
+
+or you can omit the config.json file, specify arguments directly:
+
+```
+shadowsocks_libev_enable="YES"
+shadowsocks_libev_password="YOUR PASSWORD"
+shadowsocks_libev_port="1080"
+shadowsocks_libev_localport="7070"
+```
+
+Start the shadowsocks server:
+
+```bash
+service shadowsocks_libev start
+```
+
+### OpenWRT
+
+```bash
+# At OpenWRT build root
+pushd package
+git clone https://github.com/madeye/shadowsocks-libev.git
+popd
+
+# Enable shadowsocks-libev in network category 
+make menuconfig
+
+# Optional
+make -j
+
+# Build the package
+make V=99 package/shadowsocks-libev/openwrt/compile
+```
+
+### Windows
+
+For Windows, use either MinGW (msys) or Cygwin to build.
+At the moment, only `ss-local` is supported to build against MinGW (msys).
+
+If you are using MinGW (msys), please download OpenSSL or PolarSSL source tarball
+to the home directory of msys, and build it like this (may take a few minutes):
+
+* OpenSSL
+
+```bash
+tar zxf openssl-1.0.1e.tar.gz
+cd openssl-1.0.1e
+./config --prefix="$HOME/prebuilt" --openssldir="$HOME/prebuilt/openssl"
+make && make install
+```
+
+* PolarSSL
+
+```bash
+tar zxf polarssl-1.3.2-gpl.tgz
+cd polarssl-1.3.2
+make lib WINDOWS=1
+make install DESTDIR="$HOME/prebuilt"
+```
+
+Then, build the binary using the commands below, and all `.exe` files 
+will be built at `$HOME/ss/bin`:
+
+* OpenSSL
+
+```bash
+./configure --prefix="$HOME/ss" --with-openssl="$HOME/prebuilt"
+make && make install
+```
+
+* PolarSSL
+
+```bash
+./configure --prefix="$HOME/ss" --with-crypto-library=polarssl --with-polarssl=$HOME/prebuilt
+make && make install
 ```
 
 Usage
@@ -71,26 +183,27 @@ Usage
 usage:
 
 ss-[local|redir|server]
-      -s <server_host>        -p <server_port>
-      -l <local_port>         -k <password>
-      [-m <encrypt_method>]   [-f <pid_file>]
-      [-t <timeout>]          [-c <config_file>]
-      [-i <interface>]        [-b <local_address>]
+      -s <server_host>           host name or ip address of your remote server
+      -p <server_port>           port number of your remote server
+      -l <local_port>            port number of your local server
+      -k <password>              password of your remote server
 
-options:
+      [-m <encrypt_method>]      encrypt method, supporting table, rc4,
+                                 aes-128-cfb, aes-192-cfb, aes-256-cfb,
+                                 bf-cfb, camellia-128-cfb, camellia-192-cfb,
+                                 camellia-256-cfb, cast5-cfb, des-cfb,
+                                 idea-cfb, rc2-cfb and seed-cfb
+      [-f <pid_file>]            valid path to the pid file
+      [-t <timeout>]             socket timeout in seconds
+      [-c <config_file>]         json format config file
 
-encrypt_method:   table, rc4,
-                  aes-128-cfb, aes-192-cfb, aes-256-cfb,
-                  bf-cfb, camellia-128-cfb, camellia-192-cfb,
-                  camellia-256-cfb, cast5-cfb, des-cfb,
-                  idea-cfb, rc2-cfb and seed-cfb
-      pid_file:   valid path to the pid file
-       timeout:   socket timeout in senconds
-   config_file:   json format config file
-     interface:   specific network interface to bind,
-                  only avaliable in local and server modes
- local_address:   specific local address to bind,
-                  only avaliable in local and redir modes
+      [-i <interface>]           specific network interface to bind,
+                                 only avaliable in local and server modes
+      [-b <local_address>]       specific local address to bind,
+                                 only avaliable in local and redir modes
+      [-u]                       udprelay mode to supprot udp traffic
+                                 only avaliable in local and server modes
+      [-v]                       verbose mode, debug output in console
 
 notes:
 

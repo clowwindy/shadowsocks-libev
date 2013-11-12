@@ -4,10 +4,18 @@
 #define MAX_REMOTE_NUM 10
 #define MAX_CONF_SIZE 16 * 1024
 #define DNS_THREAD_NUM 4
+#define MAX_UDP_CONN_NUM 4096
 
-typedef struct {
+typedef struct
+{
+    char *host;
+    char *port;
+} remote_addr_t;
+
+typedef struct
+{
     int  remote_num;
-    char *remote_host[MAX_REMOTE_NUM];
+    remote_addr_t remote_addr[MAX_REMOTE_NUM];
     char *remote_port;
     char *local_port;
     char *password;
