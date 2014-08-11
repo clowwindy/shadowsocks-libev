@@ -1,0 +1,12 @@
+[Unit]
+Description=Shadowsocks Server
+After=network.target 
+
+[Service]
+Type=forking
+PIDFile=/run/ss-server.pid
+ExecStart=/usr/local/bin/ss-server -c /etc/shadowsocks/shadowsocks.json -f /var/run/ss-server.pid
+ExecStopPost=/usr/bin/rm -f /var/run/ss-server.pid
+
+[Install]
+WantedBy=multi-user.target
