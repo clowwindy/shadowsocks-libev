@@ -1,7 +1,7 @@
 /*
  * cache.c - Define the cache manager interface
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -30,31 +30,29 @@
 
 #include "uthash.h"
 
-#define KEY_MAX_LENGTH		32
+#define KEY_MAX_LENGTH          32
 
 /**
  * A cache entry
  */
-struct cache_entry
-{
-    char *key; /**<The key */
-    void *data; /**<Payload */
+struct cache_entry {
+    char *key;         /**<The key */
+    void *data;        /**<Payload */
     UT_hash_handle hh; /**<Hash Handle for uthash */
 };
 
 /**
  * A cache object
  */
-struct cache
-{
-    size_t max_entries; /**<Amount of entries this cache object can hold */
-    struct cache_entry *entries; /**<Head pointer for uthash */
-    void (*free_cb) (void *element);/**<Callback function to free cache entries */
+struct cache {
+    size_t max_entries;              /**<Amount of entries this cache object can hold */
+    struct cache_entry *entries;     /**<Head pointer for uthash */
+    void (*free_cb) (void *element); /**<Callback function to free cache entries */
 };
 
 
 extern int cache_create(struct cache **dst, const size_t capacity,
-                        void (*free_cb) (void *element));
+                        void (*free_cb)(void *element));
 extern int cache_delete(struct cache *cache, int keep_data);
 extern int cache_lookup(struct cache *cache, char *key, void *result);
 extern int cache_insert(struct cache *cache, char *key, void *data);

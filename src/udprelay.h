@@ -1,7 +1,7 @@
 /*
  * udprelay.h - Define UDP relay's buffers and callbacks
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -30,46 +30,37 @@
 #include "jconf.h"
 
 #ifdef UDPRELAY_REMOTE
-#include "asyncns.h"
+#include "resolv.h"
 #endif
 
 #include "cache.h"
 
-#include "include.h"
+#include "common.h"
 
 #define MAX_UDP_PACKET_SIZE (64 * 1024)
 
-struct server_ctx
-{
+struct server_ctx {
     ev_io io;
     int fd;
     int method;
     int timeout;
     const char *iface;
     struct cache *conn_cache;
-    char *buf; // server send from, remote recv into
-#ifdef UDPRELAY_REMOTE
-    asyncns_t *asyncns;
-#endif
 #ifdef UDPRELAY_LOCAL
-    const char *remote_host;
-    const char *remote_port;
+    const struct sockaddr *remote_addr;
+    int remote_addr_len;
 #ifdef UDPRELAY_TUNNEL
     ss_addr_t tunnel_addr;
 #endif
 #endif
+#ifdef UDPRELAY_REMOTE
+    struct ev_loop *loop;
+#endif
 };
 
 #ifdef UDPRELAY_REMOTE
-struct resolve_ctx
-{
-    ev_io io;
-    asyncns_t *asyncns;
-};
-
-struct query_ctx
-{
-    asyncns_query_t *query;
+struct query_ctx {
+    struct ResolvQuery *query;
     struct sockaddr_storage src_addr;
     int buf_len;
     char *buf; // server send from, remote recv into
@@ -79,8 +70,7 @@ struct query_ctx
 };
 #endif
 
-struct remote_ctx
-{
+struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int fd;
@@ -90,16 +80,5 @@ struct remote_ctx
     struct sockaddr_storage dst_addr;
     struct server_ctx *server_ctx;
 };
-
-static void server_recv_cb (EV_P_ ev_io *w, int revents);
-static void remote_recv_cb (EV_P_ ev_io *w, int revents);
-static void remote_timeout_cb(EV_P_ ev_timer *watcher, int revents);
-static char *hash_key(const char *header, const int header_len, const struct sockaddr_storage *addr);
-#ifdef UDPRELAY_REMOTE
-static void query_resolve_cb(EV_P_ ev_io *w, int revents);
-#endif
-static void close_and_free_remote(EV_P_ struct remote_ctx *ctx);
-
-static struct remote_ctx* new_remote(int fd, struct server_ctx* server_ctx);
 
 #endif // _UDPRELAY_H

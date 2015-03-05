@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -31,7 +31,6 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include "utils.h"
 
 #ifdef EWOULDBLOCK
 #undef EWOULDBLOCK
@@ -45,11 +44,28 @@
 #undef ERROR
 #endif
 
+#ifndef AI_ALL
+#define AI_ALL 0x00000100
+#endif
+
+#ifndef AI_ADDRCONFIG
+#define AI_ADDRCONFIG 0x00000400
+#endif
+
+#ifndef AI_V4MAPPED
+#define AI_V4MAPPED 0x00000800
+#endif
+
+#ifndef IPV6_V6ONLY
+#define IPV6_V6ONLY 27 // Treat wildcard bind as AF_INET6-only.
+#endif
+
+
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define errno WSAGetLastError()
 #define close(fd) closesocket(fd)
 #define ERROR(s) ss_error(s)
-#define setsockopt(a, b, c, d, e) setsockopt(a, b, c, (char *) (d), e)
+#define setsockopt(a, b, c, d, e) setsockopt(a, b, c, (char *)(d), e)
 
 void winsock_init(void);
 void winsock_cleanup(void);

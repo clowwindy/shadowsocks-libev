@@ -1,7 +1,7 @@
 /*
  * encrypt.h - Define the enryptor's interface
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,14 +16,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _ENCRYPT_H
 #define _ENCRYPT_H
-
-#include "config.h"
 
 #ifndef __MINGW32__
 #include <sys/socket.h>
@@ -42,6 +40,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #if defined(USE_CRYPTO_OPENSSL)
 
@@ -74,8 +73,7 @@ typedef md_info_t digest_type_t;
 #define kCCContextValid 0
 #define kCCContextInvalid -1
 
-typedef struct
-{
+typedef struct {
     CCCryptorRef cryptor;
     int valid;
     CCOperation encrypt;
@@ -90,12 +88,12 @@ typedef struct
 
 #endif
 
-typedef struct
-{
+typedef struct {
     cipher_evp_t evp;
 #ifdef USE_CRYPTO_APPLECC
     cipher_cc_t cc;
 #endif
+    uint8_t iv[MAX_IV_LENGTH];
 } cipher_ctx_t;
 
 #ifdef HAVE_STDINT_H
@@ -104,9 +102,9 @@ typedef struct
 #include <inttypes.h>
 #endif
 
-#define BLOCK_SIZE 32
+#define SODIUM_BLOCK_SIZE   64
+#define CIPHER_NUM          17
 
-#define CIPHER_NUM          15
 #define NONE                -1
 #define TABLE               0
 #define RC4                 1
@@ -123,20 +121,24 @@ typedef struct
 #define IDEA_CFB            12
 #define RC2_CFB             13
 #define SEED_CFB            14
+#define SALSA20             15
+#define CHACHA20            16
 
-#define min(a,b) (((a)<(b))?(a):(b))
-#define max(a,b) (((a)>(b))?(a):(b))
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 
-struct enc_ctx
-{
+struct enc_ctx {
     uint8_t init;
+    uint64_t counter;
     cipher_ctx_t evp;
 };
 
-char* ss_encrypt_all(int buf_size, char *plaintext, ssize_t *len, int method);
-char* ss_decrypt_all(int buf_size, char *ciphertext, ssize_t *len, int method);
-char* ss_encrypt(int buf_size, char *plaintext, ssize_t *len, struct enc_ctx *ctx);
-char* ss_decrypt(int buf_size, char *ciphertext, ssize_t *len, struct enc_ctx *ctx);
+char * ss_encrypt_all(int buf_size, char *plaintext, ssize_t *len, int method);
+char * ss_decrypt_all(int buf_size, char *ciphertext, ssize_t *len, int method);
+char * ss_encrypt(int buf_size, char *plaintext, ssize_t *len,
+                  struct enc_ctx *ctx);
+char * ss_decrypt(int buf_size, char *ciphertext, ssize_t *len,
+                  struct enc_ctx *ctx);
 void enc_ctx_init(int method, struct enc_ctx *ctx, int enc);
 int enc_init(const char *pass, const char *method);
 int enc_get_iv_len(void);

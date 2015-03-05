@@ -2,12 +2,22 @@ dnl                                               -*- Autoconf -*-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([shadowsocks], [1.4.8], [max.c.lv@gmail.com])
+AC_INIT([shadowsocks-libev], [2.1.4], [max.c.lv@gmail.com])
 AC_CONFIG_SRCDIR([src/encrypt.c])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_AUX_DIR(auto)
+AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([subdir-objects foreign -Wall -Werror])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+AM_MAINTAINER_MODE
+AM_DEP_TRACK
+
+dnl Checks for lib
+AC_DISABLE_STATIC
+AC_DISABLE_SHARED
+LT_INIT([dlopen])
 
 dnl Checks for crypto library
 AC_ARG_WITH(
@@ -24,12 +34,12 @@ AC_ARG_WITH(
 
 dnl Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
 AC_PROG_LN_S
+AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_LANG_SOURCE
-AM_PROG_CC_C_O
 
 dnl Checks for libev
 m4_include([libev/libev.m4])
@@ -37,7 +47,7 @@ m4_include([libev/libev.m4])
 dnl Add library for mingw
 case $host in
   *-mingw*)
-    LIBS="$LIBS -lgdi32 -lws2_32 -lcrypt32"
+    LIBS="$LIBS -ladvapi32 -lgdi32 -lws2_32 -lcrypt32"
     ;;
   *)
     ;;
@@ -70,18 +80,6 @@ AC_ARG_ENABLE(applecc,
   ]
 )
 
-dnl Enable building a libshadowsocks. Useful for Windows and OSX GUI clients
-AC_ARG_ENABLE(lib,
-  AS_HELP_STRING([--enable-lib], [build a libshadowsocks]),
-  [
-    AS_IF([test "x$enableval" = "xyes"], [enable_lib="yes"], [enable_lib="no"])
-  ],
-  [
-    enable_lib="no"
-  ]
-)
-AM_CONDITIONAL([BUILD_LIB], [test x$enable_lib = xyes])
-
 dnl Checks for inet_ntop
 ss_FUNC_INET_NTOP
 
@@ -111,16 +109,7 @@ AM_CONDITIONAL(BUILD_REDIRECTOR, test "$os_support" = "linux")
 AM_CONDITIONAL(BUILD_WINCOMPAT, test "$os_support" = "mingw")
 
 dnl Checks for header files.
-AC_CHECK_HEADERS([stdint.h inttypes.h arpa/inet.h fcntl.h langinfo.h locale.h netdb.h netinet/in.h stdlib.h string.h strings.h unistd.h sys/ioctl.h])
-
-case $host in
-  *-mingw*)
-    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
-    ;;
-  *)
-    # These are POSIX-like systems using BSD-like sockets API.
-    ;;
-esac
+AC_CHECK_HEADERS([limits.h stdint.h inttypes.h arpa/inet.h fcntl.h langinfo.h locale.h netdb.h netinet/in.h stdlib.h string.h strings.h unistd.h sys/ioctl.h])
 
 dnl A special check required for <net/if.h> on Darwin. See
 dnl http://www.gnu.org/software/autoconf/manual/html_node/Header-Portability.html.
@@ -140,6 +129,35 @@ AC_CHECK_HEADERS([net/if.h], [], [],
 # include <sys/socket.h>
 #endif
 ])
+
+case $host in
+  *-mingw*)
+    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
+    ;;
+  *-linux*)
+    dnl Checks for netfilter headers
+    AC_CHECK_HEADERS([linux/if.h linux/netfilter_ipv4.h linux/netfilter_ipv6/ip6_tables.h],
+                     [], [AC_MSG_ERROR([Missing netfilter headers])],
+    [[
+    #if HAVE_LIMITS_H
+    #include <limits.h>
+    #endif
+    /* Netfilter ip(6)tables v1.4.0 has broken headers */
+    #if HAVE_NETINET_IN_H
+    #include <netinet/in.h>
+    #endif
+    #if HAVE_LINUX_IF_H
+    #include <net/if.h>
+    #endif
+    #if HAVE_SYS_SOCKET_H
+    #include <sys/socket.h>
+    #endif
+    ]])
+    ;;
+  *)
+    # These are POSIX-like systems using BSD-like sockets API.
+    ;;
+esac
 
 AC_C_BIGENDIAN
 
@@ -201,14 +219,13 @@ AC_CHECK_FUNCS([malloc memset socket])
 
 ACX_PTHREAD
 
-LT_INIT([dlopen])
+AC_CONFIG_SUBDIRS([libsodium])
 
-AC_CONFIG_MACRO_DIR([m4])
-
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([ shadowsocks-libev.pc
+                 Makefile
                  libcork/Makefile
                  libipset/Makefile
-                 libasyncns/Makefile
+                 libudns/Makefile
                  libev/Makefile
                  src/Makefile])
 AC_OUTPUT

@@ -1,7 +1,7 @@
 /*
  * server.h - Define shadowsocks server's buffers and callbacks
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -25,57 +25,55 @@
 
 #include <ev.h>
 #include <time.h>
+#include <libcork/ds.h>
 
 #include "encrypt.h"
 #include "jconf.h"
-#include "asyncns.h"
+#include "resolv.h"
 
-#include "include.h"
+#include "common.h"
 
-struct listen_ctx
-{
+struct listen_ctx {
     ev_io io;
     int fd;
     int timeout;
     int method;
     char *iface;
-    asyncns_t *asyncns;
-    struct sockaddr sock;
+    struct ev_loop *loop;
 };
 
-struct server_ctx
-{
+struct server_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct server *server;
 };
 
-struct server
-{
+struct server {
     int fd;
     int stage;
     ssize_t buf_len;
     ssize_t buf_idx;
     char *buf; // server send from, remote recv into
-    asyncns_query_t *query;
     struct enc_ctx *e_ctx;
     struct enc_ctx *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct listen_ctx *listen_ctx;
     struct remote *remote;
+
+    struct ResolvQuery *query;
+
+    struct cork_dllist_item entries;
 };
 
-struct remote_ctx
-{
+struct remote_ctx {
     ev_io io;
     int connected;
     struct remote *remote;
 };
 
-struct remote
-{
+struct remote {
     int fd;
     ssize_t buf_len;
     ssize_t buf_idx;
@@ -84,22 +82,5 @@ struct remote
     struct remote_ctx *send_ctx;
     struct server *server;
 };
-
-
-static void accept_cb (EV_P_ ev_io *w, int revents);
-static void server_recv_cb (EV_P_ ev_io *w, int revents);
-static void server_send_cb (EV_P_ ev_io *w, int revents);
-static void remote_recv_cb (EV_P_ ev_io *w, int revents);
-static void remote_send_cb (EV_P_ ev_io *w, int revents);
-static void server_resolve_cb(EV_P_ ev_io *w, int revents);
-static void server_timeout_cb(EV_P_ ev_timer *watcher, int revents);
-
-struct remote* new_remote(int fd);
-struct remote *connect_to_remote(struct addrinfo *res, const char *iface);
-void free_remote(struct remote *remote);
-void close_and_free_remote(EV_P_ struct remote *remote);
-struct server* new_server(int fd, struct listen_ctx *listener);
-void free_server(struct server *server);
-void close_and_free_server(EV_P_ struct server *server);
 
 #endif // _SERVER_H
