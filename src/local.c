@@ -94,6 +94,8 @@ static int nofile = 0;
 #endif
 #endif
 
+static int auth = 0;
+
 static void server_recv_cb(EV_P_ ev_io *w, int revents);
 static void server_send_cb(EV_P_ ev_io *w, int revents);
 static void remote_recv_cb(EV_P_ ev_io *w, int revents);
@@ -240,6 +242,10 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 LOGE("invalid remote");
                 close_and_free_server(EV_A_ server);
                 return;
+            }
+
+            if (remote->send_ctx->connected && auth) {
+                remote->buf = ss_gen_crc(remote->buf, &r, remote->crc_buf, &remote->crc_idx, BUF_SIZE);
             }
 
             // insert shadowsocks header
@@ -469,7 +475,18 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
 
                 if (!remote->direct) {
+                    if (auth) {
+                        ss_addr_to_send[0] |= ONETIMEAUTH_FLAG;
+                        ss_onetimeauth(ss_addr_to_send + addr_len, ss_addr_to_send, addr_len, server->e_ctx);
+                        addr_len += ONETIMEAUTH_BYTES;
+                    }
+
                     memcpy(remote->buf, ss_addr_to_send, addr_len);
+
+                    if (auth) {
+                        buf = ss_gen_crc(buf, &r, remote->crc_buf, &remote->crc_idx, BUF_SIZE);
+                    }
+
                     if (r > 0) {
                         memcpy(remote->buf + addr_len, buf, r);
                     }
@@ -921,10 +938,10 @@ int main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:uvV",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:uvVA",
                             long_options, &option_index)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:uv",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:uvA",
                             long_options, &option_index)) != -1) {
 #endif
         switch (c) {
@@ -978,6 +995,9 @@ int main(int argc, char **argv)
             break;
         case 'v':
             verbose = 1;
+            break;
+        case 'A':
+            auth = 1;
             break;
 #ifdef ANDROID
         case 'V':
@@ -1125,6 +1145,10 @@ int main(int argc, char **argv)
 
     ev_io_init(&listen_ctx.io, accept_cb, listenfd, EV_READ);
     ev_io_start(loop, &listen_ctx.io);
+
+    if (auth) {
+        LOGI("onetime authentication enabled");
+    }
 
     // Setup UDP
     if (mode != TCP_ONLY) {

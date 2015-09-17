@@ -248,6 +248,9 @@ void usage()
         "                                  not available in local mode\n");
     printf("\n");
     printf(
+        "       [-A]                       enable onetime authentication\n");
+    printf("\n");
+    printf(
         "       [-L <addr>:<port>]         specify destination server address and port\n");
     printf(
         "                                  for local port forwarding,\n");
@@ -272,7 +275,7 @@ void usage()
         "                                  only available in local and server mode\n");
     printf("\n");
     printf(
-        "       [--manager_address <addr>] UNIX domain socket address\n");
+        "       [--manager-address <addr>] UNIX domain socket address\n");
     printf(
         "                                  only available in server and manager mode\n");
     printf("\n");

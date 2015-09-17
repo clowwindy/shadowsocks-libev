@@ -140,6 +140,14 @@ typedef struct {
 #define SALSA20             15
 #define CHACHA20            16
 
+#define ONETIMEAUTH_BYTES 16U
+#define ONETIMEAUTH_KEYBYTES 32U
+
+#define ONETIMEAUTH_FLAG 0x10
+#define ADDRTYPE_MASK 0xF
+
+#define CRC_BUF_LEN 128
+
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -160,5 +168,11 @@ int enc_init(const char *pass, const char *method);
 int enc_get_iv_len(void);
 void cipher_context_release(cipher_ctx_t *evp);
 unsigned char *enc_md5(const unsigned char *d, size_t n, unsigned char *md);
+
+int ss_onetimeauth(char *auth, char *msg, int msg_len, struct enc_ctx *ctx);
+int ss_onetimeauth_verify(char *auth, char *msg, int msg_len, struct enc_ctx *ctx);
+
+int ss_check_crc(char *buf, ssize_t *buf_len, char *crc_buf, ssize_t *crc_idx);
+char * ss_gen_crc(char *buf, ssize_t *buf_len, char *crc_buf, ssize_t *crc_idx, int buf_size);
 
 #endif // _ENCRYPT_H
