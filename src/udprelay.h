@@ -37,12 +37,15 @@
 
 #include "common.h"
 
-#define MAX_UDP_PACKET_SIZE (64 * 1024)
+#define MAX_UDP_PACKET_SIZE (65507)
+
+#define MTU 1397 // 1492 - 1 - 28 - 2 - 64 = 1397, the default MTU for UDP relay
 
 struct server_ctx {
     ev_io io;
     int fd;
     int method;
+    int auth;
     int timeout;
     const char *iface;
     struct cache *conn_cache;
@@ -67,19 +70,29 @@ struct query_ctx {
     int addr_header_len;
     char addr_header[384];
     struct server_ctx *server_ctx;
+    struct remote_ctx *remote_ctx;
 };
 #endif
 
 struct remote_ctx {
     ev_io io;
     ev_timer watcher;
+    int af;
     int fd;
-    int src_fd;
     int addr_header_len;
     char addr_header[384];
     struct sockaddr_storage src_addr;
-    struct sockaddr_storage dst_addr;
     struct server_ctx *server_ctx;
 };
+
+#ifdef ANDROID
+struct protect_ctx {
+    int buf_len;
+    char *buf;
+    struct sockaddr_storage addr;
+    int addr_len;
+    struct remote_ctx *remote_ctx;
+};
+#endif
 
 #endif // _UDPRELAY_H

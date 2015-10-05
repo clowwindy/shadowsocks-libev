@@ -11,7 +11,7 @@ It is a port of [shadowsocks](https://github.com/shadowsocks/shadowsocks)
 created by [@clowwindy](https://github.com/clowwindy) maintained by 
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 2.2.2 | [Changelog](Changes)
+Current version: 2.4.0 | [Changelog](debian/changelog)
 
 Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.png?branch=master)](https://travis-ci.org/shadowsocks/shadowsocks-libev) | Jenkins Matrix: [![Jenkins](https://jenkins.shadowvpn.org/buildStatus/icon?job=Shadowsocks-libev)](https://jenkins.shadowvpn.org/job/Shadowsocks-libev/)
 
@@ -67,10 +67,25 @@ sudo apt-get install shadowsocks-libev
 
 #### Build package from source
 
+Supported Platforms:
+
+* Debian 7 (see below), 8, unstable
+* Ubuntu 14.10, 15.04 or higher
+
+To build packages on Debian 7 (Wheezy), you need to enable `debian-backports`
+to install systemd-compatibility packages like `dh-systemd` or `init-system-helpers`.
+
+This also means that you can only install those built packages on systems that have
+`init-system-helpers` installed.
+
+Otherwise, try to build and install directly from source. See the **Linux**
+section below.
+
 ``` bash
 cd shadowsocks-libev
-sudo apt-get install build-essential autoconf libtool libssl-dev gawk debhelper
-dpkg-buildpackage -us -uc
+sudo apt-get install build-essential autoconf libtool libssl-dev \
+    gawk debhelper dh-systemd init-system-helpers
+dpkg-buildpackage -us -uc -i
 cd ..
 sudo dpkg -i shadowsocks-libev*.deb
 ```
@@ -78,11 +93,15 @@ sudo dpkg -i shadowsocks-libev*.deb
 #### Configure and start the service
 
 ```
-# Edit the configuration
+# Edit the configuration file
 sudo vim /etc/shadowsocks-libev/config.json
 
+# Edit the default configuration for debian
+sudo vim /etc/default/shadowsocks-libev
+
 # Start the service
-sudo /etc/init.d/shadowsocks-libev start
+sudo /etc/init.d/shadowsocks-libev start    # for sysvinit, or
+sudo systemctl start shasowsocks-libev      # for systemd
 ```
 
 ### Fedora & RHEL
@@ -258,6 +277,11 @@ Usage
        [-u]                       enable udprelay mode,
                                   TPROXY is required in redir mode
 
+       [-U]                       enable UDP relay and disable TCP relay,
+                                  not available in local mode
+
+       [-A]                       enable onetime authentication
+
        [-L <addr>:<port>]         specify destination server address and port
                                   for local port forwarding,
                                   only available in tunnel mode
@@ -271,6 +295,12 @@ Usage
 
        [--acl <acl_file>]         config file of ACL (Access Control List)
                                   only available in local and server mode
+
+       [--manager-address <addr>] UNIX domain socket address
+                                  only available in server and manager mode
+
+       [--executable <path>]      path to the executable of ss-server
+                                  only available in manager mode
 
        [-v]                       verbose mode
 

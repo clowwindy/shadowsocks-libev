@@ -19,11 +19,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _INCLUDE_H
-#define _INCLUDE_H
+#ifndef _COMMON_H
+#define _COMMON_H
 
 // only enable TCP_FASTOPEN on linux
-#if __linux
+#if defined(__linux__)
 
 /*  conditional define for TCP_FASTOPEN */
 #ifndef TCP_FASTOPEN
@@ -35,13 +35,23 @@
 #define MSG_FASTOPEN   0x20000000
 #endif
 
+#else
+
+#ifdef TCP_FASTOPEN
+#undef TCP_FASTOPEN
 #endif
 
-#define DEFAULT_CONF_PATH "/etc/shadowsocks/config.json"
+#endif
+
+#define DEFAULT_CONF_PATH "/etc/shadowsocks-libev/config.json"
 
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
 #endif
+
+#define TCP_ONLY     0
+#define TCP_AND_UDP  1
+#define UDP_ONLY     3
 
 int init_udprelay(const char *server_host, const char *server_port,
 #ifdef UDPRELAY_LOCAL
@@ -50,8 +60,12 @@ int init_udprelay(const char *server_host, const char *server_port,
                   const ss_addr_t tunnel_addr,
 #endif
 #endif
-                  int method, int timeout, const char *iface);
+                  int method, int auth, int timeout, const char *iface);
 
 void free_udprelay(void);
 
-#endif // _INCLUDE_H
+#ifdef ANDROID
+int protect_socket(int fd);
+#endif
+
+#endif // _COMMON_H

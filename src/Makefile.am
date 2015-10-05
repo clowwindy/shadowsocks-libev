@@ -1,13 +1,12 @@
 VERSION_INFO = 1:0:0
 
 AM_CFLAGS = -g -O2 -Wall -Werror -Wno-deprecated-declarations -fno-strict-aliasing -std=gnu99 -D_GNU_SOURCE
+AM_CFLAGS += $(PTHREAD_CFLAGS)
 AM_CFLAGS += -I$(top_srcdir)/libev
 AM_CFLAGS += -I$(top_srcdir)/libudns
 AM_CFLAGS += -I$(top_srcdir)/libipset/include
 AM_CFLAGS += -I$(top_srcdir)/libcork/include
 AM_CFLAGS += -I$(top_srcdir)/libsodium/src/libsodium/include
-
-AM_LDFLAGS = -static
 
 SS_COMMON_LIBS = $(top_builddir)/libev/libev.la \
 				 $(top_builddir)/libipset/libipset.la \
@@ -17,7 +16,7 @@ SS_COMMON_LIBS = $(top_builddir)/libev/libev.la \
 
 bin_PROGRAMS = ss-local ss-tunnel
 if !BUILD_WINCOMPAT
-bin_PROGRAMS += ss-server
+bin_PROGRAMS += ss-server ss-manager
 endif
 
 ss_local_SOURCES = utils.c \
@@ -28,6 +27,7 @@ ss_local_SOURCES = utils.c \
 				   cache.c \
 				   acl.c \
 				   netutils.c \
+				   hmac-sha1.c \
 				   local.c
 
 ss_tunnel_SOURCES = utils.c \
@@ -37,6 +37,7 @@ ss_tunnel_SOURCES = utils.c \
 					udprelay.c \
 					cache.c \
 					netutils.c \
+					hmac-sha1.c \
 					tunnel.c
 
 ss_server_SOURCES = utils.c \
@@ -48,11 +49,18 @@ ss_server_SOURCES = utils.c \
 					cache.c \
 					acl.c \
 					resolv.c \
+					hmac-sha1.c \
                     server.c
+
+ss_manager_SOURCES = utils.c \
+                     jconf.c \
+                     json.c \
+                     manager.c
 
 ss_local_LDADD = $(SS_COMMON_LIBS)
 ss_tunnel_LDADD = $(SS_COMMON_LIBS)
 ss_server_LDADD = $(SS_COMMON_LIBS)
+ss_manager_LDADD = $(SS_COMMON_LIBS)
 ss_local_LDADD += $(top_builddir)/libudns/libudns.la
 ss_tunnel_LDADD += $(top_builddir)/libudns/libudns.la
 ss_server_LDADD += $(top_builddir)/libudns/libudns.la
@@ -75,6 +83,7 @@ ss_redir_SOURCES = utils.c \
 				   netutils.c \
 				   cache.c \
 				   udprelay.c \
+				   hmac-sha1.c \
                    redir.c
 ss_redir_CFLAGS = $(AM_CFLAGS) -DUDPRELAY_REDIR -DUDPRELAY_LOCAL
 ss_redir_LDADD = $(SS_COMMON_LIBS)

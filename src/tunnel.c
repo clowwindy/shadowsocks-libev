@@ -85,8 +85,13 @@ static void close_and_free_remote(EV_P_ struct remote *remote);
 static void free_server(struct server *server);
 static void close_and_free_server(EV_P_ struct server *server);
 
+#ifdef ANDROID
+int vpn = 0;
+#endif
 int verbose = 0;
-int udprelay = 0;
+
+static int mode = TCP_ONLY;
+static int auth = 0;
 
 #ifndef __MINGW32__
 static int setnonblocking(int fd)
@@ -189,6 +194,10 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_server(EV_A_ server);
             return;
         }
+    }
+
+    if (auth) {
+        remote->buf = ss_gen_hash(remote->buf, &r, &remote->counter, server->e_ctx, BUF_SIZE);
     }
 
     remote->buf = ss_encrypt(BUF_SIZE, remote->buf, &r, server->e_ctx);
@@ -405,6 +414,12 @@ static void remote_send_cb(EV_P_ ev_io *w, int revents)
             memcpy(ss_addr_to_send + addr_len, &port, 2);
             addr_len += 2;
 
+            if (auth) {
+                ss_addr_to_send[0] |= ONETIMEAUTH_FLAG;
+                ss_onetimeauth(ss_addr_to_send + addr_len, ss_addr_to_send, addr_len, server->e_ctx->evp.iv);
+                addr_len += ONETIMEAUTH_BYTES;
+            }
+
             ss_addr_to_send = ss_encrypt(BUF_SIZE, ss_addr_to_send, &addr_len,
                                          server->e_ctx);
             if (ss_addr_to_send == NULL) {
@@ -474,6 +489,9 @@ static struct remote * new_remote(int fd, int timeout)
 {
     struct remote *remote;
     remote = malloc(sizeof(struct remote));
+
+    memset(remote, 0, sizeof(struct remote));
+
     remote->buf = malloc(BUF_SIZE);
     remote->recv_ctx = malloc(sizeof(struct remote_ctx));
     remote->send_ctx = malloc(sizeof(struct remote_ctx));
@@ -481,9 +499,7 @@ static struct remote * new_remote(int fd, int timeout)
     ev_io_init(&remote->recv_ctx->io, remote_recv_cb, fd, EV_READ);
     ev_io_init(&remote->send_ctx->io, remote_send_cb, fd, EV_WRITE);
     ev_timer_init(&remote->send_ctx->watcher, remote_timeout_cb,
-                  min(MAX_CONNECT_TIMEOUT,
-                      timeout),
-                  0);
+                  min(MAX_CONNECT_TIMEOUT, timeout), 0);
     remote->recv_ctx->remote = remote;
     remote->recv_ctx->connected = 0;
     remote->send_ctx->remote = remote;
@@ -604,6 +620,16 @@ static void accept_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+#ifdef ANDROID
+    if (vpn) {
+        if (protect_socket(remotefd) == -1) {
+            ERROR("protect_socket");
+            close(remotefd);
+            return;
+        }
+    }
+#endif
+
     setsockopt(remotefd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
@@ -622,6 +648,7 @@ static void accept_cb(EV_P_ ev_io *w, int revents)
     server->destaddr = listener->tunnel_addr;
     server->remote = remote;
     remote->server = server;
+
     connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
@@ -654,7 +681,11 @@ int main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:uv")) != -1) {
+#ifdef ANDROID
+    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:uUvVA")) != -1) {
+#else
+    while ((c = getopt(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:uUvA")) != -1) {
+#endif
         switch (c) {
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -691,7 +722,10 @@ int main(int argc, char **argv)
             local_addr = optarg;
             break;
         case 'u':
-            udprelay = 1;
+            mode = TCP_AND_UDP;
+            break;
+        case 'U':
+            mode = UDP_ONLY;
             break;
         case 'L':
             tunnel_addr_str = optarg;
@@ -702,6 +736,14 @@ int main(int argc, char **argv)
         case 'v':
             verbose = 1;
             break;
+        case 'A':
+            auth = 1;
+            break;
+#ifdef ANDROID
+        case 'V':
+            vpn = 1;
+            break;
+#endif
         }
     }
 
@@ -742,6 +784,9 @@ int main(int argc, char **argv)
         if (timeout == NULL) {
             timeout = conf->timeout;
         }
+        if (auth == 0) {
+            auth = conf->auth;
+        }
     }
 
     if (remote_num == 0 || remote_port == NULL || tunnel_addr_str == NULL ||
@@ -751,7 +796,7 @@ int main(int argc, char **argv)
     }
 
     if (timeout == NULL) {
-        timeout = "10";
+        timeout = "60";
     }
 
     if (local_addr == NULL) {
@@ -761,6 +806,10 @@ int main(int argc, char **argv)
     if (pid_flags) {
         USE_SYSLOG(argv[0]);
         daemonize(pid_path);
+    }
+
+    if (auth) {
+        LOGI("onetime authentication enabled");
     }
 
     // parse tunnel addr
@@ -782,18 +831,6 @@ int main(int argc, char **argv)
     LOGI("initialize ciphers... %s", method);
     int m = enc_init(password, method);
 
-    // Setup socket
-    int listenfd;
-    listenfd = create_and_bind(local_addr, local_port);
-    if (listenfd < 0) {
-        FATAL("bind() error:");
-    }
-    if (listen(listenfd, SOMAXCONN) == -1) {
-        FATAL("listen() error:");
-    }
-    setnonblocking(listenfd);
-    LOGI("listening at %s:%s", local_addr, local_port);
-
     // Setup proxy context
     struct listen_ctx listen_ctx;
     listen_ctx.tunnel_addr = tunnel_addr;
@@ -811,21 +848,42 @@ int main(int argc, char **argv)
         listen_ctx.remote_addr[i] = (struct sockaddr *)storage;
     }
     listen_ctx.timeout = atoi(timeout);
-    listen_ctx.fd = listenfd;
     listen_ctx.iface = iface;
     listen_ctx.method = m;
 
     struct ev_loop *loop = EV_DEFAULT;
-    ev_io_init(&listen_ctx.io, accept_cb, listenfd, EV_READ);
-    ev_io_start(loop, &listen_ctx.io);
+
+    if (mode != UDP_ONLY) {
+        // Setup socket
+        int listenfd;
+        listenfd = create_and_bind(local_addr, local_port);
+        if (listenfd < 0) {
+            FATAL("bind() error:");
+        }
+        if (listen(listenfd, SOMAXCONN) == -1) {
+            FATAL("listen() error:");
+        }
+        setnonblocking(listenfd);
+
+        listen_ctx.fd = listenfd;
+
+        ev_io_init(&listen_ctx.io, accept_cb, listenfd, EV_READ);
+        ev_io_start(loop, &listen_ctx.io);
+    }
 
     // Setup UDP
-    if (udprelay) {
-        LOGI("udprelay enabled");
+    if (mode != TCP_ONLY) {
+        LOGI("UDP relay enabled");
         init_udprelay(local_addr, local_port, listen_ctx.remote_addr[0],
                       get_sockaddr_len(listen_ctx.remote_addr[0]),
-                      tunnel_addr, m, listen_ctx.timeout, iface);
+                      tunnel_addr, m, auth, listen_ctx.timeout, iface);
     }
+
+    if (mode == UDP_ONLY) {
+        LOGI("TCP relay disabled");
+    }
+
+    LOGI("listening at %s:%s", local_addr, local_port);
 
     // setuid
     if (user != NULL) {

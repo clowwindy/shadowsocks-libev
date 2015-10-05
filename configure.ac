@@ -2,7 +2,7 @@ dnl                                               -*- Autoconf -*-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
-AC_INIT([shadowsocks-libev], [2.2.2], [max.c.lv@gmail.com])
+AC_INIT([shadowsocks-libev], [2.4.0], [max.c.lv@gmail.com])
 AC_CONFIG_SRCDIR([src/encrypt.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(auto)
@@ -22,10 +22,10 @@ LT_INIT([dlopen])
 dnl Checks for crypto library
 AC_ARG_WITH(
   [crypto-library],
-  [AS_HELP_STRING([--with-crypto-library=library], [build with the given crypto library, TYPE=openssl|polarssl @<:@default=openssl@:>@])],
+  [AS_HELP_STRING([--with-crypto-library=library], [build with the given crypto library, TYPE=openssl|polarssl|mbedtls @<:@default=openssl@:>@])],
   [
     case "${withval}" in
-      openssl|polarssl) ;;
+      openssl|polarssl|mbedtls) ;;
       *) AC_MSG_ERROR([bad value ${withval} for --with-crypto-library]) ;;
     esac
   ],
@@ -53,15 +53,23 @@ case $host in
     ;;
 esac
 
+dnl Checks for TLS
+AX_TLS([:], [:])
+
 dnl Checks for crypto library
 case "${with_crypto_library}" in
   openssl)
+    ss_ZLIB
     ss_OPENSSL
     AC_DEFINE([USE_CRYPTO_OPENSSL], [1], [Use OpenSSL library])
     ;;
   polarssl)
     ss_POLARSSL
     AC_DEFINE([USE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
+    ;;
+  mbedtls)
+    ss_MBEDTLS
+    AC_DEFINE([USE_CRYPTO_MBEDTLS], [1], [Use mbed TLS library])
     ;;
 esac
 
@@ -218,6 +226,12 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS([malloc memset socket])
 
 ACX_PTHREAD
+
+if test "$acx_pthread_ok" != "yes"; then
+    AC_MSG_ERROR([Missing Pthread Library])
+else
+    LIBS="$LIBS $PTHREAD_LIBS"
+fi
 
 AC_CONFIG_SUBDIRS([libsodium])
 

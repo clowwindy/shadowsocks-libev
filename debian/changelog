@@ -1,3 +1,43 @@
+shadowsocks-libev (2.4.0-1) unstable; urgency=low
+
+  * Update the one-time authentication
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 24 Sep 2015 14:11:05 +0900
+
+shadowsocks-libev (2.3.3-1) unstable; urgency=low
+
+  * Refine the onetime authentication of header.
+  * Enforce CRC16 on the payload.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 18 Sep 2015 10:38:21 +0900
+
+shadowsocks-libev (2.3.2-1) unstable; urgency=low
+
+  * Fix minor issues of build scripts.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sun, 13 Sep 2015 15:22:28 +0900
+
+shadowsocks-libev (2.3.1-1) unstable; urgency=low
+
+  * Fix an issue of connection cache of UDP relay.
+  * Add support of onetime authentication for header verification.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 04 Sep 2015 07:54:02 +0900
+
+shadowsocks-libev (2.3.0-1) unstable; urgency=low
+
+  * Add manager mode to support multi-user and traffic stat.
+  * Fix a build issue on OS X El Capitan.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 30 Jul 2015 17:30:43 +0900
+
+shadowsocks-libev (2.2.3-1) unstable; urgency=high
+
+  * Fix the multiple UDP source port issue.
+  * Allow working in UDP only mode.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 11 Jul 2015 08:31:02 +0900
+
 shadowsocks-libev (2.2.2-1) unstable; urgency=low
 
   * Fix the timer of UDP relay.
