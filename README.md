@@ -4,14 +4,16 @@ shadowsocks-libev
 Intro
 -----
 
-[Shadowsocks-libev](http://shadowsocks.org) is a lightweight secured scoks5 
+[Shadowsocks-libev](http://shadowsocks.org) is a lightweight secured socks5 
 proxy for embedded devices and low end boxes.
 
-It is a port of [shadowsocks](https://github.com/clowwindy/shadowsocks) 
+It is a port of [shadowsocks](https://github.com/shadowsocks/shadowsocks) 
 created by [@clowwindy](https://github.com/clowwindy) maintained by 
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 1.4.8 | [![Build Status](https://travis-ci.org/madeye/shadowsocks-libev.png?branch=master)](https://travis-ci.org/madeye/shadowsocks-libev) | [Changelog](Changes)
+Current version: 2.4.0 | [Changelog](debian/changelog)
+
+Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.png?branch=master)](https://travis-ci.org/shadowsocks/shadowsocks-libev) | Jenkins Matrix: [![Jenkins](https://jenkins.shadowvpn.org/buildStatus/icon?job=Shadowsocks-libev)](https://jenkins.shadowvpn.org/job/Shadowsocks-libev/)
 
 Features
 --------
@@ -39,6 +41,13 @@ CAST5-CFB, DES-CFB, IDEA-CFB, RC2-CFB and SEED-CFB.
 ### Debian & Ubuntu
 
 #### Install from repository
+
+Add GPG public key
+
+```bash
+wget -O- http://shadowsocks.org/debian/1D27208A.gpg | sudo apt-key add -
+```
+
 Add either of the following lines to your /etc/apt/sources.list
 
 ```
@@ -53,46 +62,77 @@ Then,
 
 ``` bash
 sudo apt-get update
-sudo apt-get install shadowsocks
+sudo apt-get install shadowsocks-libev
 ```
 
 #### Build package from source
 
+Supported Platforms:
+
+* Debian 7 (see below), 8, unstable
+* Ubuntu 14.10, 15.04 or higher
+
+To build packages on Debian 7 (Wheezy), you need to enable `debian-backports`
+to install systemd-compatibility packages like `dh-systemd` or `init-system-helpers`.
+
+This also means that you can only install those built packages on systems that have
+`init-system-helpers` installed.
+
+Otherwise, try to build and install directly from source. See the **Linux**
+section below.
+
 ``` bash
 cd shadowsocks-libev
-sudo apt-get install build-essential autoconf libtool libssl-dev gawk debhelper
-sudo dpkg-buildpackage
+sudo apt-get install build-essential autoconf libtool libssl-dev \
+    gawk debhelper dh-systemd init-system-helpers
+dpkg-buildpackage -us -uc -i
 cd ..
-sudo dpkg -i shadowsocks*.deb
+sudo dpkg -i shadowsocks-libev*.deb
 ```
 
 #### Configure and start the service
 
 ```
-# Edit the configuration
-sudo vim /etc/shadowsocks/config.json
+# Edit the configuration file
+sudo vim /etc/shadowsocks-libev/config.json
+
+# Edit the default configuration for debian
+sudo vim /etc/default/shadowsocks-libev
 
 # Start the service
-sudo /etc/init.d/shadowsocks start
+sudo /etc/init.d/shadowsocks-libev start    # for sysvinit, or
+sudo systemctl start shasowsocks-libev      # for systemd
 ```
 
-### CentOS
+### Fedora & RHEL
 
-Install the dependencies,
+Supported distributions include
+- Fedora 20, 21, rawhide
+- RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
+
+#### Install from repository
+
+Enable repo via `dnf`:
+
+```
+su -c 'dnf copr enable librehat/shadowsocks'
+```
+
+Or download yum repo on [Fedora Copr](https://copr.fedoraproject.org/coprs/librehat/shadowsocks/) and put it inside `/etc/yum.repos.d/`. The release `Epel` is for RHEL and its derivatives.
+
+Then, install `shadowsocks-libev` via `dnf`:
 
 ```bash
-yum install -y gcc automake autoconf libtool make build-essential autoconf libtool 
-yum install -y curl curl-devel zlib-devel openssl-devel perl perl-devel cpio expat-devel gettext-devel
+su -c 'dnf update'
+su -c 'dnf install shadowsocks-libev'
 ```
 
-Compile and install,
+or `yum`:
 
 ```bash
-./configure && make
-make install
+su -c 'yum update'
+su -c 'yum install shadowsocks-libev'
 ```
-
-Then copy this [init script](rpm/SOURCES/etc/init.d/shadowsocks) to `/etc/init.d/`.
 
 ### Linux
 
@@ -132,7 +172,7 @@ service shadowsocks_libev start
 ```bash
 # At OpenWRT build root
 pushd package
-git clone https://github.com/madeye/shadowsocks-libev.git
+git clone https://github.com/shadowsocks/shadowsocks-libev.git
 popd
 
 # Enable shadowsocks-libev in network category 
@@ -143,6 +183,20 @@ make -j
 
 # Build the package
 make V=99 package/shadowsocks-libev/openwrt/compile
+```
+
+### OS X
+For OS X , use [homebrew](http://brew.sh) to install or build.
+
+Install homebrew
+
+```bash
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+Install shadowsocks-libev
+
+```bash
+brew install shadowsocks-libev
 ```
 
 ### Windows
@@ -192,40 +246,63 @@ Usage
 -----
 
 ```
-usage:
-
     ss-[local|redir|server|tunnel]
 
-          -s <server_host>           host name or ip address of your remote server
-          -p <server_port>           port number of your remote server
-          -l <local_port>            port number of your local server
-          -k <password>              password of your remote server
+       -s <server_host>           host name or ip address of your remote server
 
+       -p <server_port>           port number of your remote server
 
-          [-m <encrypt_method>]      encrypt method: table, rc4, rc4-md5
-                                     aes-128-cfb, aes-192-cfb, aes-256-cfb,
-                                     bf-cfb, camellia-128-cfb, camellia-192-cfb,
-                                     camellia-256-cfb, cast5-cfb, des-cfb,
-                                     idea-cfb, rc2-cfb and seed-cfb
-          [-f <pid_file>]            file to store the pid
-          [-t <timeout>]             socket timeout in seconds
-          [-c <config_file>]         config file in json
+       -l <local_port>            port number of your local server
 
+       -k <password>              password of your remote server
 
-          [-i <interface>]           network interface to bind,
-                                     not available in redir mode
-          [-b <local_address>]       local address to bind,
-                                     not available in server mode
-          [-u]                       enable udprelay mode
-                                     not available in redir mode
-          [-L <addr>:<port>]         setup a local port forwarding tunnel,
-                                     only available in tunnel mode
-          [-v]                       verbose mode
+       [-m <encrypt_method>]      encrypt method: table, rc4, rc4-md5,
+                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,
+                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,
+                                  camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb,
+                                  rc2-cfb, seed-cfb, salsa20 and chacha20
 
+       [-f <pid_file>]            the file path to store pid
 
-          [--fast-open]              enable TCP fast open,
-                                     only available on Linux kernel > 3.7.0
-          [--acl <acl_file>]         config file of ACL (Access Control List)
+       [-t <timeout>]             socket timeout in seconds
+
+       [-c <config_file>]         the path to config file
+
+       [-i <interface>]           network interface to bind,
+                                  not available in redir mode
+
+       [-b <local_address>]       local address to bind,
+                                  not available in server mode
+
+       [-u]                       enable udprelay mode,
+                                  TPROXY is required in redir mode
+
+       [-U]                       enable UDP relay and disable TCP relay,
+                                  not available in local mode
+
+       [-A]                       enable onetime authentication
+
+       [-L <addr>:<port>]         specify destination server address and port
+                                  for local port forwarding,
+                                  only available in tunnel mode
+
+       [-d <addr>]                setup name servers for internal DNS resolver,
+                                  only available in server mode
+
+       [--fast-open]              enable TCP fast open,
+                                  only available in local and server mode,
+                                  with Linux kernel > 3.7.0
+
+       [--acl <acl_file>]         config file of ACL (Access Control List)
+                                  only available in local and server mode
+
+       [--manager-address <addr>] UNIX domain socket address
+                                  only available in server and manager mode
+
+       [--executable <path>]      path to the executable of ss-server
+                                  only available in manager mode
+
+       [-v]                       verbose mode
 
 notes:
 
@@ -240,6 +317,7 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
 
     # Create new chain
     root@Wrt:~# iptables -t nat -N SHADOWSOCKS
+    root@Wrt:~# iptables -t mangle -N SHADOWSOCKS
     
     # Ignore your shadowsocks server's addresses
     # It's very IMPORTANT, just be careful.
@@ -259,12 +337,18 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
 
     # Anything else should be redirected to shadowsocks's local port
     root@Wrt:~# iptables -t nat -A SHADOWSOCKS -p tcp -j REDIRECT --to-ports 12345
+
+    # Add any UDP rules
+    root@Wrt:~# ip rule add fwmark 0x01/0x01 table 100
+    root@Wrt:~# ip route add local 0.0.0.0/0 dev lo table 100
+    root@Wrt:~# iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
     
     # Apply the rules
-    root@Wrt:~# iptables -t nat -A OUTPUT -p tcp -j SHADOWSOCKS
-    
+    root@Wrt:~# iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
+    root@Wrt:~# iptables -t mangle -A PREROUTING -j SHADOWSOCKS
+
     # Start the shadowsocks-redir
-    root@Wrt:~# ss-redir -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
+    root@Wrt:~# ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
 
 ## Security Tips
 

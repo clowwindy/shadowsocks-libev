@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -30,36 +30,35 @@
 #define IPV6 0x04
 #define CMD_NOT_SUPPORTED 0x07
 
+#pragma pack(push)
 #pragma pack(1)
 
-struct method_select_request
-{
+struct method_select_request {
     char ver;
     char nmethods;
     char methods[255];
 };
 
-struct method_select_response
-{
+struct method_select_response {
     char ver;
     char method;
 };
 
-struct socks5_request
-{
+struct socks5_request {
     char ver;
     char cmd;
     char rsv;
     char atyp;
 };
 
-struct socks5_response
-{
+struct socks5_response {
     char ver;
     char rep;
     char rsv;
     char atyp;
 };
+
+#pragma pack(pop)
 
 #endif //_SOCKS5_H
 
