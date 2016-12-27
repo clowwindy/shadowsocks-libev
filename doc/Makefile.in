@@ -218,7 +218,6 @@ PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
 RANLIB = @RANLIB@
-RM = @RM@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
@@ -287,6 +286,7 @@ ASCIIDOC_EXTRA =
 MANPAGE_XSL = manpage-normal.xsl
 XMLTO_EXTRA = -m manpage-bold-literal.xsl
 GZIPCMD = @GZIP@
+RM = @RM@
 @ENABLE_DOCUMENTATION_FALSE@MAN1_DOC = 
 
 # Guard against environment variables

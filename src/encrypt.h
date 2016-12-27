@@ -164,7 +164,7 @@ typedef struct buffer {
     size_t idx;
     size_t len;
     size_t capacity;
-    char   *array;
+    char   *data;
 } buffer_t;
 
 typedef struct chunk {
@@ -200,5 +200,7 @@ int ss_gen_hash(buffer_t *buf, uint32_t *counter, enc_ctx_t *ctx, size_t capacit
 int balloc(buffer_t *ptr, size_t capacity);
 int brealloc(buffer_t *ptr, size_t len, size_t capacity);
 void bfree(buffer_t *ptr);
+
+int rand_bytes(void *output, int len);
 
 #endif // _ENCRYPT_H

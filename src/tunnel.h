@@ -49,6 +49,9 @@ typedef struct server_ctx {
 
 typedef struct server {
     int fd;
+
+    obfs_t *obfs;
+
     buffer_t *buf;
     struct enc_ctx *e_ctx;
     struct enc_ctx *d_ctx;

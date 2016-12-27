@@ -1,5 +1,5 @@
 /*
- * server.h - Define shadowsocks server's buffers and callbacks
+ * obfs_http.h - Interfaces of http obfuscating function
  *
  * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
@@ -20,46 +20,11 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MANAGER_H
-#define _MANAGER_H
+#ifndef OBFS_HTTP_H
+#define OBFS_HTTP_H
 
-#include <ev.h>
-#include <time.h>
-#include <libcork/ds.h>
+#include "obfs.h"
 
-#include "jconf.h"
+obfs_para_t *const obfs_http;
 
-#include "common.h"
-
-struct manager_ctx {
-    ev_io io;
-    int fd;
-    int fast_open;
-    int verbose;
-    int mode;
-    int auth;
-    char *password;
-    char *timeout;
-    char *method;
-    char *iface;
-    char *acl;
-    char *user;
-    char *obfs;
-    char *manager_address;
-    char **hosts;
-    int host_num;
-    char **nameservers;
-    int nameserver_num;
-    int mtu;
-#ifdef HAVE_SETRLIMIT
-    int nofile;
 #endif
-};
-
-struct server {
-    char port[8];
-    char password[128];
-    uint64_t traffic;
-};
-
-#endif // _MANAGER_H

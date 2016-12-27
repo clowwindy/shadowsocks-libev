@@ -251,7 +251,7 @@ int
 balloc(buffer_t *ptr, size_t capacity)
 {
     sodium_memzero(ptr, sizeof(buffer_t));
-    ptr->array    = ss_malloc(capacity);
+    ptr->data    = ss_malloc(capacity);
     ptr->capacity = capacity;
     return capacity;
 }
@@ -263,7 +263,7 @@ brealloc(buffer_t *ptr, size_t len, size_t capacity)
         return -1;
     size_t real_capacity = max(len, capacity);
     if (ptr->capacity < real_capacity) {
-        ptr->array    = ss_realloc(ptr->array, real_capacity);
+        ptr->data    = ss_realloc(ptr->data, real_capacity);
         ptr->capacity = real_capacity;
     }
     return real_capacity;
@@ -277,8 +277,8 @@ bfree(buffer_t *ptr)
     ptr->idx      = 0;
     ptr->len      = 0;
     ptr->capacity = 0;
-    if (ptr->array != NULL) {
-        ss_free(ptr->array);
+    if (ptr->data != NULL) {
+        ss_free(ptr->data);
     }
 }
 
@@ -357,7 +357,7 @@ merge(uint8_t *left, int llength, uint8_t *right,
 }
 
 static void
-merge_sort(uint8_t array[], int length,
+merge_sort(uint8_t data[], int length,
            uint32_t salt, uint64_t key)
 {
     uint8_t middle;
@@ -372,8 +372,8 @@ merge_sort(uint8_t array[], int length,
 
     llength = length - middle;
 
-    left  = array;
-    right = array + llength;
+    left  = data;
+    right = data + llength;
 
     merge_sort(left, llength, salt, key);
     merge_sort(right, middle, salt, key);
@@ -593,7 +593,7 @@ bytes_to_key(const cipher_t *cipher, const digest_type_t *md,
 }
 
 int
-rand_bytes(uint8_t *output, int len)
+rand_bytes(void *output, int len)
 {
     randombytes_buf(output, len);
     // always return success
@@ -926,16 +926,16 @@ ss_onetimeauth(buffer_t *buf, uint8_t *iv, size_t capacity)
     brealloc(buf, ONETIMEAUTH_BYTES + buf->len, capacity);
 
 #if defined(USE_CRYPTO_OPENSSL)
-    HMAC(EVP_sha1(), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->array, buf->len, (uint8_t *)hash, NULL);
+    HMAC(EVP_sha1(), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->data, buf->len, (uint8_t *)hash, NULL);
 #elif defined(USE_CRYPTO_MBEDTLS)
     mbedtls_md_hmac(mbedtls_md_info_from_type(
-                        MBEDTLS_MD_SHA1), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->array, buf->len,
+                        MBEDTLS_MD_SHA1), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->data, buf->len,
                     (uint8_t *)hash);
 #else
-    sha1_hmac(auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->array, buf->len, (uint8_t *)hash);
+    sha1_hmac(auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->data, buf->len, (uint8_t *)hash);
 #endif
 
-    memcpy(buf->array + buf->len, hash, ONETIMEAUTH_BYTES);
+    memcpy(buf->data + buf->len, hash, ONETIMEAUTH_BYTES);
     buf->len += ONETIMEAUTH_BYTES;
 
     return 0;
@@ -951,15 +951,15 @@ ss_onetimeauth_verify(buffer_t *buf, uint8_t *iv)
     size_t len = buf->len - ONETIMEAUTH_BYTES;
 
 #if defined(USE_CRYPTO_OPENSSL)
-    HMAC(EVP_sha1(), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->array, len, hash, NULL);
+    HMAC(EVP_sha1(), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->data, len, hash, NULL);
 #elif defined(USE_CRYPTO_MBEDTLS)
     mbedtls_md_hmac(mbedtls_md_info_from_type(
-                        MBEDTLS_MD_SHA1), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->array, len, hash);
+                        MBEDTLS_MD_SHA1), auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->data, len, hash);
 #else
-    sha1_hmac(auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->array, len, hash);
+    sha1_hmac(auth_key, enc_iv_len + enc_key_len, (uint8_t *)buf->data, len, hash);
 #endif
 
-    return safe_memcmp(buf->array + len, hash, ONETIMEAUTH_BYTES);
+    return safe_memcmp(buf->data + len, hash, ONETIMEAUTH_BYTES);
 }
 
 int
@@ -981,7 +981,7 @@ ss_encrypt_all(buffer_t *plain, int method, int auth, size_t capacity)
 
         rand_bytes(iv, iv_len);
         cipher_context_set_iv(&evp, iv, iv_len, 1);
-        memcpy(cipher->array, iv, iv_len);
+        memcpy(cipher->data, iv, iv_len);
 
         if (auth) {
             ss_onetimeauth(plain, iv, capacity);
@@ -989,13 +989,13 @@ ss_encrypt_all(buffer_t *plain, int method, int auth, size_t capacity)
         }
 
         if (method >= SALSA20) {
-            crypto_stream_xor_ic((uint8_t *)(cipher->array + iv_len),
-                                 (const uint8_t *)plain->array, (uint64_t)(plain->len),
+            crypto_stream_xor_ic((uint8_t *)(cipher->data + iv_len),
+                                 (const uint8_t *)plain->data, (uint64_t)(plain->len),
                                  (const uint8_t *)iv,
                                  0, enc_key, method);
         } else {
-            err = cipher_context_update(&evp, (uint8_t *)(cipher->array + iv_len),
-                                        &cipher->len, (const uint8_t *)plain->array,
+            err = cipher_context_update(&evp, (uint8_t *)(cipher->data + iv_len),
+                                        &cipher->len, (const uint8_t *)plain->data,
                                         plain->len);
         }
 
@@ -1006,20 +1006,20 @@ ss_encrypt_all(buffer_t *plain, int method, int auth, size_t capacity)
         }
 
 #ifdef DEBUG
-        dump("PLAIN", plain->array, plain->len);
-        dump("CIPHER", cipher->array + iv_len, cipher->len);
+        dump("PLAIN", plain->data, plain->len);
+        dump("CIPHER", cipher->data + iv_len, cipher->len);
 #endif
 
         cipher_context_release(&evp);
 
         brealloc(plain, iv_len + cipher->len, capacity);
-        memcpy(plain->array, cipher->array, iv_len + cipher->len);
+        memcpy(plain->data, cipher->data, iv_len + cipher->len);
         plain->len = iv_len + cipher->len;
 
         return 0;
     } else {
-        char *begin = plain->array;
-        char *ptr   = plain->array;
+        char *begin = plain->data;
+        char *ptr   = plain->data;
         while (ptr < begin + plain->len) {
             *ptr = (char)enc_table[(uint8_t)*ptr];
             ptr++;
@@ -1046,7 +1046,7 @@ ss_encrypt(buffer_t *plain, enc_ctx_t *ctx, size_t capacity)
 
         if (!ctx->init) {
             cipher_context_set_iv(&ctx->evp, ctx->evp.iv, iv_len, 1);
-            memcpy(cipher->array, ctx->evp.iv, iv_len);
+            memcpy(cipher->data, ctx->evp.iv, iv_len);
             ctx->counter = 0;
             ctx->init    = 1;
         }
@@ -1056,25 +1056,25 @@ ss_encrypt(buffer_t *plain, enc_ctx_t *ctx, size_t capacity)
             brealloc(cipher, iv_len + (padding + cipher->len) * 2, capacity);
             if (padding) {
                 brealloc(plain, plain->len + padding, capacity);
-                memmove(plain->array + padding, plain->array, plain->len);
-                sodium_memzero(plain->array, padding);
+                memmove(plain->data + padding, plain->data, plain->len);
+                sodium_memzero(plain->data, padding);
             }
-            crypto_stream_xor_ic((uint8_t *)(cipher->array + iv_len),
-                                 (const uint8_t *)plain->array,
+            crypto_stream_xor_ic((uint8_t *)(cipher->data + iv_len),
+                                 (const uint8_t *)plain->data,
                                  (uint64_t)(plain->len + padding),
                                  (const uint8_t *)ctx->evp.iv,
                                  ctx->counter / SODIUM_BLOCK_SIZE, enc_key,
                                  enc_method);
             ctx->counter += plain->len;
             if (padding) {
-                memmove(cipher->array + iv_len,
-                        cipher->array + iv_len + padding, cipher->len);
+                memmove(cipher->data + iv_len,
+                        cipher->data + iv_len + padding, cipher->len);
             }
         } else {
             err =
                 cipher_context_update(&ctx->evp,
-                                      (uint8_t *)(cipher->array + iv_len),
-                                      &cipher->len, (const uint8_t *)plain->array,
+                                      (uint8_t *)(cipher->data + iv_len),
+                                      &cipher->len, (const uint8_t *)plain->data,
                                       plain->len);
             if (!err) {
                 return -1;
@@ -1082,18 +1082,18 @@ ss_encrypt(buffer_t *plain, enc_ctx_t *ctx, size_t capacity)
         }
 
 #ifdef DEBUG
-        dump("PLAIN", plain->array, plain->len);
-        dump("CIPHER", cipher->array + iv_len, cipher->len);
+        dump("PLAIN", plain->data, plain->len);
+        dump("CIPHER", cipher->data + iv_len, cipher->len);
 #endif
 
         brealloc(plain, iv_len + cipher->len, capacity);
-        memcpy(plain->array, cipher->array, iv_len + cipher->len);
+        memcpy(plain->data, cipher->data, iv_len + cipher->len);
         plain->len = iv_len + cipher->len;
 
         return 0;
     } else {
-        char *begin = plain->array;
-        char *ptr   = plain->array;
+        char *begin = plain->data;
+        char *ptr   = plain->data;
         while (ptr < begin + plain->len) {
             *ptr = (char)enc_table[(uint8_t)*ptr];
             ptr++;
@@ -1122,21 +1122,21 @@ ss_decrypt_all(buffer_t *cipher, int method, int auth, size_t capacity)
         plain->len = cipher->len - iv_len;
 
         uint8_t iv[MAX_IV_LENGTH];
-        memcpy(iv, cipher->array, iv_len);
+        memcpy(iv, cipher->data, iv_len);
         cipher_context_set_iv(&evp, iv, iv_len, 0);
 
         if (method >= SALSA20) {
-            crypto_stream_xor_ic((uint8_t *)plain->array,
-                                 (const uint8_t *)(cipher->array + iv_len),
+            crypto_stream_xor_ic((uint8_t *)plain->data,
+                                 (const uint8_t *)(cipher->data + iv_len),
                                  (uint64_t)(cipher->len - iv_len),
                                  (const uint8_t *)iv, 0, enc_key, method);
         } else {
-            ret = cipher_context_update(&evp, (uint8_t *)plain->array, &plain->len,
-                                        (const uint8_t *)(cipher->array + iv_len),
+            ret = cipher_context_update(&evp, (uint8_t *)plain->data, &plain->len,
+                                        (const uint8_t *)(cipher->data + iv_len),
                                         cipher->len - iv_len);
         }
 
-        if (auth || (plain->array[0] & ONETIMEAUTH_FLAG)) {
+        if (auth || (plain->data[0] & ONETIMEAUTH_FLAG)) {
             if (plain->len > ONETIMEAUTH_BYTES) {
                 ret = !ss_onetimeauth_verify(plain, iv);
                 if (ret) {
@@ -1154,20 +1154,20 @@ ss_decrypt_all(buffer_t *cipher, int method, int auth, size_t capacity)
         }
 
 #ifdef DEBUG
-        dump("PLAIN", plain->array, plain->len);
-        dump("CIPHER", cipher->array + iv_len, cipher->len - iv_len);
+        dump("PLAIN", plain->data, plain->len);
+        dump("CIPHER", cipher->data + iv_len, cipher->len - iv_len);
 #endif
 
         cipher_context_release(&evp);
 
         brealloc(cipher, plain->len, capacity);
-        memcpy(cipher->array, plain->array, plain->len);
+        memcpy(cipher->data, plain->data, plain->len);
         cipher->len = plain->len;
 
         return 0;
     } else {
-        char *begin = cipher->array;
-        char *ptr   = cipher->array;
+        char *begin = cipher->data;
+        char *ptr   = cipher->data;
         while (ptr < begin + cipher->len) {
             *ptr = (char)dec_table[(uint8_t)*ptr];
             ptr++;
@@ -1194,7 +1194,7 @@ ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
             iv_len      = enc_iv_len;
             plain->len -= iv_len;
 
-            memcpy(iv, cipher->array, iv_len);
+            memcpy(iv, cipher->data, iv_len);
             cipher_context_set_iv(&ctx->evp, iv, iv_len, 0);
             ctx->counter = 0;
             ctx->init    = 1;
@@ -1215,23 +1215,23 @@ ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
 
             if (padding) {
                 brealloc(cipher, cipher->len + padding, capacity);
-                memmove(cipher->array + iv_len + padding, cipher->array + iv_len,
+                memmove(cipher->data + iv_len + padding, cipher->data + iv_len,
                         cipher->len - iv_len);
-                sodium_memzero(cipher->array + iv_len, padding);
+                sodium_memzero(cipher->data + iv_len, padding);
             }
-            crypto_stream_xor_ic((uint8_t *)plain->array,
-                                 (const uint8_t *)(cipher->array + iv_len),
+            crypto_stream_xor_ic((uint8_t *)plain->data,
+                                 (const uint8_t *)(cipher->data + iv_len),
                                  (uint64_t)(cipher->len - iv_len + padding),
                                  (const uint8_t *)ctx->evp.iv,
                                  ctx->counter / SODIUM_BLOCK_SIZE, enc_key,
                                  enc_method);
             ctx->counter += cipher->len - iv_len;
             if (padding) {
-                memmove(plain->array, plain->array + padding, plain->len);
+                memmove(plain->data, plain->data + padding, plain->len);
             }
         } else {
-            err = cipher_context_update(&ctx->evp, (uint8_t *)plain->array, &plain->len,
-                                        (const uint8_t *)(cipher->array + iv_len),
+            err = cipher_context_update(&ctx->evp, (uint8_t *)plain->data, &plain->len,
+                                        (const uint8_t *)(cipher->data + iv_len),
                                         cipher->len - iv_len);
         }
 
@@ -1241,18 +1241,18 @@ ss_decrypt(buffer_t *cipher, enc_ctx_t *ctx, size_t capacity)
         }
 
 #ifdef DEBUG
-        dump("PLAIN", plain->array, plain->len);
-        dump("CIPHER", cipher->array + iv_len, cipher->len - iv_len);
+        dump("PLAIN", plain->data, plain->len);
+        dump("CIPHER", cipher->data + iv_len, cipher->len - iv_len);
 #endif
 
         brealloc(cipher, plain->len, capacity);
-        memcpy(cipher->array, plain->array, plain->len);
+        memcpy(cipher->data, plain->data, plain->len);
         cipher->len = plain->len;
 
         return 0;
     } else {
-        char *begin = cipher->array;
-        char *ptr   = cipher->array;
+        char *begin = cipher->data;
+        char *ptr   = cipher->data;
         while (ptr < begin + cipher->len) {
             *ptr = (char)dec_table[(uint8_t)*ptr];
             ptr++;
@@ -1397,10 +1397,10 @@ ss_check_hash(buffer_t *buf, chunk_t *chunk, enc_ctx_t *ctx, size_t capacity)
     brealloc(buf, chunk->len + blen, capacity);
 
     for (i = 0, j = 0, k = 0; i < blen; i++) {
-        chunk->buf->array[cidx++] = buf->array[k++];
+        chunk->buf->data[cidx++] = buf->data[k++];
 
         if (cidx == CLEN_BYTES) {
-            uint16_t clen = ntohs(*((uint16_t *)chunk->buf->array));
+            uint16_t clen = ntohs(*((uint16_t *)chunk->buf->data));
             brealloc(chunk->buf, clen + AUTH_BYTES, capacity);
             chunk->len = clen;
         }
@@ -1415,22 +1415,22 @@ ss_check_hash(buffer_t *buf, chunk_t *chunk, enc_ctx_t *ctx, size_t capacity)
             memcpy(key + enc_iv_len, &c, sizeof(uint32_t));
 #if defined(USE_CRYPTO_OPENSSL)
             HMAC(EVP_sha1(), key, enc_iv_len + sizeof(uint32_t),
-                 (uint8_t *)chunk->buf->array + AUTH_BYTES, chunk->len, hash, NULL);
+                 (uint8_t *)chunk->buf->data + AUTH_BYTES, chunk->len, hash, NULL);
 #elif defined(USE_CRYPTO_MBEDTLS)
             mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), key, enc_iv_len + sizeof(uint32_t),
-                            (uint8_t *)chunk->buf->array + AUTH_BYTES, chunk->len, hash);
+                            (uint8_t *)chunk->buf->data + AUTH_BYTES, chunk->len, hash);
 #else
             sha1_hmac(key, enc_iv_len + sizeof(uint32_t),
-                      (uint8_t *)chunk->buf->array + AUTH_BYTES, chunk->len, hash);
+                      (uint8_t *)chunk->buf->data + AUTH_BYTES, chunk->len, hash);
 #endif
 
-            if (safe_memcmp(hash, chunk->buf->array + CLEN_BYTES, ONETIMEAUTH_BYTES) != 0) {
+            if (safe_memcmp(hash, chunk->buf->data + CLEN_BYTES, ONETIMEAUTH_BYTES) != 0) {
                 return 0;
             }
 
             // Copy chunk back to buffer
-            memmove(buf->array + j + chunk->len, buf->array + k, blen - i - 1);
-            memcpy(buf->array + j, chunk->buf->array + AUTH_BYTES, chunk->len);
+            memmove(buf->data + j + chunk->len, buf->data + k, blen - i - 1);
+            memcpy(buf->data + j, chunk->buf->data + AUTH_BYTES, chunk->len);
 
             // Reset the base offset
             j   += chunk->len;
@@ -1458,17 +1458,17 @@ ss_gen_hash(buffer_t *buf, uint32_t *counter, enc_ctx_t *ctx, size_t capacity)
     memcpy(key, ctx->evp.iv, enc_iv_len);
     memcpy(key + enc_iv_len, &c, sizeof(uint32_t));
 #if defined(USE_CRYPTO_OPENSSL)
-    HMAC(EVP_sha1(), key, enc_iv_len + sizeof(uint32_t), (uint8_t *)buf->array, blen, hash, NULL);
+    HMAC(EVP_sha1(), key, enc_iv_len + sizeof(uint32_t), (uint8_t *)buf->data, blen, hash, NULL);
 #elif defined(USE_CRYPTO_MBEDTLS)
     mbedtls_md_hmac(mbedtls_md_info_from_type(
-                        MBEDTLS_MD_SHA1), key, enc_iv_len + sizeof(uint32_t), (uint8_t *)buf->array, blen, hash);
+                        MBEDTLS_MD_SHA1), key, enc_iv_len + sizeof(uint32_t), (uint8_t *)buf->data, blen, hash);
 #else
-    sha1_hmac(key, enc_iv_len + sizeof(uint32_t), (uint8_t *)buf->array, blen, hash);
+    sha1_hmac(key, enc_iv_len + sizeof(uint32_t), (uint8_t *)buf->data, blen, hash);
 #endif
 
-    memmove(buf->array + AUTH_BYTES, buf->array, blen);
-    memcpy(buf->array + CLEN_BYTES, hash, ONETIMEAUTH_BYTES);
-    memcpy(buf->array, &chunk_len, CLEN_BYTES);
+    memmove(buf->data + AUTH_BYTES, buf->data, blen);
+    memcpy(buf->data + CLEN_BYTES, hash, ONETIMEAUTH_BYTES);
+    memcpy(buf->data, &chunk_len, CLEN_BYTES);
 
     *counter = *counter + 1;
     buf->len = blen + AUTH_BYTES;

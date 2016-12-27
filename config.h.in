@@ -79,6 +79,9 @@
 /* Define to 1 if you have the <langinfo.h> header file. */
 #undef HAVE_LANGINFO_H
 
+/* Define to 1 if you have the `ev' library (-lev). */
+#undef HAVE_LIBEV
+
 /* Compiling with pcre support */
 #undef HAVE_LIBPCRE
 
@@ -87,6 +90,12 @@
 
 /* Define to 1 if you have the `socket' library (-lsocket). */
 #undef HAVE_LIBSOCKET
+
+/* Define to 1 if you have the `sodium' library (-lsodium). */
+#undef HAVE_LIBSODIUM
+
+/* Define to 1 if you have the `udns' library (-ludns). */
+#undef HAVE_LIBUDNS
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H

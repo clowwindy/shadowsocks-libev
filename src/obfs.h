@@ -1,5 +1,5 @@
 /*
- * server.h - Define shadowsocks server's buffers and callbacks
+ * obfs.h - Interfaces of obfuscating function
  *
  * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
  *
@@ -20,46 +20,35 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MANAGER_H
-#define _MANAGER_H
+#ifndef OBFS_H
+#define OBFS_H
 
-#include <ev.h>
-#include <time.h>
-#include <libcork/ds.h>
+#include "encrypt.h"
 
-#include "jconf.h"
+#define OBFS_OK         0
+#define OBFS_NEED_MORE -1
+#define OBFS_ERROR     -2
 
-#include "common.h"
+typedef struct obfs {
+    int obfs_stage;
+    int deobfs_stage;
+    buffer_t *buf;
+    void *extra;
+} obfs_t;
 
-struct manager_ctx {
-    ev_io io;
-    int fd;
-    int fast_open;
-    int verbose;
-    int mode;
-    int auth;
-    char *password;
-    char *timeout;
-    char *method;
-    char *iface;
-    char *acl;
-    char *user;
-    char *obfs;
-    char *manager_address;
-    char **hosts;
-    int host_num;
-    char **nameservers;
-    int nameserver_num;
-    int mtu;
-#ifdef HAVE_SETRLIMIT
-    int nofile;
+typedef struct obfs_para {
+    const char *name;
+    const char *host;
+    uint16_t port;
+
+    int(*const obfs_request)(buffer_t *, size_t, obfs_t *);
+    int(*const obfs_response)(buffer_t *, size_t, obfs_t *);
+    int(*const deobfs_request)(buffer_t *, size_t, obfs_t *);
+    int(*const deobfs_response)(buffer_t *, size_t, obfs_t *);
+    int(*const check_obfs)(buffer_t *);
+    void(*const disable)(obfs_t *);
+    int(*const is_enable)(obfs_t *);
+} obfs_para_t;
+
+
 #endif
-};
-
-struct server {
-    char port[8];
-    char password[128];
-    uint64_t traffic;
-};
-
-#endif // _MANAGER_H

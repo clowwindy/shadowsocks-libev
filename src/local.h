@@ -51,7 +51,10 @@ typedef struct server_ctx {
 
 typedef struct server {
     int fd;
-    char stage;
+    int stage;
+
+    obfs_t *obfs;
+
     struct enc_ctx *e_ctx;
     struct enc_ctx *d_ctx;
     struct server_ctx *recv_ctx;
@@ -67,20 +70,22 @@ typedef struct server {
 typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
+
     int connected;
     struct remote *remote;
 } remote_ctx_t;
 
 typedef struct remote {
     int fd;
-    buffer_t *buf;
     int direct;
+    int addr_len;
+    uint32_t counter;
+
+    buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
     struct sockaddr_storage addr;
-    int addr_len;
-    uint32_t counter;
 } remote_t;
 
 #endif // _LOCAL_H
