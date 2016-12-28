@@ -168,6 +168,10 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
     }
+    if (manager->ipv6first) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " -6");
+    }
     if (manager->mtu) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --mtu %d", manager->mtu);
@@ -621,6 +625,7 @@ main(int argc, char **argv)
     int fast_open = 0;
     int mode      = TCP_ONLY;
     int mtu       = 0;
+    int ipv6first = 0;
 
 #ifdef HAVE_SETRLIMIT
     static int nofile = 0;
@@ -650,7 +655,7 @@ main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:n:huUvA",
+    while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:n:6huUvA",
                             long_options, &option_index)) != -1)
         switch (c) {
         case 0:
@@ -708,6 +713,9 @@ main(int argc, char **argv)
             break;
         case 'U':
             mode = UDP_ONLY;
+            break;
+        case '6':
+            ipv6first = 1;
             break;
         case 'v':
             verbose = 1;
@@ -773,6 +781,9 @@ main(int argc, char **argv)
         }
         if (obfs == 0) {
             obfs = conf->obfs;
+        }
+        if (ipv6first == 0) {
+            ipv6first = conf->ipv6_first;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
@@ -851,6 +862,7 @@ main(int argc, char **argv)
     manager.nameserver_num  = nameserver_num;
     manager.mtu             = mtu;
     manager.obfs            = obfs;
+    manager.ipv6first       = ipv6first;
 #ifdef HAVE_SETRLIMIT
     manager.nofile = nofile;
 #endif
