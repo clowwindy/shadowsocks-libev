@@ -140,6 +140,6 @@ typedef struct frame {
 
 #pragma pack(pop)
 
-obfs_para_t *const obfs_tls;
+extern obfs_para_t *obfs_tls;
 
 #endif

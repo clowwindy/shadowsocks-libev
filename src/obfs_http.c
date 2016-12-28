@@ -67,7 +67,7 @@ static obfs_para_t obfs_http_st = {
     .is_enable       = &is_enable_http
 };
 
-obfs_para_t *const obfs_http = &obfs_http_st;
+obfs_para_t *obfs_http = &obfs_http_st;
 
 static int
 obfs_http_request(buffer_t *buf, size_t cap, obfs_t *obfs)

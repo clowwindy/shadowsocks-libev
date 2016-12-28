@@ -25,6 +25,6 @@
 
 #include "obfs.h"
 
-obfs_para_t *const obfs_http;
+extern obfs_para_t *obfs_http;
 
 #endif

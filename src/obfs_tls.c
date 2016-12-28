@@ -180,7 +180,7 @@ static obfs_para_t obfs_tls_st = {
     .is_enable       = &is_enable_tls
 };
 
-obfs_para_t *const obfs_tls = &obfs_tls_st;
+obfs_para_t *obfs_tls = &obfs_tls_st;
 
 static int
 obfs_app_data(buffer_t *buf, size_t cap, obfs_t *obfs)
