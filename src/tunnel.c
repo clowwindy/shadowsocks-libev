@@ -1017,7 +1017,8 @@ main(int argc, char **argv)
         else
             obfs_para->host = "cloudfront.net";
         obfs_para->port = atoi(remote_port);
-        LOGI("obfuscating arg: %s", obfs_host);
+        LOGI("obfuscating enabled");
+        LOGI("obfuscating hostname: %s", obfs_host);
     }
 
     // parse tunnel addr

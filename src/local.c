@@ -1256,7 +1256,6 @@ main(int argc, char **argv)
                     obfs_para = obfs_http;
                 else if (strcmp(optarg, obfs_tls->name) == 0)
                     obfs_para = obfs_tls;
-                LOGI("obfuscating enabled");
             } else if (option_index == 5) {
                 obfs_host = optarg;
             } else if (option_index == 6) {
@@ -1470,7 +1469,8 @@ main(int argc, char **argv)
         else
             obfs_para->host = "cloudfront.net";
         obfs_para->port = atoi(remote_port);
-        LOGI("obfuscating arg: %s", obfs_host);
+        LOGI("obfuscating enabled");
+        LOGI("obfuscating hostname: %s", obfs_host);
     }
 
 #ifdef __MINGW32__

@@ -1842,6 +1842,10 @@ main(int argc, char **argv)
         LOGI("onetime authentication enabled");
     }
 
+    if (obfs_para) {
+        LOGI("obfuscating enabled");
+    }
+
     if (mode != TCP_ONLY) {
         LOGI("UDP relay enabled");
     }
