@@ -229,7 +229,7 @@ void *ss_realloc(void *ptr, size_t new_size);
         ptr = NULL;      \
     } while (0)
 
-#ifdef WORDS_BIGENDIAN
+#if _BYTE_ORDER == _BIG_ENDIAN
 
 #define CT_HTONS(n) (n)
 #define CT_NTOHS(n) (n)

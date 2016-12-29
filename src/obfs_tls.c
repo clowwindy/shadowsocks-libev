@@ -67,7 +67,7 @@ tls_ext_server_name_template = {
     .ext_len = 0,
     .server_name_list_len = 0,
     .server_name_type = 0,
-    .server_name_len = 0
+    .server_name_len = 0,
     // char server_name[server_name_len];
 };
 
@@ -102,7 +102,7 @@ tls_ext_others_template = {
     .encrypt_then_mac_ext_len = 0,
 
     .extended_master_secret_type = CT_HTONS(0x0017),
-    .extended_master_secret_ext_len = 0
+    .extended_master_secret_ext_len = 0,
 };
 
 static const struct tls_server_hello
@@ -136,7 +136,7 @@ tls_server_hello_template = {
     .ec_point_formats_ext_type = CT_HTONS(0x000B),
     .ec_point_formats_ext_len = CT_HTONS(2),
     .ec_point_formats_len = 1,
-    .ec_point_formats = { 0 }
+    .ec_point_formats = { 0 },
 };
 
 static const struct tls_change_cipher_spec 
@@ -144,19 +144,18 @@ tls_change_cipher_spec_template = {
     .content_type = 0x14,
     .version = CT_HTONS(0x0303),
     .len = CT_HTONS(1),
-    .msg = 0x01
+    .msg = 0x01,
 };
 
 static const struct tls_encrypted_handshake
 tls_encrypted_handshake_template = {
     .content_type = 0x16,
     .version = CT_HTONS(0x0303),
-    .len = 0
+    .len = 0,
     // char  msg[len];
 };
 
 const char tls_data_header[3] = {0x17, 0x03, 0x03};
-
 
 static int obfs_tls_request(buffer_t *, size_t, obfs_t *);
 static int obfs_tls_response(buffer_t *, size_t, obfs_t *);
@@ -247,7 +246,6 @@ deobfs_app_data(buffer_t *buf, size_t idx, obfs_t *obfs)
 static int
 obfs_tls_request(buffer_t *buf, size_t cap, obfs_t *obfs)
 {
-
     if (obfs == NULL || obfs->obfs_stage < 0) return 0;
 
     static buffer_t tmp = { 0, 0, 0, NULL };
@@ -488,7 +486,6 @@ deobfs_tls_response(buffer_t *buf, size_t cap, obfs_t *obfs)
         return deobfs_app_data(buf, 0, obfs);
 
     }
-
 
     return 0;
 }
