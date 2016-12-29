@@ -25,9 +25,6 @@
 
 #include "obfs.h"
 
-#pragma pack(push)
-#pragma pack(1)
-
 struct tls_client_hello {
     char  content_type;
     short version;
@@ -47,7 +44,7 @@ struct tls_client_hello {
     char  comp_methods_len;
     char  comp_methods[1];
     short ext_len;
-};
+} __attribute__((packed));
 
 struct tls_ext_server_name {
     short ext_type;
@@ -56,13 +53,13 @@ struct tls_ext_server_name {
     char  server_name_type;
     short server_name_len;
     // char server_name[server_name_len];
-};
+} __attribute__((packed));
 
 struct tls_ext_session_ticket {
     short session_ticket_type;
     short session_ticket_ext_len;
     // char  session_ticket[session_ticket_ext_len];
-};
+} __attribute__((packed));
 
 struct tls_ext_others {
     short ec_point_formats_ext_type;
@@ -85,7 +82,7 @@ struct tls_ext_others {
 
     short extended_master_secret_type;
     short extended_master_secret_ext_len;
-};
+} __attribute__((packed));
 
 struct tls_server_hello {
     char  content_type;
@@ -116,29 +113,27 @@ struct tls_server_hello {
     short ec_point_formats_ext_len;
     char  ec_point_formats_len;
     char  ec_point_formats[1];
-};
+} __attribute__((packed));
 
 struct tls_change_cipher_spec {
     char  content_type;
     short version;
     short len;
     char  msg;
-};
+} __attribute__((packed));
 
 struct tls_encrypted_handshake {
     char  content_type;
     short version;
     short len;
     // char  msg[len];
-};
+} __attribute__((packed));
 
 typedef struct frame {
     short idx;
     short len;
     char  buf[2];
 } frame_t;
-
-#pragma pack(pop)
 
 extern obfs_para_t *obfs_tls;
 
