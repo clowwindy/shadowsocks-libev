@@ -26,6 +26,13 @@
 
 #include <strings.h>
 
+#include <libcork/core.h>
+
+#define CT_HTONS(n) CORK_UINT16_HOST_TO_BIG(n)
+#define CT_NTOHS(n) CORK_UINT16_BIG_TO_HOST(n)
+#define CT_HTONL(n) CORK_UINT32_HOST_TO_BIG(n)
+#define CT_NTOHL(n) CORK_UINT32_BIG_TO_HOST(n)
+
 #include "base64.h"
 #include "utils.h"
 #include "obfs_tls.h"
