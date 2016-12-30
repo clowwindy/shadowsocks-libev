@@ -229,4 +229,6 @@ void *ss_realloc(void *ptr, size_t new_size);
         ptr = NULL;      \
     } while (0)
 
+#define STATIC_ASSERT(COND,MSG) typedef char static_assertion_##MSG[(COND)?1:-1]
+
 #endif // _UTILS_H
