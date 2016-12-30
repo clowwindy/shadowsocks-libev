@@ -46,8 +46,6 @@ struct tls_client_hello {
     short ext_len;
 } __attribute__((packed, aligned(1)));
 
-STATIC_ASSERT(sizeof(struct tls_client_hello) == 138, tls_client_hello);
-
 struct tls_ext_server_name {
     short ext_type;
     short ext_len;
@@ -57,15 +55,11 @@ struct tls_ext_server_name {
     // char server_name[server_name_len];
 } __attribute__((packed, aligned(1)));
 
-STATIC_ASSERT(sizeof(struct tls_ext_server_name) == 9, tls_ext_server_name);
-
 struct tls_ext_session_ticket {
     short session_ticket_type;
     short session_ticket_ext_len;
     // char  session_ticket[session_ticket_ext_len];
 } __attribute__((packed, aligned(1)));
-
-STATIC_ASSERT(sizeof(struct tls_ext_session_ticket) == 4, tls_ext_session_ticket);
 
 struct tls_ext_others {
     short ec_point_formats_ext_type;
@@ -89,8 +83,6 @@ struct tls_ext_others {
     short extended_master_secret_type;
     short extended_master_secret_ext_len;
 } __attribute__((packed, aligned(1)));
-
-STATIC_ASSERT(sizeof(struct tls_ext_others) == 66, tls_ext_others);
 
 struct tls_server_hello {
     char  content_type;
@@ -123,8 +115,6 @@ struct tls_server_hello {
     char  ec_point_formats[1];
 } __attribute__((packed, aligned(1)));
 
-STATIC_ASSERT(sizeof(struct tls_server_hello) == 96, tls_server_hello);
-
 struct tls_change_cipher_spec {
     char  content_type;
     short version;
@@ -132,16 +122,12 @@ struct tls_change_cipher_spec {
     char  msg;
 } __attribute__((packed, aligned(1)));
 
-STATIC_ASSERT(sizeof(struct tls_change_cipher_spec) == 6, tls_change_cipher_spec);
-
 struct tls_encrypted_handshake {
     char  content_type;
     short version;
     short len;
     // char  msg[len];
 } __attribute__((packed, aligned(1)));
-
-STATIC_ASSERT(sizeof(struct tls_encrypted_handshake) == 5, tls_encrypted_handshake);
 
 typedef struct frame {
     short idx;
