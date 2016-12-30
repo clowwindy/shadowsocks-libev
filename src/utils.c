@@ -92,7 +92,7 @@ int
 ss_isnumeric(const char *s) {
     if (!s || !*s)
         return 0;
-    while (isdigit(*s))
+    while (isdigit((unsigned char)*s))
         ++s;
     return *s == '\0';
 }
@@ -140,10 +140,12 @@ run_as(const char *user)
                     return 0;
                 }
 
+#ifndef __CYGWIN__
                 if (initgroups(pwd->pw_name, pwd->pw_gid) == -1) {
                     LOGE("Could not change supplementary groups for user '%s'.", pwd->pw_name);
                     return 0;
                 }
+#endif
 
                 if (setuid(pwd->pw_uid) != 0) {
                     LOGE(
