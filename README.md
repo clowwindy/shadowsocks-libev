@@ -6,7 +6,7 @@
 proxy for embedded devices and low-end boxes.
 
 It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
-created by [@clowwindy](https://github.com/clowwindy), which is maintained by
+created by [@clowwindy](https://github.com/clowwindy), and maintained by
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
 Current version: 2.6.0 | [Changelog](debian/changelog)
@@ -17,7 +17,7 @@ Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg
 
 Shadowsocks-libev is written in pure C and only depends on
 [libev](http://software.schmorp.de/pkg/libev.html) and
-[OpenSSL](http://www.openssl.org/) or [mbedTLS](https://tls.mbed.org/) or [PolarSSL](https://polarssl.org/).
+[OpenSSL](http://www.openssl.org/) or [mbedTLS](https://tls.mbed.org/).
 
 In normal usage, the memory footprint is about 600KB and the CPU utilization is
 no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU,
@@ -61,7 +61,6 @@ There are three crypto libraries available:
 
 - OpenSSL (**default**)
 - mbedTLS
-- PolarSSL (Deprecated)
 
 ##### mbedTLS
 To build against mbedTLS, specify `--with-crypto-library=mbedtls`
@@ -69,15 +68,6 @@ and `--with-mbedtls=/path/to/mbedtls` when running `./configure`.
 
 Windows users will need extra work when compiling mbedTLS library,
 see [this issue](https://github.com/shadowsocks/shadowsocks-libev/issues/422) for detail info.
-
-##### PolarSSL (Deprecated)
-
-To build against PolarSSL, specify `--with-crypto-library=polarssl`
-and `--with-polarssl=/path/to/polarssl` when running `./configure`.
-
-* PolarSSL __1.2.5 or newer__ is required. Currently, PolarSSL does __NOT__ support
-CAST5-CFB, DES-CFB, IDEA-CFB, RC2-CFB and SEED-CFB.
-* RC4 is only support by PolarSSL __1.3.0 or above__.
 
 #### Using shared library from system
 
@@ -288,10 +278,8 @@ brew install shadowsocks-libev
 For Windows, use either MinGW (msys) or Cygwin to build.
 At the moment, only `ss-local` is supported to build against MinGW (msys).
 
-If you are using MinGW (msys), please download OpenSSL or PolarSSL source tarball
+If you are using MinGW (msys), please download OpenSSL source tarball
 to the home directory of msys, and build it like this (may take a few minutes):
-
-#### OpenSSL
 
 ```bash
 tar zxf openssl-1.0.1e.tar.gz
@@ -300,29 +288,11 @@ cd openssl-1.0.1e
 make && make install
 ```
 
-#### PolarSSL
-
-```bash
-tar zxf polarssl-1.3.2-gpl.tgz
-cd polarssl-1.3.2
-make lib WINDOWS=1
-make install DESTDIR="$HOME/prebuilt"
-```
-
 Then, build the binary using the commands below, and all `.exe` files
 will be built at `$HOME/ss/bin`:
 
-#### OpenSSL
-
 ```bash
 ./configure --prefix="$HOME/ss" --with-openssl="$HOME/prebuilt"
-make && make install
-```
-
-#### PolarSSL
-
-```bash
-./configure --prefix="$HOME/ss" --with-crypto-library=polarssl --with-polarssl=$HOME/prebuilt
 make && make install
 ```
 
