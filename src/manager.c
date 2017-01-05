@@ -45,7 +45,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <pthread.h>
 #include <sys/un.h>
 #include <sys/socket.h>
@@ -67,6 +66,7 @@
 #include "json.h"
 #include "utils.h"
 #include "manager.h"
+#include "netutils.h"
 
 #ifndef BUF_SIZE
 #define BUF_SIZE 65535
@@ -78,6 +78,7 @@ char *working_dir    = NULL;
 int working_dir_size = 0;
 
 static struct cork_hash_table *server_table;
+static struct cork_hash_table *sock_table;
 
 #ifndef __MINGW32__
 static int
@@ -313,16 +314,271 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
     return 0;
 }
 
+static int 
+create_and_bind(const char *host, const char *port, int protocol) 
+{
+    struct addrinfo hints;
+    struct addrinfo *result, *rp, *ipv4v6bindall;
+    int s, listen_sock, is_port_reuse;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family   = AF_UNSPEC;                  /* Return IPv4 and IPv6 choices */
+    hints.ai_socktype = protocol == IPPROTO_TCP ?
+        SOCK_STREAM : SOCK_DGRAM;                   /* We want a TCP or UDP socket */
+    hints.ai_flags    = AI_PASSIVE | AI_ADDRCONFIG; /* For wildcard IP address */
+    hints.ai_protocol = protocol;
+
+    s = getaddrinfo(host, port, &hints, &result);
+
+    if (s != 0) {
+        LOGE("getaddrinfo: %s", gai_strerror(s));
+        return -1;
+    }
+
+    rp = result;
+
+    /*
+     * On Linux, with net.ipv6.bindv6only = 0 (the default), getaddrinfo(NULL) with
+     * AI_PASSIVE returns 0.0.0.0 and :: (in this order). AI_PASSIVE was meant to
+     * return a list of addresses to listen on, but it is impossible to listen on
+     * 0.0.0.0 and :: at the same time, if :: implies dualstack mode.
+     */
+    if (!host) {
+        ipv4v6bindall = result;
+
+        /* Loop over all address infos found until a IPV6 address is found. */
+        while (ipv4v6bindall) {
+            if (ipv4v6bindall->ai_family == AF_INET6) {
+                rp = ipv4v6bindall; /* Take first IPV6 address available */
+                break;
+            }
+            ipv4v6bindall = ipv4v6bindall->ai_next; /* Get next address info, if any */
+        }
+    }
+    
+    for (/*rp = result*/; rp != NULL; rp = rp->ai_next) {
+        listen_sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (listen_sock == -1) {
+            continue;
+        }
+
+        if (rp->ai_family == AF_INET6) {
+            int ipv6only = host ? 1 : 0;
+            setsockopt(listen_sock, IPPROTO_IPV6, IPV6_V6ONLY, &ipv6only, sizeof(ipv6only));
+        }
+
+        int opt = 1;
+        setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+#ifdef SO_NOSIGPIPE
+        setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+#endif
+        /* Use port reuse to act as lock */
+        int err = set_reuseport(listen_sock);
+        if (err == 0) {
+            if (verbose) {
+                LOGI("%s port reuse enabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
+            }
+            is_port_reuse = 1;
+        }
+        else {
+            is_port_reuse = 0;
+        }
+
+        s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
+        if (s == 0) {
+            /* We managed to bind successfully! */
+            break;
+        } else {
+            ERROR("bind");
+        }
+
+        if (!is_port_reuse) {
+            if (verbose) {
+                LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
+            }
+            close(listen_sock);
+        }
+    }
+
+    if (!result) {
+        freeaddrinfo(result);
+    }
+
+    if (rp == NULL) {
+        LOGE("Could not bind");
+        return -1;
+    }
+
+    return is_port_reuse ? listen_sock : -2;
+}
+
 static void
+release_sock_lock(sock_lock_t *sock_lock) 
+{
+    
+    ev_timer_stop(EV_DEFAULT, & sock_lock->watcher);
+
+    while(--sock_lock->fd_count > -1) {
+        if (verbose) {
+            LOGI("close sock %d then remaining fd count is %d", 
+                *(sock_lock->fds + sock_lock->fd_count), sock_lock->fd_count);
+        }
+        close(*(sock_lock->fds + sock_lock->fd_count));
+    }
+
+    if (verbose) {
+        LOGI("release sock lock: %s", sock_lock->port);
+    }
+
+    ss_free(sock_lock->port);
+    ss_free(sock_lock->fds);
+    ss_free(sock_lock);
+}
+
+static void
+get_and_release_sock_lock(char* port) 
+{
+    if (verbose) {
+        LOGI("try to get and release sock lock at port: %s", port);
+    }
+
+    sock_lock_t *sock_lock = NULL;
+    bool ret = cork_hash_table_delete(sock_table, port, NULL, (void **)&sock_lock);
+
+    if (ret) {
+        release_sock_lock(sock_lock);
+    }
+}
+
+static void
+sock_lock_timeout_cb(EV_P_ ev_timer *watcher, int revents) 
+{
+    sock_lock_t *sock_lock = cork_container_of(watcher, sock_lock_t, watcher);
+    
+    cork_hash_table_delete(sock_table, sock_lock->port, NULL, NULL);
+    release_sock_lock(sock_lock);
+}
+
+static sock_lock_t *
+new_sock_lock(char *port, int *fds, int fd_count) 
+{
+    if (verbose) {
+        LOGI("new sock lock with port: %s fd_count: %d", port, fd_count);
+    }
+
+    sock_lock_t *sock_lock;
+    sock_lock = ss_malloc(sizeof(sock_lock_t));
+
+    memset(sock_lock, 0, sizeof(sock_lock_t));
+
+    sock_lock->port = ss_malloc(strlen(port) * sizeof(char));
+    strcpy(sock_lock->port, port);
+
+    sock_lock->fds = ss_malloc(fd_count * sizeof(int));
+    memcpy(sock_lock->fds, fds, fd_count * sizeof(int));
+
+    sock_lock->fd_count = fd_count;
+
+    /* use 128 as ss-server may use at most 128 seconds to query dns */
+    ev_timer_init(& sock_lock->watcher, sock_lock_timeout_cb, 128., 0.);
+    ev_timer_start(EV_DEFAULT, & sock_lock->watcher);
+
+    return sock_lock;
+}
+
+static int
+check_port(struct manager_ctx *manager, struct server *server) 
+{
+    bool both_tcp_udp = manager->mode == TCP_AND_UDP;
+    int fd_count = manager->host_num * (both_tcp_udp ? 2 : 1);
+    int bind_err = 0;
+
+    int *sock_fds = (int *)ss_malloc(fd_count * sizeof(int));
+    memset(sock_fds, 0, fd_count * sizeof(int));
+
+    /* try to bind each interface */
+    for (int i = 0; i < manager->host_num; i++) {
+        LOGI("try to bind interface: %s, port: %s", manager->hosts[i], server->port);
+
+        if (manager->mode == UDP_ONLY) {
+            sock_fds[i] = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
+        }
+        else {
+            sock_fds[i] = create_and_bind(manager->hosts[i], server->port, IPPROTO_TCP);
+        }
+
+        if (both_tcp_udp) {
+            sock_fds[i + manager->host_num] = create_and_bind(manager->hosts[i], server->port, IPPROTO_UDP);
+        }
+
+        if (sock_fds[i] == -1 || (both_tcp_udp && sock_fds[i + manager->host_num] == -1)) {
+            bind_err = -1;
+            break;
+        }
+        else if (sock_fds[i] == -2 || (both_tcp_udp && sock_fds[i + manager->host_num] == -2)) {
+            /* continue to check all hosts */
+            bind_err = -2;
+        }
+    }
+
+    if (!bind_err) {
+        /* no err happened */
+        if (verbose) {
+            LOGI("port check passed and locked");
+        }
+
+        sock_lock_t *sock_lock = new_sock_lock(server->port, sock_fds, fd_count);
+
+        sock_lock_t *old_sock_lock = NULL;
+        bool new = false;
+
+        cork_hash_table_put(sock_table, (void *)sock_lock->port, (void *)sock_lock, &new, NULL, (void **)&old_sock_lock);
+
+        if (old_sock_lock) {
+            if (verbose) {
+                LOGI("release old sock lock after add new one to hash table");
+            }
+            release_sock_lock(old_sock_lock);
+        }
+    }
+    else {
+        /* clean socks */
+        for (int i = 0; i < fd_count; i++) {
+            if (sock_fds[i] > 0) {
+                close(sock_fds[i]);
+            }
+        }
+    }
+
+    ss_free(sock_fds);
+
+    if (bind_err == -2) {
+        LOGI("port is avaiable but can not be locked");
+    }
+
+    return bind_err == -1 ? -1 : 0;
+}
+
+static int
 add_server(struct manager_ctx *manager, struct server *server)
 {
+    int ret = check_port(manager, server);
+
+    if (ret == -1) {
+        LOGE("port is not available, please check.");
+        return -1;
+    }
+
     bool new = false;
     cork_hash_table_put(server_table, (void *)server->port, (void *)server, &new, NULL, NULL);
 
     char *cmd = construct_command_line(manager, server);
     if (system(cmd) == -1) {
         ERROR("add_server_system");
+        return -1;
     }
+
+    return 0;
 }
 
 static void
@@ -435,10 +691,21 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         remove_server(working_dir, server->port);
-        add_server(manager, server);
+        int ret = add_server(manager, server);
 
-        char msg[3] = "ok";
-        if (sendto(manager->fd, msg, 2, 0, (struct sockaddr *)&claddr, len) != 2) {
+        char *msg;
+        int msg_len;
+
+        if (ret == -1) {
+            msg = "port is not available";
+            msg_len = 21;
+        }
+        else {
+            msg = "ok";
+            msg_len = 2;
+        }
+
+        if (sendto(manager->fd, msg, msg_len, 0, (struct sockaddr *)&claddr, len) != 2) {
             ERROR("add_sendto");
         }
     } else if (strcmp(action, "remove") == 0) {
@@ -469,6 +736,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         update_stat(port, traffic);
+        get_and_release_sock_lock(port);
     } else if (strcmp(action, "ping") == 0) {
         struct cork_hash_table_entry *entry;
         struct cork_hash_table_iterator server_iter;
@@ -914,6 +1182,7 @@ main(int argc, char **argv)
     }
 
     server_table = cork_string_hash_table_new(MAX_PORT_NUM, 0);
+    sock_table = cork_string_hash_table_new(MAX_PORT_NUM, 0);
 
     if (conf != NULL) {
         for (i = 0; i < conf->port_password_num; i++) {
@@ -976,12 +1245,20 @@ main(int argc, char **argv)
     // Clean up
     struct cork_hash_table_entry *entry;
     struct cork_hash_table_iterator server_iter;
+    struct cork_hash_table_iterator sock_iter;
 
     cork_hash_table_iterator_init(server_table, &server_iter);
 
     while ((entry = cork_hash_table_iterator_next(&server_iter)) != NULL) {
         struct server *server = (struct server *)entry->value;
         stop_server(working_dir, server->port);
+    }
+
+    cork_hash_table_iterator_init(sock_table, &sock_iter);
+
+    while ((entry = cork_hash_table_iterator_next(&sock_iter)) != NULL) {
+        sock_lock_t *sock_lock = (sock_lock_t *)entry->value;
+        release_sock_lock(sock_lock);
     }
 
 #ifdef __MINGW32__
