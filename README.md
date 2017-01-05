@@ -122,7 +122,7 @@ section below.
 ``` bash
 cd shadowsocks-libev
 sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev \
-    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev
+    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev zlib1g-dev
 dpkg-buildpackage -b -us -uc -i
 cd ..
 sudo dpkg -i shadowsocks-libev*.deb
@@ -225,7 +225,7 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto
+sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev
 # CentOS / Fedora / RHEL
 sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto
 ./configure && make
