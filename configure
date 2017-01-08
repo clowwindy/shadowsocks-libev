@@ -14106,7 +14106,8 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ok" >&5
 $as_echo "ok" >&6; }
 else
-  as_fn_error $? "MBEDTLS_ARC4_C required" "$LINENO" 5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: We will continue without ARC4 stream cipher support, MBEDTLS_ARC4_C required" >&5
+$as_echo "$as_me: WARNING: We will continue without ARC4 stream cipher support, MBEDTLS_ARC4_C required" >&2;}
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
@@ -14135,7 +14136,8 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ok" >&5
 $as_echo "ok" >&6; }
 else
-  as_fn_error $? "MBEDTLS_BLOWFISH_C required" "$LINENO" 5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: We will continue without Blowfish block cipher support, MBEDTLS_BLOWFISH_C required" >&5
+$as_echo "$as_me: WARNING: We will continue without Blowfish block cipher support, MBEDTLS_BLOWFISH_C required" >&2;}
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
@@ -14164,7 +14166,8 @@ if ac_fn_c_try_compile "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ok" >&5
 $as_echo "ok" >&6; }
 else
-  as_fn_error $? "MBEDTLS_CAMELLIA_C required" "$LINENO" 5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: We will continue without Camellia block cipher support, MBEDTLS_CAMELLIA_C required" >&5
+$as_echo "$as_me: WARNING: We will continue without Camellia block cipher support, MBEDTLS_CAMELLIA_C required" >&2;}
 
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
