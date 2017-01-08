@@ -748,11 +748,19 @@ accept_cb(EV_P_ ev_io *w, int revents)
     ev_io_start(EV_A_ & server->recv_ctx->io);
 }
 
-void
-signal_cb(int dummy)
+static void
+signal_cb(EV_P_ ev_signal *w, int revents)
 {
-    keep_resolving = 0;
-    exit(-1);
+    if (revents & EV_SIGNAL) {
+        switch (w->signum) {
+        case SIGCHLD:
+            LOGE("plugin service exit unexpectedly");
+        case SIGINT:
+        case SIGTERM:
+            keep_resolving = 0;
+            ev_unloop(EV_A_ EVUNLOOP_ALL);
+        }
+    }
 }
 
 int
@@ -950,7 +958,7 @@ main(int argc, char **argv)
         plugin_host = "127.0.0.1";
         plugin_port = tmp_port;
 
-        LOGI("plugin %s enabled", plugin);
+        LOGI("plugin \"%s\" enabled", plugin);
     }
 
     if (method == NULL) {
@@ -1015,9 +1023,16 @@ main(int argc, char **argv)
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
-    signal(SIGINT, signal_cb);
-    signal(SIGTERM, signal_cb);
-    signal(SIGCHLD, signal_cb);
+
+    struct ev_signal sigint_watcher;
+    struct ev_signal sigterm_watcher;
+    struct ev_signal sigchld_watcher;
+    ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
+    ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
+    ev_signal_start(EV_DEFAULT, &sigint_watcher);
+    ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1090,6 +1105,10 @@ main(int argc, char **argv)
     if (plugin != NULL) {
         stop_plugin();
     }
+
+    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
 
     return 0;
 }

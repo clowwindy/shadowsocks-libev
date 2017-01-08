@@ -1814,7 +1814,7 @@ main(int argc, char **argv)
     }
 
     if (plugin != NULL) {
-        LOGI("plugin %s enabled", plugin);
+        LOGI("plugin \"%s\" enabled", plugin);
     }
 
     if (mode != TCP_ONLY) {

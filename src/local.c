@@ -1392,7 +1392,7 @@ main(int argc, char **argv)
         plugin_host = "127.0.0.1";
         plugin_port = tmp_port;
 
-        LOGI("plugin %s enabled", plugin);
+        LOGI("plugin \"%s\" enabled", plugin);
     }
 
     if (method == NULL) {
@@ -1571,7 +1571,6 @@ main(int argc, char **argv)
     }
 
     // Clean up
-    
     if (plugin != NULL) {
         stop_plugin();
     }
