@@ -1877,13 +1877,15 @@ main(int argc, char **argv)
             snprintf(server_str + len, buf_size - len, "|%s", server_host[i]);
             len = strlen(server_str);
         }
+
+        server_host[0] = "127.0.0.1";
+        server_num = 1;
+
         int err = start_plugin(plugin, server_str,
                 plugin_port, server_host[0], server_port);
         if (err) {
             FATAL("failed to start the plugin");
         }
-
-        server_num = 1;
     }
 
     // initialize listen context
