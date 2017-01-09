@@ -101,6 +101,10 @@ static int auth      = 0;
 static int nofile = 0;
 #endif
 
+static struct ev_signal sigint_watcher;
+static struct ev_signal sigterm_watcher;
+static struct ev_signal sigchld_watcher;
+
 #ifndef __MINGW32__
 static int
 setnonblocking(int fd)
@@ -719,6 +723,10 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             LOGE("plugin service exit unexpectedly");
         case SIGINT:
         case SIGTERM:
+            ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+            ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+            ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
+
             keep_resolving = 0;
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
@@ -1025,9 +1033,6 @@ main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
 
-    struct ev_signal sigint_watcher;
-    struct ev_signal sigterm_watcher;
-    struct ev_signal sigchld_watcher;
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
     ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
@@ -1113,10 +1118,6 @@ main(int argc, char **argv)
     if (plugin != NULL) {
         stop_plugin();
     }
-
-    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
 
 #ifdef __MINGW32__
     winsock_cleanup();

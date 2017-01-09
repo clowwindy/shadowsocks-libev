@@ -108,6 +108,13 @@ static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 static int fast_open = 0;
 
+static struct ev_signal sigint_watcher;
+static struct ev_signal sigterm_watcher;
+static struct ev_signal sigchld_watcher;
+#ifndef __MINGW32__
+    struct ev_signal sigusr1_watcher;
+#endif
+
 #ifdef HAVE_SETRLIMIT
 #ifndef LIB_ONLY
 static int nofile = 0;
@@ -1118,12 +1125,6 @@ create_remote(listen_ctx_t *listener,
     return remote;
 }
 
-void
-resolve_int_cb(int dummy)
-{
-    keep_resolving = 0;
-}
-
 static void
 signal_cb(EV_P_ ev_signal *w, int revents)
 {
@@ -1136,8 +1137,14 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 #ifndef __MINGW32__
         case SIGUSR1:
 #endif
+            ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+            ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+            ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
+#ifndef __MINGW32__
+            ev_signal_stop(EV_DEFAULT, &sigusr1_watcher);
+#endif
+            keep_resolving = 0;
             ev_unloop(EV_A_ EVUNLOOP_ALL);
-            resolve_int_cb(revents);
         }
     }
 }
@@ -1647,9 +1654,6 @@ start_ss_local_server(profile_t profile)
     signal(SIGABRT, SIG_IGN);
 #endif
 
-    struct ev_signal sigint_watcher;
-    struct ev_signal sigterm_watcher;
-    struct ev_signal sigchld_watcher;
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
     ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
@@ -1657,7 +1661,6 @@ start_ss_local_server(profile_t profile)
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #ifndef __MINGW32__
-    struct ev_signal sigusr1_watcher;
     ev_signal_init(&sigusr1_watcher, signal_cb, SIGUSR1);
     ev_signal_start(EV_DEFAULT, &sigusr1_watcher);
 #endif
@@ -1744,13 +1747,6 @@ start_ss_local_server(profile_t profile)
 
 #ifdef __MINGW32__
     winsock_cleanup();
-#endif
-
-    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
-#ifndef __MINGW32__
-    ev_signal_stop(EV_DEFAULT, &sigusr1_watcher);
 #endif
 
     // cannot reach here

@@ -126,6 +126,10 @@ uint64_t rx                  = 0;
 ev_timer stat_update_watcher;
 ev_timer block_list_watcher;
 
+static struct ev_signal sigint_watcher;
+static struct ev_signal sigterm_watcher;
+static struct ev_signal sigchld_watcher;
+
 static struct cork_dllist connections;
 
 static void
@@ -1490,6 +1494,9 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             LOGE("plugin service exit unexpectedly");
         case SIGINT:
         case SIGTERM:
+            ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+            ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+            ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
@@ -1833,9 +1840,6 @@ main(int argc, char **argv)
     signal(SIGABRT, SIG_IGN);
 #endif
 
-    struct ev_signal sigint_watcher;
-    struct ev_signal sigterm_watcher;
-    struct ev_signal sigchld_watcher;
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
     ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
@@ -2002,10 +2006,6 @@ main(int argc, char **argv)
 #ifdef __MINGW32__
     winsock_cleanup();
 #endif
-
-    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
 
     return 0;
 }
