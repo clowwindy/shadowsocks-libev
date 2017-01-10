@@ -118,6 +118,7 @@ static int nofile = 0;
 static int remote_conn = 0;
 static int server_conn = 0;
 
+static char *plugin          = NULL;
 static char *bind_address    = NULL;
 static char *server_port     = NULL;
 static char *manager_address = NULL;
@@ -1568,7 +1569,6 @@ main(int argc, char **argv)
     char *conf_path = NULL;
     char *iface     = NULL;
 
-    char *plugin      = NULL;
     char *plugin_port = NULL;
     char tmp_port[8];
 
