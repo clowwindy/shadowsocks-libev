@@ -135,7 +135,8 @@ start_plugin(const char *plugin,
 }
 
 uint16_t
-get_local_port() {
+get_local_port()
+{
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         return 0;
@@ -162,7 +163,8 @@ get_local_port() {
 }
 
 void
-stop_plugin() {
+stop_plugin()
+{
     if (sub != NULL) {
         cork_subprocess_abort(sub);
         cork_subprocess_free(sub);
@@ -170,6 +172,11 @@ stop_plugin() {
 }
 
 #else
+
+#include "stdint.h"
+
+#include "utils.h"
+#include "plugin.h"
 
 int
 start_plugin(const char *plugin,
@@ -179,16 +186,18 @@ start_plugin(const char *plugin,
              const char *local_port)
 {
     FATAL("Plugin is not supported on MinGW.");
+    return -1;
 }
 
 uint16_t
 get_local_port()
 {
     FATAL("Plugin is not supported on MinGW.");
-
+    return 0;
 }
 
-int stop_plugin()
+void
+stop_plugin()
 {
     FATAL("Plugin is not supported on MinGW.");
 }

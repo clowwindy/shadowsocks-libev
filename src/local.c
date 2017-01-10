@@ -110,9 +110,9 @@ static int fast_open = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
-static struct ev_signal sigchld_watcher;
 #ifndef __MINGW32__
-    struct ev_signal sigusr1_watcher;
+static struct ev_signal sigchld_watcher;
+static struct ev_signal sigusr1_watcher;
 #endif
 
 #ifdef HAVE_SETRLIMIT
@@ -1130,17 +1130,17 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 {
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
+#ifndef __MINGW32__
         case SIGCHLD:
             LOGE("plugin service exit unexpectedly");
-        case SIGINT:
-        case SIGTERM:
-#ifndef __MINGW32__
         case SIGUSR1:
 #endif
+        case SIGINT:
+        case SIGTERM:
             ev_signal_stop(EV_DEFAULT, &sigint_watcher);
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-            ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
 #ifndef __MINGW32__
+            ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
             ev_signal_stop(EV_DEFAULT, &sigusr1_watcher);
 #endif
             keep_resolving = 0;
@@ -1505,15 +1505,15 @@ main(int argc, char **argv)
     listen_ctx.mptcp   = mptcp;
 
     // Setup signal handler
-    struct ev_signal sigint_watcher;
-    struct ev_signal sigterm_watcher;
-    struct ev_signal sigchld_watcher;
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+
+#ifndef __MINGW32__
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
+#endif
 
     struct ev_loop *loop = EV_DEFAULT;
 
@@ -1599,10 +1599,6 @@ main(int argc, char **argv)
     winsock_cleanup();
 #endif
 
-    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-    ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
-
     return 0;
 }
 
@@ -1656,13 +1652,13 @@ start_ss_local_server(profile_t profile)
 
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
-    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #ifndef __MINGW32__
     ev_signal_init(&sigusr1_watcher, signal_cb, SIGUSR1);
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigusr1_watcher);
+    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #endif
 
     // Setup keys

@@ -101,9 +101,11 @@ static int auth      = 0;
 static int nofile = 0;
 #endif
 
+#ifndef __MINGW32__
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
 static struct ev_signal sigchld_watcher;
+#endif
 
 #ifndef __MINGW32__
 static int
@@ -714,6 +716,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
 }
 
+#ifndef __MINGW32__
 static void
 signal_cb(EV_P_ ev_signal *w, int revents)
 {
@@ -726,12 +729,12 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             ev_signal_stop(EV_DEFAULT, &sigint_watcher);
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
             ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
-
             keep_resolving = 0;
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
 }
+#endif
 
 int
 main(int argc, char **argv)
