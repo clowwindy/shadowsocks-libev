@@ -111,7 +111,9 @@ start_plugin(const char *plugin,
             size_t path_len = strlen(path) + strlen(cwd) + 2;
             new_path = ss_malloc(path_len);
             snprintf(new_path, path_len, "%s:%s", cwd, path);
+#ifdef __GLIBC__
             free(cwd);
+#endif
         }
     }
 
