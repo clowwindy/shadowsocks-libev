@@ -356,10 +356,6 @@ usage()
 #ifdef __linux__
     printf(
         "       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.\n");
-#ifdef MODULE_REMOTE
-    printf(
-        "       [--firewall]               Setup firewall rules for auto blocking.\n");
-#endif
 #endif
     printf(
         "       [--plugin <plugin_args>]   Enable SIP003 plugin. (Experimental)\n");

@@ -29,6 +29,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 
 #include <libcork/core.h>
@@ -179,6 +180,14 @@ stop_plugin()
     }
 }
 
+int is_plugin_running()
+{
+    if (sub != NULL) {
+        return cork_subprocess_is_finished(sub);
+    }
+    return 0;
+}
+
 #else
 
 #include "stdint.h"
@@ -206,6 +215,12 @@ get_local_port()
 
 void
 stop_plugin()
+{
+    FATAL("Plugin is not supported on MinGW.");
+}
+
+int
+is_plugin_running()
 {
     FATAL("Plugin is not supported on MinGW.");
 }

@@ -80,6 +80,10 @@
 #define SSMAXCONN 1024
 #endif
 
+#ifndef MAX_FRAG
+#define MAX_FRAG 2
+#endif
+
 static void signal_cb(EV_P_ ev_signal *w, int revents);
 static void accept_cb(EV_P_ ev_io *w, int revents);
 static void server_send_cb(EV_P_ ev_io *w, int revents);
@@ -655,6 +659,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     tx += r;
 
+    if (server->frag >= MAX_FRAG) {
+        LOGE("fragmentation detected");
+        close_and_free_remote(EV_A_ remote);
+        close_and_free_server(EV_A_ server);
+        return;
+    }
+
     if (server->stage == STAGE_ERROR) {
         server->buf->len = 0;
         server->buf->idx = 0;
@@ -667,6 +678,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (buf->len <= enc_get_iv_len() + 1) {
             // wait for more
+            server->frag++;
             return;
         }
     } else {
@@ -719,6 +731,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         } else {
             if (ret == -1)
                 server->stage = STAGE_ERROR;
+            server->frag++;
             server->buf->len = 0;
             server->buf->idx = 0;
             return;
@@ -1397,6 +1410,7 @@ new_server(int fd, listen_ctx_t *listener)
     server->send_ctx->server    = server;
     server->send_ctx->connected = 0;
     server->stage               = STAGE_INIT;
+    server->frag                = 0;
     server->query               = NULL;
     server->listen_ctx          = listener;
     server->remote              = NULL;
@@ -1492,7 +1506,10 @@ signal_cb(EV_P_ ev_signal *w, int revents)
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
         case SIGCHLD:
-            LOGE("plugin service exit unexpectedly");
+            if (!is_plugin_running())
+                LOGE("plugin service exit unexpectedly");
+            else
+                return;
         case SIGINT:
         case SIGTERM:
             ev_signal_stop(EV_DEFAULT, &sigint_watcher);
@@ -1559,7 +1576,6 @@ main(int argc, char **argv)
     int i, c;
     int pid_flags   = 0;
     int mptcp       = 0;
-    int firewall    = 0;
     int mtu         = 0;
     char *user      = NULL;
     char *password  = NULL;
@@ -1588,7 +1604,6 @@ main(int argc, char **argv)
         { "plugin",          required_argument, 0, 0 },
 #ifdef __linux__
         { "mptcp",           no_argument,       0, 0 },
-        { "firewall",        no_argument,       0, 0 },
 #endif
         {                 0,                 0, 0, 0 }
     };
@@ -1619,9 +1634,6 @@ main(int argc, char **argv)
             } else if (option_index == 6) {
                 mptcp = 1;
                 LOGI("enable multipath TCP");
-            } else if (option_index == 8) {
-                firewall = 1;
-                LOGI("enable firewall rules");
             }
             break;
         case 's':
@@ -1953,14 +1965,11 @@ main(int argc, char **argv)
 #ifndef __MINGW32__
     if (geteuid() == 0) {
         LOGI("running from root user");
-    } else if (firewall) {
-        LOGE("firewall setup requires running from root user");
-        exit(-1);
     }
 #endif
 
     // init block list
-    init_block_list(firewall);
+    init_block_list();
 
     // Init connections
     cork_dllist_init(&connections);

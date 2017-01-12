@@ -1132,7 +1132,10 @@ signal_cb(EV_P_ ev_signal *w, int revents)
         switch (w->signum) {
 #ifndef __MINGW32__
         case SIGCHLD:
-            LOGE("plugin service exit unexpectedly");
+            if (!is_plugin_running())
+                LOGE("plugin service exit unexpectedly");
+            else
+                return;
         case SIGUSR1:
 #endif
         case SIGINT:

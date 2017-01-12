@@ -34,5 +34,6 @@ int start_plugin(const char *plugin,
                  const char *local_port);
 uint16_t get_local_port();
 void stop_plugin();
+int is_plugin_running();
 
 #endif // _PLUGIN_H

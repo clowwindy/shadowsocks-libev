@@ -53,6 +53,7 @@ typedef struct server {
     int fd;
     int stage;
     int auth;
+    int frag;
 
     buffer_t *buf;
     buffer_t *header_buf;
