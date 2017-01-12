@@ -223,6 +223,7 @@ int
 is_plugin_running()
 {
     FATAL("Plugin is not supported on MinGW.");
+    return 0;
 }
 
 #endif
