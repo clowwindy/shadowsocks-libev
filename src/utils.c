@@ -361,7 +361,7 @@ usage()
     printf(
         "       [--plugin <name>]          Enable SIP003 plugin. (Experimental)\n");
     printf(
-        "       [--plugin_opts <options>]  Set SIP003 plugin options. (Experimental)\n");
+        "       [--plugin-opts <options>]  Set SIP003 plugin options. (Experimental)\n");
 #endif
     printf("\n");
     printf(

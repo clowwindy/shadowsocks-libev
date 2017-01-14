@@ -1603,7 +1603,7 @@ main(int argc, char **argv)
         { "mtu",             required_argument, 0, 0 },
         { "help",            no_argument,       0, 0 },
         { "plugin",          required_argument, 0, 0 },
-        { "plugin_opts",     required_argument, 0, 0 },
+        { "plugin-opts",     required_argument, 0, 0 },
 #ifdef __linux__
         { "mptcp",           no_argument,       0, 0 },
 #endif
@@ -1902,9 +1902,6 @@ main(int argc, char **argv)
             len = strlen(server_str);
         }
 
-        server_host[0] = "127.0.0.1";
-        server_num = 1;
-
         int err = start_plugin(plugin, plugin_opts, server_str,
                 plugin_port, server_host[0], server_port);
         if (err) {
@@ -1916,10 +1913,14 @@ main(int argc, char **argv)
     listen_ctx_t listen_ctx_list[server_num];
 
     // bind to each interface
-    for (int i = 0; i < server_num; i++) {
-        const char *host = server_host[i];
+    if (mode != UDP_ONLY) {
+        for (int i = 0; i < server_num; i++) {
+            const char *host = server_host[i];
 
-        if (mode != UDP_ONLY) {
+            if (plugin != NULL) {
+                host = "127.0.0.1";
+            }
+
             // Bind to port
             int listenfd;
             listenfd = create_and_bind(host, server_port, mptcp);
@@ -1942,18 +1943,31 @@ main(int argc, char **argv)
 
             ev_io_init(&listen_ctx->io, accept_cb, listenfd, EV_READ);
             ev_io_start(loop, &listen_ctx->io);
-        }
 
-        // Setup UDP
-        if (mode != TCP_ONLY) {
-            init_udprelay(server_host[i], server_port, mtu, m,
-                          auth, atoi(timeout), iface);
-        }
+            if (host && strcmp(host, ":") > 0)
+                LOGI("tcp server listening at [%s]:%s", host, server_port);
+            else
+                LOGI("tcp server listening at %s:%s", host ? host : "*", server_port);
 
-        if (host && strcmp(host, ":") > 0)
-            LOGI("listening at [%s]:%s", host, server_port);
-        else
-            LOGI("listening at %s:%s", host ? host : "*", server_port);
+            if (plugin != NULL) break;
+        }
+    }
+
+    if (mode != TCP_ONLY) {
+        for (int i = 0; i < server_num; i++) {
+            const char *host = server_host[i];
+            const char *port = server_port;
+            if (plugin != NULL) {
+                port = plugin_port;
+            }
+            // Setup UDP
+            init_udprelay(host, port, mtu, m,
+                    auth, atoi(timeout), iface);
+            if (host && strcmp(host, ":") > 0)
+                LOGI("udp server listening at [%s]:%s", host, port);
+            else
+                LOGI("udp server listening at %s:%s", host ? host : "*", port);
+        }
     }
 
     if (manager_address != NULL) {
@@ -2008,6 +2022,7 @@ main(int argc, char **argv)
             ev_io_stop(loop, &listen_ctx->io);
             close(listen_ctx->fd);
         }
+        if (plugin != NULL) break;
     }
 
     if (mode != UDP_ONLY) {

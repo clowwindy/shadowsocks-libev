@@ -114,8 +114,6 @@ read_jconf(const char *file)
     char *buf;
     json_value *obj;
 
-    LOGI("test");
-
     FILE *f = fopen(file, "rb");
     if (f == NULL) {
         FATAL("Invalid config path.");

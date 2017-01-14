@@ -183,7 +183,7 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
     }
     if (manager->plugin_opts) {
         int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --plugin_opts \"%s\"", manager->plugin_opts);
+        snprintf(cmd + len, BUF_SIZE - len, " --plugin-opts \"%s\"", manager->plugin_opts);
     }
     for (i = 0; i < manager->nameserver_num; i++) {
         int len = strlen(cmd);
@@ -912,7 +912,7 @@ main(int argc, char **argv)
         { "executable",      required_argument, 0, 0 },
         { "mtu",             required_argument, 0, 0 },
         { "plugin",          required_argument, 0, 0 },
-        { "plugin_opts",     required_argument, 0, 0 },
+        { "plugin-opts",     required_argument, 0, 0 },
         { "help",            no_argument,       0, 0 },
         { 0,                 0,                 0, 0 }
     };
