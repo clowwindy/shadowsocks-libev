@@ -82,6 +82,7 @@ struct cork_stream_consumer plugin_log = {
 
 int
 start_plugin(const char *plugin,
+             const char *plugin_opts,
              const char *remote_host,
              const char *remote_port,
              const char *local_host,
@@ -126,6 +127,9 @@ start_plugin(const char *plugin,
 
     cork_env_add(env, "SS_LOCAL_HOST", local_host);
     cork_env_add(env, "SS_LOCAL_PORT", local_port);
+
+    if (plugin_opts != NULL)
+        cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
     exec = cork_exec_new_with_params("sh", "-c", cmd, NULL);
 

@@ -1585,6 +1585,7 @@ main(int argc, char **argv)
     char *conf_path = NULL;
     char *iface     = NULL;
 
+    char *plugin_opts = NULL;
     char *plugin_port = NULL;
     char tmp_port[8];
 
@@ -1602,6 +1603,7 @@ main(int argc, char **argv)
         { "mtu",             required_argument, 0, 0 },
         { "help",            no_argument,       0, 0 },
         { "plugin",          required_argument, 0, 0 },
+        { "plugin_opts",     required_argument, 0, 0 },
 #ifdef __linux__
         { "mptcp",           no_argument,       0, 0 },
 #endif
@@ -1632,6 +1634,8 @@ main(int argc, char **argv)
             } else if (option_index == 5) {
                 plugin = optarg;
             } else if (option_index == 6) {
+                plugin_opts = optarg;
+            } else if (option_index == 7) {
                 mptcp = 1;
                 LOGI("enable multipath TCP");
             }
@@ -1740,6 +1744,9 @@ main(int argc, char **argv)
         }
         if (plugin == NULL) {
             plugin = conf->plugin;
+        }
+        if (plugin_opts == NULL) {
+            plugin_opts = conf->plugin_opts;
         }
         if (auth == 0) {
             auth = conf->auth;
@@ -1898,7 +1905,7 @@ main(int argc, char **argv)
         server_host[0] = "127.0.0.1";
         server_num = 1;
 
-        int err = start_plugin(plugin, server_str,
+        int err = start_plugin(plugin, plugin_opts, server_str,
                 plugin_port, server_host[0], server_port);
         if (err) {
             FATAL("failed to start the plugin");

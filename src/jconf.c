@@ -114,6 +114,8 @@ read_jconf(const char *file)
     char *buf;
     json_value *obj;
 
+    LOGI("test");
+
     FILE *f = fopen(file, "rb");
     if (f == NULL) {
         FATAL("Invalid config path.");
@@ -201,6 +203,8 @@ read_jconf(const char *file)
                 conf.user = to_string(value);
             } else if (strcmp(name, "plugin") == 0) {
                 conf.plugin = to_string(value);
+            } else if (strcmp(name, "plugin_opts") == 0) {
+                conf.plugin_opts = to_string(value);
             } else if (strcmp(name, "fast_open") == 0) {
                 check_json_value_type(value, json_boolean,
                         "invalid config file: option 'fast_open' must be a boolean");

@@ -15,6 +15,7 @@ SYNOPSIS
  [-b <local_addr>] [-a <user_name>]
  [--manager-address <path_to_unix_domain>]
  [--executable <path_to_server_executable>]
+ [--plugin <plugin_name>] [--plugin_opts <plugin_options]
 
 DESCRIPTION
 -----------
@@ -105,8 +106,11 @@ Specify the executable path of ss-server.
 +
 Only available in manager mode.
 
---plugin <plugin_args>::
+--plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)
+
+--plugin_opts <plugin_options>::
+Set SIP003 plugin options. (Experimental)
 
 -v::
 Enable verbose mode.

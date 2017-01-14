@@ -179,7 +179,11 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
     }
     if (manager->plugin) {
         int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --plugin %s", manager->plugin);
+        snprintf(cmd + len, BUF_SIZE - len, " --plugin \"%s\"", manager->plugin);
+    }
+    if (manager->plugin_opts) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " --plugin_opts \"%s\"", manager->plugin_opts);
     }
     for (i = 0; i < manager->nameserver_num; i++) {
         int len = strlen(cmd);
@@ -880,6 +884,7 @@ main(int argc, char **argv)
     char *iface           = NULL;
     char *manager_address = NULL;
     char *plugin          = NULL;
+    char *plugin_opts     = NULL;
 
     int auth      = 0;
     int fast_open = 0;
@@ -907,6 +912,7 @@ main(int argc, char **argv)
         { "executable",      required_argument, 0, 0 },
         { "mtu",             required_argument, 0, 0 },
         { "plugin",          required_argument, 0, 0 },
+        { "plugin_opts",     required_argument, 0, 0 },
         { "help",            no_argument,       0, 0 },
         { 0,                 0,                 0, 0 }
     };
@@ -932,6 +938,8 @@ main(int argc, char **argv)
             } else if (option_index == 5) {
                 plugin = optarg;
             } else if (option_index == 6) {
+                plugin_opts = optarg;
+            } else if (option_index == 7) {
                 usage();
                 exit(EXIT_SUCCESS);
             }
@@ -1039,8 +1047,11 @@ main(int argc, char **argv)
         if (mtu == 0) {
             mtu = conf->mtu;
         }
-        if (plugin == 0) {
+        if (plugin == NULL) {
             plugin = conf->plugin;
+        }
+        if (plugin_opts == NULL) {
+            plugin_opts = conf->plugin_opts;
         }
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
@@ -1122,6 +1133,7 @@ main(int argc, char **argv)
     manager.nameserver_num  = nameserver_num;
     manager.mtu             = mtu;
     manager.plugin          = plugin;
+    manager.plugin_opts     = plugin_opts;
     manager.ipv6first       = ipv6first;
 #ifdef HAVE_SETRLIMIT
     manager.nofile = nofile;

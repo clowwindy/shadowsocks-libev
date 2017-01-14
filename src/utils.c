@@ -357,8 +357,12 @@ usage()
     printf(
         "       [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.\n");
 #endif
+#ifndef __MINGW32__
     printf(
-        "       [--plugin <plugin_args>]   Enable SIP003 plugin. (Experimental)\n");
+        "       [--plugin <name>]          Enable SIP003 plugin. (Experimental)\n");
+    printf(
+        "       [--plugin_opts <options>]  Set SIP003 plugin options. (Experimental)\n");
+#endif
     printf("\n");
     printf(
         "       [-v]                       Verbose mode.\n");

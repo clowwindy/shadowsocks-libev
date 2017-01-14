@@ -13,6 +13,7 @@ SYNOPSIS
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-b <local_address>]
  [-a <user_name>] [-n <nofile>] [--mtu <MTU>]
+ [--plugin <plugin_name>] [--plugin_opts <plugin_options]
 
 DESCRIPTION
 -----------
@@ -101,8 +102,11 @@ Enable Multipath TCP.
 +
 Only available with MPTCP enabled Linux kernel.
 
---plugin <plugin_args>::
+--plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)
+
+--plugin_opts <plugin_options>::
+Set SIP003 plugin options. (Experimental)
 
 -v::
 Enable verbose mode.

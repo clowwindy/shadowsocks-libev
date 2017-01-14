@@ -1193,6 +1193,7 @@ main(int argc, char **argv)
     char *iface      = NULL;
 
     char *plugin      = NULL;
+    char *plugin_opts = NULL;
     char *plugin_host = NULL;
     char *plugin_port = NULL;
     char tmp_port[8];
@@ -1210,6 +1211,7 @@ main(int argc, char **argv)
         { "mtu",         required_argument, 0, 0 },
         { "mptcp",       no_argument,       0, 0 },
         { "plugin",      required_argument, 0, 0 },
+        { "plugin-opts", required_argument, 0, 0 },
         { "help",        no_argument,       0, 0 },
         { 0,             0,                 0, 0 }
     };
@@ -1241,6 +1243,8 @@ main(int argc, char **argv)
             } else if (option_index == 4) {
                 plugin = optarg;
             } else if (option_index == 5) {
+                plugin_opts = optarg;
+            } else if (option_index == 6) {
                 usage();
                 exit(EXIT_SUCCESS);
             }
@@ -1362,6 +1366,9 @@ main(int argc, char **argv)
         if (plugin == NULL) {
             plugin = conf->plugin;
         }
+        if (plugin_opts == NULL) {
+            plugin_opts = conf->plugin_opts;
+        }
         if (auth == 0) {
             auth = conf->auth;
         }
@@ -1463,7 +1470,7 @@ main(int argc, char **argv)
             snprintf(remote_str + len, buf_size - len, "|%s", remote_addr[i].host);
             len = strlen(remote_str);
         }
-        int err = start_plugin(plugin, remote_str,
+        int err = start_plugin(plugin, plugin_opts, remote_str,
                 remote_port, plugin_host, plugin_port);
         if (err) {
             FATAL("failed to start the plugin");
