@@ -359,7 +359,8 @@ man pages of the applications, respectively.
        [--executable <path>]      path to the executable of ss-server
                                   only available in manager mode
 
-       [--plugin <plugin_args>]   Enable SIP003 plugin. (Experimental)
+       [--plugin <name>]          Enable SIP003 plugin. (Experimental)
+       [--plugin-opts <options>]  Set SIP003 plugin options. (Experimental)
 
        [-v]                       verbose mode
 
