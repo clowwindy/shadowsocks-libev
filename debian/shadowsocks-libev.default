@@ -18,8 +18,8 @@ CONFFILE="/etc/shadowsocks-libev/config.json"
 DAEMON_ARGS="-u"
 
 # User and group to run the server as
-USER=nobody
-GROUP=nogroup
+USER=root
+GROUP=root
 
 # Number of maximum file descriptors
 MAXFD=32768
