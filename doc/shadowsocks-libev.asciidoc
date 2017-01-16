@@ -168,7 +168,7 @@ The config file equivalent of command line options is listed as example below.
 | -a nobody                           | "user": "nobody"
 | --fast-open                         | "fast_open": true
 | --plugin "obfs-server"              | "plugin": "obfs-server"
-| --plugig-opts "obfs=http"           | "plugin_opts": "obfs=http"
+| --plugin-opts "obfs=http"           | "plugin_opts": "obfs=http"
 | -6                                  | "ipv6_first": true
 | -A                                  | "auth": true
 | -n "/etc/nofile"                    | "nofile": "/etc/nofile"
