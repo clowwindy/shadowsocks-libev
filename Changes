@@ -6,7 +6,7 @@ shadowsocks-libev (2.6.2-1) unstable; urgency=medium
 
 shadowsocks-libev (2.6.1-1) unstable; urgency=medium
 
-  * Deprecate HTTP/TLS obfusacting.
+  * Deprecate HTTP/TLS obfuscating.
   * Add SIP003 plugin support.
 
  -- Max Lv <max.c.lv@gmail.com>  Sun, 08 Jan 2017 15:14:19 +0800
