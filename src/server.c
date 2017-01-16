@@ -1903,7 +1903,7 @@ main(int argc, char **argv)
         }
 
         int err = start_plugin(plugin, plugin_opts, server_str,
-                plugin_port, server_host[0], server_port);
+                plugin_port, "127.0.0.1", server_port);
         if (err) {
             FATAL("failed to start the plugin");
         }
