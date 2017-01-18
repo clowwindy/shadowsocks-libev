@@ -5,9 +5,16 @@ compiler:
 addons:
     apt:
         packages:
+            - autoconf
+            - autotools-dev
+            - libudns-dev
+            - libev-dev
+            - libsodium-dev
             - asciidoc
             - xmlto
-script: "./configure && make"
+script:
+    - ./autogen.sh
+    - ./configure && make
 branches:
     only:
         - master
