@@ -122,8 +122,9 @@ section below.
 ``` bash
 cd shadowsocks-libev
 sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev \
-    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev zlib1g-dev
-dpkg-buildpackage -b -us -uc -i
+    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev zlib1g-dev \
+    libev-dev libudns-dev libsodium-dev
+./autorun.sh && dpkg-buildpackage -b -us -uc -i
 cd ..
 sudo dpkg -i shadowsocks-libev*.deb
 ```
@@ -193,7 +194,7 @@ Then download the source package and compile.
 ```bash
 git clone https://github.com/shadowsocks/shadowsocks-libev.git
 cd shadowsocks-libev
-./configure && make
+./autogen.sh && ./configure && make
 sudo make install
 ```
 
@@ -228,7 +229,7 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev
 # CentOS / Fedora / RHEL
 sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto
-./configure && make
+./autogen.sh && ./configure && make
 sudo make install
 ```
 
@@ -285,7 +286,7 @@ to the home directory of msys, and build it like this (may take a few minutes):
 tar zxf openssl-1.0.1e.tar.gz
 cd openssl-1.0.1e
 ./config --prefix="$HOME/prebuilt" --openssldir="$HOME/prebuilt/openssl"
-make && make install
+./autogen.sh && make && make install
 ```
 
 Then, build the binary using the commands below, and all `.exe` files
@@ -293,7 +294,7 @@ will be built at `$HOME/ss/bin`:
 
 ```bash
 ./configure --prefix="$HOME/ss" --with-openssl="$HOME/prebuilt"
-make && make install
+./autogen.sh && make && make install
 ```
 
 ## Usage
