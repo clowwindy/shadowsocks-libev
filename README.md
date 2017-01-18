@@ -69,12 +69,6 @@ and `--with-mbedtls=/path/to/mbedtls` when running `./configure`.
 Windows users will need extra work when compiling mbedTLS library,
 see [this issue](https://github.com/shadowsocks/shadowsocks-libev/issues/422) for detail info.
 
-#### Using shared library from system
-
-Please specify `--enable-system-shared-lib`. This will replace the bundled
-`libev`, `libsodium` and `libudns` with the corresponding libraries installed
-in the system during compilation and linking.
-
 ### Debian & Ubuntu
 
 #### Install from repository
