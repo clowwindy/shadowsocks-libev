@@ -439,7 +439,9 @@ setting up your server's firewall rules to limit connections from each user:
 
 ## License
 
-Copyright (C) 2016 Max Lv <max.c.lv@gmail.com>
+Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
+           2013-2017, Max Lv <max.c.lv@gmail.com>
+           2014, Linus Yang <linusyang@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
