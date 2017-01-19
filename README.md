@@ -28,6 +28,16 @@ refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature
 
 ## Installation
 
+### Get the latest source code
+
+To get the latest source code, you should also update the submodules as following:
+
+```bash
+git clone https://github.com/shadowsocks/shadowsocks-libev.git
+cd shadowsocks-libev
+git submodule update --init --recursive
+```
+
 ### Distribution-specific guide
 
 - [Debian & Ubuntu](#debian--ubuntu)
