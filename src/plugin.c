@@ -201,6 +201,7 @@ int is_plugin_running()
 
 int
 start_plugin(const char *plugin,
+             const char *plugin_opts,
              const char *remote_host,
              const char *remote_port,
              const char *local_host,
