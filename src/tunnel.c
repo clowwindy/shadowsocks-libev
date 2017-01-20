@@ -88,7 +88,6 @@ static void close_and_free_server(EV_P_ server_t *server);
 
 #ifdef ANDROID
 int vpn = 0;
-char *prefix;
 #endif
 
 int verbose        = 0;
@@ -875,9 +874,6 @@ main(int argc, char **argv)
 #ifdef ANDROID
         case 'V':
             vpn = 1;
-            break;
-        case 'P':
-            prefix = optarg;
             break;
 #endif
         case '?':
