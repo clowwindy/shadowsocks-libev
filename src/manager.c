@@ -207,7 +207,7 @@ get_data(char *buf, int len)
     char *data;
     int pos = 0;
 
-    while (buf[pos] != '{' && pos < len)
+    while (pos < len && buf[pos] != '{')
         pos++;
     if (pos == len) {
         return NULL;
@@ -230,7 +230,7 @@ get_action(char *buf, int len)
     }
     action = buf + pos;
 
-    while ((!isspace((unsigned char)buf[pos]) && buf[pos] != ':') && pos < len)
+    while (pos < len && (!isspace((unsigned char)buf[pos]) && buf[pos] != ':'))
         pos++;
     buf[pos] = '\0';
 
