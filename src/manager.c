@@ -223,7 +223,7 @@ get_action(char *buf, int len)
     char *action;
     int pos = 0;
 
-    while (isspace((unsigned char)buf[pos]) && pos < len)
+    while (pos < len && isspace((unsigned char)buf[pos]))
         pos++;
     if (pos == len) {
         return NULL;
