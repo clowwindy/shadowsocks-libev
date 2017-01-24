@@ -126,7 +126,7 @@ section below.
 
 ``` bash
 cd shadowsocks-libev
-sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev \
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libssl-dev \
     gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev zlib1g-dev \
     libev-dev libudns-dev libsodium-dev
 ./autogen.sh && dpkg-buildpackage -b -us -uc -i
@@ -160,7 +160,7 @@ If you are using CentOS 7, you need to install these prequirement to build from 
 
 ```bash 
 yum install epel-release -y
-yum install gcc autoconf libtool automake make openssl-devel pcre-devel asciidoc xmlto zlib-devel openssl-devel libsodium-devel udns-devel libev-devel  -y
+yum install gcc gettext autoconf libtool automake make openssl-devel pcre-devel asciidoc xmlto zlib-devel openssl-devel libsodium-devel udns-devel libev-devel  -y
 ```
 
 #### Install from repository
@@ -240,11 +240,11 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev
 # CentOS / Fedora / RHEL
-sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
+sudo yum install gettext gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
 # Arch
-sudo pacman -S gcc autoconf libtool automake make zlib openssl asciidoc xmlto udns libev
+sudo pacman -S gettext gcc autoconf libtool automake make zlib openssl asciidoc xmlto udns libev
 ./autogen.sh && ./configure && make
 sudo make install
 ```

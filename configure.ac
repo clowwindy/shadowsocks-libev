@@ -304,10 +304,28 @@ dnl Add define for libudns to enable IPv6 support
 dnl This is an option defined in the origin configure script
 AC_DEFINE([HAVE_IPv6], [1], [Enable IPv6 support in libudns])
 
-AC_CHECK_HEADERS([udns.h], [], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
-AC_CHECK_LIB([udns], [dns_dnlen], [LIBS="-ludns $LIBS"], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
-AC_CHECK_HEADERS([ev.h], [], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
-AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
+# Checks for libraries.
+PKG_CHECK_MODULES([LIBUDNS], [libudns], HAVE_LIBUDNS=yes; AC_DEFINE(HAVE_LIBUDNS, 1),
+[AC_LIB_HAVE_LINKFLAGS(udns,, [#include <udns.h>], [dns_init(0, 0);])
+ if test x$ac_cv_libudns = xyes; then
+  LIBS="$LIBUDNS $LIBS"
+ else
+  AC_MSG_ERROR([[***
+*** Couldn't find libudns. Try installing libudns-dev or udns-devel.
+***]])
+ fi
+])
+
+PKG_CHECK_MODULES([LIBEV], [libev], HAVE_LIBEV=yes; AC_DEFINE(HAVE_LIBEV, 1),
+[AC_LIB_HAVE_LINKFLAGS(ev,, [#include <ev.h>], [ev_run(0,0);])
+ if test x$ac_cv_libev = xyes; then
+  LIBS="$LIBEV $LIBS"
+ else
+  AC_MSG_ERROR([[***
+*** Couldn't find libev. Try installing libev-dev@<:@el@:>@.
+***]])
+ fi
+])
 
 AM_COND_IF([ENABLE_DOCUMENTATION],
   [AC_CONFIG_FILES([doc/Makefile])
