@@ -304,7 +304,9 @@ dnl Add define for libudns to enable IPv6 support
 dnl This is an option defined in the origin configure script
 AC_DEFINE([HAVE_IPv6], [1], [Enable IPv6 support in libudns])
 
+AC_CHECK_HEADERS([udns.h], [], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
 AC_CHECK_LIB([udns], [dns_dnlen], [LIBS="-ludns $LIBS"], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
+AC_CHECK_HEADERS([ev.h], [], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
 AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
 
 AM_COND_IF([ENABLE_DOCUMENTATION],
