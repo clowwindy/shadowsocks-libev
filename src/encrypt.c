@@ -40,14 +40,8 @@
 #include <polarssl/ctr_drbg.h>
 #include <polarssl/version.h>
 #define CIPHER_UNSUPPORTED "unsupported"
-
 #include <time.h>
-#ifdef _WIN32
-#include <windows.h>
-#include <wincrypt.h>
-#else
 #include <stdio.h>
-#endif
 
 #elif defined(USE_CRYPTO_MBEDTLS)
 
@@ -56,14 +50,8 @@
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/version.h>
 #define CIPHER_UNSUPPORTED "unsupported"
-
 #include <time.h>
-#ifdef _WIN32
-#include <windows.h>
-#include <wincrypt.h>
-#else
 #include <stdio.h>
-#endif
 
 #endif
 
