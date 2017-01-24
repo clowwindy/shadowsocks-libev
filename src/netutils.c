@@ -29,15 +29,10 @@
 #include "config.h"
 #endif
 
-#ifdef __MINGW32__
-#include "win32.h"
-#define sleep(n) Sleep(1000 * (n))
-#else
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#endif
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>

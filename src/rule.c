@@ -32,10 +32,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef __MINGW32__
-extern void ss_error(const char *s);
-#endif
-
 #include "rule.h"
 #include "utils.h"
 

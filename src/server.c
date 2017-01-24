@@ -36,21 +36,15 @@
 #include <getopt.h>
 #include <math.h>
 
-#ifndef __MINGW32__
 #include <netdb.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <sys/un.h>
-#endif
 
 #include <libcork/core.h>
 #include <udns.h>
-
-#ifdef __MINGW32__
-#include "win32.h"
-#endif
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
@@ -372,7 +366,6 @@ setfastopen(int fd)
     return s;
 }
 
-#ifndef __MINGW32__
 int
 setnonblocking(int fd)
 {
@@ -382,8 +375,6 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
-
-#endif
 
 int
 create_and_bind(const char *host, const char *port, int mptcp)
@@ -1080,11 +1071,7 @@ server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
         if (verbose) {
             size_t len = server->stage ?
                          server->header_buf->len : server->buf->len;
-#ifdef __MINGW32__
-            LOGI("incomplete header: %u", len);
-#else
             LOGI("incomplete header: %zu", len);
-#endif
         }
         report_addr(server->fd, SUSPICIOUS);
     }
@@ -1852,13 +1839,9 @@ main(int argc, char **argv)
         LOGI("TCP relay disabled");
     }
 
-#ifdef __MINGW32__
-    winsock_init();
-#else
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
-#endif
 
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
@@ -1876,12 +1859,8 @@ main(int argc, char **argv)
 
     // setup udns
     if (nameserver_num == 0) {
-#ifdef __MINGW32__
         nameservers[nameserver_num++] = "8.8.8.8";
         resolv_init(loop, nameservers, nameserver_num, ipv6first);
-#else
-        resolv_init(loop, NULL, 0, ipv6first);
-#endif
     } else {
         resolv_init(loop, nameservers, nameserver_num, ipv6first);
     }
@@ -1983,11 +1962,9 @@ main(int argc, char **argv)
         FATAL("failed to switch user");
     }
 
-#ifndef __MINGW32__
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
-#endif
 
     // init block list
     init_block_list();
@@ -2034,10 +2011,6 @@ main(int argc, char **argv)
     }
 
     resolv_shutdown(loop);
-
-#ifdef __MINGW32__
-    winsock_cleanup();
-#endif
 
     return 0;
 }

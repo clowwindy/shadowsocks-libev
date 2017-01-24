@@ -30,13 +30,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#ifndef __MINGW32__
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -46,10 +44,6 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #define SET_INTERFACE
-#endif
-
-#ifdef __MINGW32__
-#include "win32.h"
 #endif
 
 #include <libcork/core.h>
@@ -108,7 +102,6 @@ static int buf_size                                  = DEFAULT_PACKET_SIZE * 2;
 static int server_num                                = 0;
 static server_ctx_t *server_ctx_list[MAX_REMOTE_NUM] = { NULL };
 
-#ifndef __MINGW32__
 static int
 setnonblocking(int fd)
 {
@@ -118,8 +111,6 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
-
-#endif
 
 #if defined(MODULE_REMOTE) && defined(SO_BROADCAST)
 static int

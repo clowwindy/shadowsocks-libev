@@ -60,3 +60,5 @@ html-local: $(MAN_HTML)
 
 doc_DATA = $(MAN_HTML)
 CLEANFILES = $(MAN_XML) $(man_MANS) $(MAN_HTML)
+
+EXTRA_DIST = *.asciidoc asciidoc.conf *.xsl

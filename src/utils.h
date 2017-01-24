@@ -49,7 +49,6 @@
 #ifdef ANDROID
 
 #include <android/log.h>
-
 #define USE_TTY()
 #define USE_SYSLOG(ident)
 #define LOGI(...)                                                \
@@ -59,7 +58,7 @@
     ((void)__android_log_print(ANDROID_LOG_ERROR, "shadowsocks", \
                                __VA_ARGS__))
 
-#else
+#else // not ANDROID
 
 #define STR(x) # x
 #define TOSTR(x) STR(x)
@@ -67,13 +66,9 @@
 #ifdef LIB_ONLY
 
 extern FILE *logfile;
-
 #define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
-
 #define USE_TTY()
-
 #define USE_SYSLOG(ident)
-
 #define USE_LOGFILE(ident)                                     \
     do {                                                       \
         if (ident != NULL) { logfile = fopen(ident, "w+"); } } \
@@ -83,7 +78,6 @@ extern FILE *logfile;
     do {                                            \
         if (logfile != NULL) { fclose(logfile); } } \
     while (0)
-
 #define LOGI(format, ...)                                                        \
     do {                                                                         \
         if (logfile != NULL) {                                                   \
@@ -94,7 +88,6 @@ extern FILE *logfile;
             fflush(logfile); }                                                   \
     }                                                                            \
     while (0)
-
 #define LOGE(format, ...)                                        \
     do {                                                         \
         if (logfile != NULL) {                                   \
@@ -107,46 +100,19 @@ extern FILE *logfile;
     }                                                            \
     while (0)
 
-#elif defined(_WIN32)
-
-#define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
-
-#define USE_TTY()
-
-#define USE_SYSLOG(ident)
-
-#define LOGI(format, ...)                                                   \
-    do {                                                                    \
-        time_t now = time(NULL);                                            \
-        char timestr[20];                                                   \
-        strftime(timestr, 20, TIME_FORMAT, localtime(&now));                \
-        fprintf(stderr, " %s INFO: " format "\n", timestr, ## __VA_ARGS__); \
-        fflush(stderr); }                                                   \
-    while (0)
-
-#define LOGE(format, ...)                                                    \
-    do {                                                                     \
-        time_t now = time(NULL);                                             \
-        char timestr[20];                                                    \
-        strftime(timestr, 20, TIME_FORMAT, localtime(&now));                 \
-        fprintf(stderr, " %s ERROR: " format "\n", timestr, ## __VA_ARGS__); \
-        fflush(stderr); }                                                    \
-    while (0)
-
-#else
+#else // not LIB_ONLY
 
 #include <syslog.h>
-
 extern int use_tty;
+extern int use_syslog;
+
+#define HAS_SYSLOG
+#define TIME_FORMAT "%F %T"
+
 #define USE_TTY()                        \
     do {                                 \
         use_tty = isatty(STDERR_FILENO); \
-    } while (0)                          \
-
-#define HAS_SYSLOG
-extern int use_syslog;
-
-#define TIME_FORMAT "%F %T"
+    } while (0)
 
 #define USE_SYSLOG(ident)                          \
     do {                                           \
@@ -191,23 +157,11 @@ extern int use_syslog;
         } }                                                                       \
     while (0)
 
-#endif
-/* _WIN32 */
+#endif // if LIB_ONLY
 
-#endif
-
-#ifdef __MINGW32__
-
-#ifdef ERROR
-#undef ERROR
-#endif
-#define ERROR(s) ss_error(s)
-
-#else
+#endif // if ANDROID
 
 void ERROR(const char *s);
-
-#endif
 
 char *ss_itoa(int i);
 int ss_isnumeric(const char *s);

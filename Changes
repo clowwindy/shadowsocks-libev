@@ -1,3 +1,9 @@
+shadowsocks-libev (2.6.3-1) unstable; urgency=medium
+
+  * Refine the project structure.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 24 Jan 2017 19:10:45 +0800
+
 shadowsocks-libev (2.6.2-1) unstable; urgency=medium
 
   * Refine SIP003 plugin support.

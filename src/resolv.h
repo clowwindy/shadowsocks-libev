@@ -31,12 +31,7 @@
 #endif
 
 #include <stdint.h>
-
-#ifdef __MINGW32__
-#include "win32.h"
-#else
 #include <sys/socket.h>
-#endif
 
 struct ResolvQuery;
 

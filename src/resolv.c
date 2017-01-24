@@ -35,14 +35,10 @@
 #include <ev.h>
 #include <udns.h>
 
-#ifdef __MINGW32__
-#include "win32.h"
-#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <unistd.h>
-#endif
 
 #include "resolv.h"
 #include "utils.h"
@@ -120,12 +116,8 @@ resolv_init(struct ev_loop *loop, char **nameservers, int nameserver_num, int ip
         }
     }
 
-#ifdef __MINGW32__
-    setnonblocking(sockfd);
-#else
     int flags = fcntl(sockfd, F_GETFL, 0);
     fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
-#endif
 
     ev_io_init(&resolv_io_watcher, resolv_sock_cb, sockfd, EV_READ);
     resolv_io_watcher.data = ctx;

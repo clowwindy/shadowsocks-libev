@@ -30,13 +30,11 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#ifndef __MINGW32__
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#endif
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -46,10 +44,6 @@
 #include <net/if.h>
 #include <sys/ioctl.h>
 #define SET_INTERFACE
-#endif
-
-#ifdef __MINGW32__
-#include "win32.h"
 #endif
 
 #include <libcork/core.h>
@@ -100,13 +94,10 @@ static int auth      = 0;
 static int nofile = 0;
 #endif
 
-#ifndef __MINGW32__
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
 static struct ev_signal sigchld_watcher;
-#endif
 
-#ifndef __MINGW32__
 static int
 setnonblocking(int fd)
 {
@@ -116,7 +107,6 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
-#endif
 
 int
 create_and_bind(const char *addr, const char *port)
@@ -715,7 +705,6 @@ accept_cb(EV_P_ ev_io *w, int revents)
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
 }
 
-#ifndef __MINGW32__
 static void
 signal_cb(EV_P_ ev_signal *w, int revents)
 {
@@ -736,7 +725,6 @@ signal_cb(EV_P_ ev_signal *w, int revents)
         }
     }
 }
-#endif
 
 int
 main(int argc, char **argv)
@@ -1031,9 +1019,6 @@ main(int argc, char **argv)
         }
     }
 
-#ifdef __MINGW32__
-    winsock_init();
-#else
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
@@ -1044,7 +1029,6 @@ main(int argc, char **argv)
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
-#endif
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1124,21 +1108,15 @@ main(int argc, char **argv)
         FATAL("failed to switch user");
     }
 
-#ifndef __MINGW32__
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
-#endif
 
     ev_run(loop, 0);
 
     if (plugin != NULL) {
         stop_plugin();
     }
-
-#ifdef __MINGW32__
-    winsock_cleanup();
-#endif
 
     return 0;
 }

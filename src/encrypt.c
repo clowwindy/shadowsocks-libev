@@ -69,9 +69,7 @@
 
 #include <sodium.h>
 
-#ifndef __MINGW32__
 #include <arpa/inet.h>
-#endif
 
 #include "cache.h"
 #include "encrypt.h"

@@ -39,7 +39,6 @@
 #include <limits.h>
 #include <dirent.h>
 
-#ifndef __MINGW32__
 #include <netdb.h>
 #include <errno.h>
 #include <arpa/inet.h>
@@ -49,13 +48,7 @@
 #include <sys/un.h>
 #include <sys/socket.h>
 #include <pwd.h>
-#endif
-
 #include <libcork/core.h>
-
-#ifdef __MINGW32__
-#include "win32.h"
-#endif
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
 #include <net/if.h>
@@ -80,7 +73,6 @@ int working_dir_size = 0;
 static struct cork_hash_table *server_table;
 static struct cork_hash_table *sock_table;
 
-#ifndef __MINGW32__
 static int
 setnonblocking(int fd)
 {
@@ -90,8 +82,6 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
-
-#endif
 
 static void
 build_config(char *prefix, struct server *server)
@@ -1097,14 +1087,10 @@ main(int argc, char **argv)
         LOGI("onetime authentication enabled");
     }
 
-#ifdef __MINGW32__
-    winsock_init();
-#else
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
-#endif
 
     struct ev_signal sigint_watcher;
     struct ev_signal sigterm_watcher;
@@ -1147,11 +1133,9 @@ main(int argc, char **argv)
         FATAL("failed to switch user");
     }
 
-#ifndef __MINGW32__
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
-#endif
 
     struct passwd *pw   = getpwuid(getuid());
     const char *homedir = pw->pw_dir;
@@ -1264,10 +1248,6 @@ main(int argc, char **argv)
         sock_lock_t *sock_lock = (sock_lock_t *)entry->value;
         release_sock_lock(sock_lock);
     }
-
-#ifdef __MINGW32__
-    winsock_cleanup();
-#endif
 
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);

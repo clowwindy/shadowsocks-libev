@@ -25,7 +25,7 @@
 
 #if defined(__linux__)
 #include <netdb.h>
-#elif !defined(__MINGW32__)
+#else
 #include <netinet/tcp.h>
 #endif
 

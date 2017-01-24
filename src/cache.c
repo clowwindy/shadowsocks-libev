@@ -31,10 +31,6 @@
 #include "cache.h"
 #include "utils.h"
 
-#ifdef __MINGW32__
-#include "win32.h"
-#endif
-
 /** Creates a new cache object
  *
  *  @param dst

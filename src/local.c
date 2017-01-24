@@ -34,13 +34,11 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#ifndef __MINGW32__
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#endif
 
 #ifdef LIB_ONLY
 #include <pthread.h>
@@ -55,10 +53,6 @@
 
 #include <libcork/core.h>
 #include <udns.h>
-
-#ifdef __MINGW32__
-#include "win32.h"
-#endif
 
 #include "netutils.h"
 #include "utils.h"
@@ -109,10 +103,8 @@ static int fast_open = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
-#ifndef __MINGW32__
 static struct ev_signal sigchld_watcher;
 static struct ev_signal sigusr1_watcher;
-#endif
 
 #ifdef HAVE_SETRLIMIT
 #ifndef LIB_ONLY
@@ -142,7 +134,6 @@ static server_t *new_server(int fd, int method);
 
 static struct cork_dllist connections;
 
-#ifndef __MINGW32__
 int
 setnonblocking(int fd)
 {
@@ -152,7 +143,6 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
-#endif
 
 int
 create_and_bind(const char *addr, const char *port)
@@ -1129,22 +1119,18 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 {
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
-#ifndef __MINGW32__
         case SIGCHLD:
             if (!is_plugin_running())
                 LOGE("plugin service exit unexpectedly");
             else
                 return;
         case SIGUSR1:
-#endif
         case SIGINT:
         case SIGTERM:
             ev_signal_stop(EV_DEFAULT, &sigint_watcher);
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
-#ifndef __MINGW32__
             ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
             ev_signal_stop(EV_DEFAULT, &sigusr1_watcher);
-#endif
             keep_resolving = 0;
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
@@ -1473,13 +1459,9 @@ main(int argc, char **argv)
         }
     }
 
-#ifdef __MINGW32__
-    winsock_init();
-#else
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
-#endif
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1517,11 +1499,8 @@ main(int argc, char **argv)
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
-
-#ifndef __MINGW32__
     ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
-#endif
 
     struct ev_loop *loop = EV_DEFAULT;
 
@@ -1577,11 +1556,9 @@ main(int argc, char **argv)
         FATAL("failed to switch user");
     }
 
-#ifndef __MINGW32__
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
-#endif
 
     // Init connections
     cork_dllist_init(&connections);
@@ -1610,10 +1587,6 @@ main(int argc, char **argv)
     if (mode != TCP_ONLY) {
         free_udprelay();
     }
-
-#ifdef __MINGW32__
-    winsock_cleanup();
-#endif
 
     return 0;
 }
@@ -1658,24 +1631,18 @@ start_ss_local_server(profile_t profile)
         local_addr = "127.0.0.1";
     }
 
-#ifdef __MINGW32__
-    winsock_init();
-#else
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
-#endif
 
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
-#ifndef __MINGW32__
     ev_signal_init(&sigusr1_watcher, signal_cb, SIGUSR1);
     ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigusr1_watcher);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
-#endif
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1756,10 +1723,6 @@ start_ss_local_server(profile_t profile)
 
     ss_free(listen_ctx.remote_addr[0]);
     ss_free(remote_addr_tmp);
-
-#ifdef __MINGW32__
-    winsock_cleanup();
-#endif
 
     // cannot reach here
     return 0;

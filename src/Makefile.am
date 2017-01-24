@@ -11,10 +11,7 @@ SS_COMMON_LIBS = $(top_builddir)/libipset/libipset.la \
                  $(INET_NTOP_LIB) $(LIBPCRE_LIBS)
 SS_COMMON_LIBS += -lev -lsodium -lm
 
-bin_PROGRAMS = ss-local ss-tunnel
-if !BUILD_WINCOMPAT
-bin_PROGRAMS += ss-server ss-manager
-endif
+bin_PROGRAMS = ss-local ss-tunnel ss-server ss-manager
 
 sni_src = http.c \
           tls.c \
@@ -77,11 +74,6 @@ ss_tunnel_CFLAGS = $(AM_CFLAGS) -DMODULE_TUNNEL
 ss_server_CFLAGS = $(AM_CFLAGS) -DMODULE_REMOTE
 ss_manager_CFLAGS = $(AM_CFLAGS) -DMODULE_MANAGER
 
-if BUILD_WINCOMPAT
-ss_local_SOURCES += win32.c
-ss_tunnel_SOURCES += win32.c
-endif
-
 if BUILD_REDIRECTOR
 bin_SCRIPTS = ss-nat
 bin_PROGRAMS += ss-redir
@@ -107,3 +99,7 @@ libshadowsocks_libev_la_CFLAGS = $(ss_local_CFLAGS) -DLIB_ONLY
 libshadowsocks_libev_la_LDFLAGS = -version-info $(VERSION_INFO)
 libshadowsocks_libev_la_LIBADD = $(ss_local_LDADD)
 include_HEADERS = shadowsocks.h
+
+noinst_HEADERS = acl.h encrypt.h json.h netutils.h redir.h server.h tls.h uthash.h \
+				 cache.h http.h local.h plugin.h resolv.h tunnel.h utils.h \
+				 common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h
