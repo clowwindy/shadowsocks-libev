@@ -63,6 +63,12 @@
 #include "encrypt.h"
 #include "utils.h"
 
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
+#define CIPHER_NUM          21
+#else
+#define CIPHER_NUM          20
+#endif
+
 #define OFFSET_ROL(p, o) ((uint64_t)(*(p + o)) << (8 * o))
 
 static uint8_t *enc_table;
@@ -108,7 +114,9 @@ static const char *supported_ciphers[CIPHER_NUM] = {
     "seed-cfb",
     "salsa20",
     "chacha20",
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
     "chacha20-ietf"
+#endif
 };
 
 #ifdef USE_CRYPTO_POLARSSL
@@ -133,7 +141,9 @@ static const char *supported_ciphers_polarssl[CIPHER_NUM] = {
     CIPHER_UNSUPPORTED,
     "salsa20",
     "chacha20",
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
     "chacha20-ietf"
+#endif
 };
 #endif
 
@@ -159,7 +169,9 @@ static const char *supported_ciphers_mbedtls[CIPHER_NUM] = {
     CIPHER_UNSUPPORTED,
     "salsa20",
     "chacha20",
+#if SODIUM_LIBRARY_VERSION_MAJOR >= 8
     "chacha20-ietf"
+#endif
 };
 #endif
 

@@ -112,7 +112,6 @@ typedef struct {
 #endif
 
 #define SODIUM_BLOCK_SIZE   64
-#define CIPHER_NUM          21
 
 #define NONE                -1
 #define TABLE               0
