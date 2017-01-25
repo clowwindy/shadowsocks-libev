@@ -2,7 +2,7 @@
  * redir.c - Provide a transparent TCP proxy through remote shadowsocks
  *           server
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -79,7 +79,7 @@ static void remote_recv_cb(EV_P_ ev_io *w, int revents);
 static void remote_send_cb(EV_P_ ev_io *w, int revents);
 
 static remote_t *new_remote(int fd, int timeout);
-static server_t *new_server(int fd, int method);
+static server_t *new_server(int fd);
 
 static void free_remote(remote_t *remote);
 static void close_and_free_remote(EV_P_ remote_t *remote);
@@ -89,9 +89,10 @@ static void close_and_free_server(EV_P_ server_t *server);
 int verbose        = 0;
 int keep_resolving = 1;
 
+static crypto_t *crypto;
+
 static int ipv6first = 0;
 static int mode      = TCP_ONLY;
-static int auth      = 0;
 #ifdef HAVE_SETRLIMIT
 static int nofile    = 0;
 #endif
@@ -230,10 +231,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         LOGI("redir to %s:%d, len=%zu, recv=%zd", ipstr, port, remote->buf->len, r);
     }
 
-    if (auth) {
-        ss_gen_hash(remote->buf, &remote->counter, server->e_ctx, BUF_SIZE);
-    }
-
     if (!remote->send_ctx->connected) {
         // SNI
         int ret       = 0;
@@ -259,7 +256,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    int err = ss_encrypt(remote->buf, server->e_ctx, BUF_SIZE);
+    int err = crypto->encrypt(remote->buf, server->e_ctx, BUF_SIZE);
 
     if (err) {
         LOGE("invalid password or cipher");
@@ -378,13 +375,16 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     server->buf->len = r;
 
-    int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
-    if (err) {
+    int err = crypto->decrypt(server->buf, server->d_ctx, BUF_SIZE);
+    if (err == CRYPTO_ERROR) {
         LOGE("invalid password or cipher");
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
+    } else if (err == CRYPTO_NEED_MORE) {
+        return; // Wait for more
     }
+
     int s = send(server->fd, server->buf->data, server->buf->len, 0);
 
     if (s == -1) {
@@ -477,24 +477,24 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 
             abuf->len += 2;
 
-            if (auth) {
-                abuf->data[0] |= ONETIMEAUTH_FLAG;
-                ss_onetimeauth(abuf, server->e_ctx->evp.iv, BUF_SIZE);
-            }
-
-            brealloc(remote->buf, remote->buf->len + abuf->len, BUF_SIZE);
-            memmove(remote->buf->data + abuf->len, remote->buf->data, remote->buf->len);
-            memcpy(remote->buf->data, abuf->data, abuf->len);
-            remote->buf->len += abuf->len;
-            bfree(abuf);
-
-            int err = ss_encrypt(remote->buf, server->e_ctx, BUF_SIZE);
+            int err = crypto->encrypt(abuf, server->e_ctx, BUF_SIZE);
             if (err) {
                 LOGE("invalid password or cipher");
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
                 return;
             }
+
+            err = crypto->encrypt(remote->buf, server->e_ctx, BUF_SIZE);
+            if (err) {
+                LOGE("invalid password or cipher");
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+                return;
+            }
+
+            bprepend(remote->buf, abuf, BUF_SIZE);
+            bfree(abuf);
 
             ev_io_start(EV_A_ & remote->recv_ctx->io);
         } else {
@@ -595,7 +595,7 @@ close_and_free_remote(EV_P_ remote_t *remote)
 }
 
 static server_t *
-new_server(int fd, int method)
+new_server(int fd)
 {
     server_t *server = ss_malloc(sizeof(server_t));
     memset(server, 0, sizeof(server_t));
@@ -615,15 +615,10 @@ new_server(int fd, int method)
     server->hostname     = NULL;
     server->hostname_len = 0;
 
-    if (method) {
-        server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
-        server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
-        enc_ctx_init(method, server->e_ctx, 1);
-        enc_ctx_init(method, server->d_ctx, 0);
-    } else {
-        server->e_ctx = NULL;
-        server->d_ctx = NULL;
-    }
+    server->e_ctx = ss_malloc(sizeof(cipher_ctx_t));
+    server->d_ctx = ss_malloc(sizeof(cipher_ctx_t));
+    crypto->ctx_init(crypto->cipher, server->e_ctx, 1);
+    crypto->ctx_init(crypto->cipher, server->d_ctx, 0);
 
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
@@ -641,11 +636,11 @@ free_server(server_t *server)
         server->remote->server = NULL;
     }
     if (server->e_ctx != NULL) {
-        cipher_context_release(&server->e_ctx->evp);
+        crypto->ctx_release(server->e_ctx);
         ss_free(server->e_ctx);
     }
     if (server->d_ctx != NULL) {
-        cipher_context_release(&server->d_ctx->evp);
+        crypto->ctx_release(server->d_ctx);
         ss_free(server->d_ctx);
     }
     if (server->buf != NULL) {
@@ -732,7 +727,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
         }
     }
 
-    server_t *server = new_server(serverfd, listener->method);
+    server_t *server = new_server(serverfd);
     remote_t *remote = new_remote(remotefd, listener->timeout);
     server->remote   = remote;
     remote->server   = server;
@@ -817,7 +812,7 @@ main(int argc, char **argv)
 
     USE_TTY();
 
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUvA6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUv6",
                             long_options, &option_index)) != -1) {
         switch (c) {
         case 0:
@@ -887,9 +882,6 @@ main(int argc, char **argv)
         case 'h':
             usage();
             exit(EXIT_SUCCESS);
-        case 'A':
-            auth = 1;
-            break;
         case '6':
             ipv6first = 1;
             break;
@@ -945,9 +937,6 @@ main(int argc, char **argv)
         }
         if (plugin_opts == NULL) {
             plugin_opts = conf->plugin_opts;
-        }
-        if (auth == 0) {
-            auth = conf->auth;
         }
         if (mtu == 0) {
             mtu = conf->mtu;
@@ -1014,10 +1003,6 @@ main(int argc, char **argv)
         LOGI("resolving hostname to IPv6 address first");
     }
 
-    if (auth) {
-        LOGI("onetime authentication enabled");
-    }
-
     if (plugin != NULL) {
         int len = 0;
         size_t buf_size = 256 * remote_num;
@@ -1048,7 +1033,9 @@ main(int argc, char **argv)
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
-    int m = enc_init(password, method);
+    crypto = crypto_init(password, method);
+    if (crypto == NULL)
+        FATAL("failed to initialize ciphers");
 
     // Setup proxy context
     listen_ctx_t listen_ctx;
@@ -1073,7 +1060,6 @@ main(int argc, char **argv)
         if (plugin != NULL) break;
     }
     listen_ctx.timeout = atoi(timeout);
-    listen_ctx.method  = m;
     listen_ctx.mptcp   = mptcp;
 
     struct ev_loop *loop = EV_DEFAULT;
@@ -1108,7 +1094,7 @@ main(int argc, char **argv)
         }
         struct sockaddr *addr = (struct sockaddr *)storage;
         init_udprelay(local_addr, local_port, addr,
-                      get_sockaddr_len(addr), mtu, m, auth, listen_ctx.timeout, NULL);
+                      get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, NULL);
     }
 
     if (mode == UDP_ONLY) {

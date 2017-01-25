@@ -1,7 +1,7 @@
 /*
  * server.c - Provide shadowsocks service
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -99,14 +99,12 @@ static void close_and_free_server(EV_P_ server_t *server);
 static void server_resolve_cb(struct sockaddr *addr, void *data);
 static void query_free_cb(void *data);
 
-static size_t parse_header_len(const char atyp, const char *data, size_t offset);
-static int is_header_complete(const buffer_t *buf);
-
 int verbose = 0;
+
+static crypto_t *crypto;
 
 static int acl       = 0;
 static int mode      = TCP_ONLY;
-static int auth      = 0;
 static int ipv6first = 0;
 static int fast_open = 0;
 
@@ -217,66 +215,6 @@ free_connections(struct ev_loop *loop)
         close_and_free_server(loop, server);
         close_and_free_remote(loop, remote);
     }
-}
-
-static size_t
-parse_header_len(const char atyp, const char *data, size_t offset)
-{
-    size_t len = 0;
-    if ((atyp & ADDRTYPE_MASK) == 1) {
-        // IP V4
-        len += sizeof(struct in_addr);
-    } else if ((atyp & ADDRTYPE_MASK) == 3) {
-        // Domain name
-        uint8_t name_len = *(uint8_t *)(data + offset);
-        len += name_len + 1;
-    } else if ((atyp & ADDRTYPE_MASK) == 4) {
-        // IP V6
-        len += sizeof(struct in6_addr);
-    } else {
-        return 0;
-    }
-    len += 2;
-    return len;
-}
-
-static int
-is_header_complete(const buffer_t *buf)
-{
-    size_t header_len = 0;
-    size_t buf_len    = buf->len;
-
-    char atyp = buf->data[header_len];
-
-    // 1 byte for atyp
-    header_len++;
-
-    if ((atyp & ADDRTYPE_MASK) == 1) {
-        // IP V4
-        header_len += sizeof(struct in_addr);
-    } else if ((atyp & ADDRTYPE_MASK) == 3) {
-        // Domain name
-        // domain len + len of domain
-        if (buf_len < header_len + 1)
-            return 0;
-        uint8_t name_len = *(uint8_t *)(buf->data + header_len);
-        header_len += name_len + 1;
-    } else if ((atyp & ADDRTYPE_MASK) == 4) {
-        // IP V6
-        header_len += sizeof(struct in6_addr);
-    } else {
-        return -1;
-    }
-
-    // len of port
-    header_len += 2;
-
-    // size of ONETIMEAUTH_BYTES
-    if (auth || (atyp & ONETIMEAUTH_FLAG)) {
-        header_len += ONETIMEAUTH_BYTES;
-    }
-
-    return buf_len >= header_len ? 1 : 0;
 }
 
 static char *
@@ -607,25 +545,16 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     server_t *server              = server_recv_ctx->server;
     remote_t *remote              = NULL;
 
-    int len       = server->buf->len;
     buffer_t *buf = server->buf;
 
-    if (server->stage > STAGE_PARSE) {
+    if (server->stage == STAGE_STREAM) {
         remote = server->remote;
         buf    = remote->buf;
-        len    = 0;
 
         ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
-    if (len > BUF_SIZE) {
-        ERROR("out of recv buffer");
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
-        return;
-    }
-
-    ssize_t r = recv(server->fd, buf->data + len, BUF_SIZE - len, 0);
+    ssize_t r = recv(server->fd, buf->data, BUF_SIZE, 0);
 
     if (r == 0) {
         // connection closed
@@ -649,95 +578,21 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     tx += r;
+    buf->len = r;
 
-    if (server->frag >= MAX_FRAG) {
-        LOGE("fragmentation detected");
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
-        return;
-    }
+    int err = crypto->decrypt(buf, server->d_ctx, BUF_SIZE);
 
-    if (server->stage == STAGE_ERROR) {
-        server->buf->len = 0;
-        server->buf->idx = 0;
-        return;
-    }
-
-    // handle incomplete header part 1
-    if (server->stage == STAGE_INIT) {
-        buf->len += r;
-
-        if (buf->len <= enc_get_iv_len() + 1) {
-            // wait for more
-            server->frag++;
-            return;
-        }
-    } else {
-        buf->len = r;
-    }
-
-    int err = ss_decrypt(buf, server->d_ctx, BUF_SIZE);
-
-    if (err) {
+    if (err == CRYPTO_ERROR) {
         report_addr(server->fd, MALICIOUS);
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
-    }
-
-    // handle incomplete header part 2
-    if (server->stage == STAGE_INIT) {
-        int ret = is_header_complete(server->buf);
-        if (ret == 1) {
-            bfree(server->header_buf);
-            ss_free(server->header_buf);
-            server->stage = STAGE_PARSE;
-        } else if (ret == -1) {
-            server->stage = STAGE_ERROR;
-            report_addr(server->fd, MALFORMED);
-            server->buf->len = 0;
-            server->buf->idx = 0;
-            return;
-        } else {
-            server->stage = STAGE_HANDSHAKE;
-        }
-    }
-
-    if (server->stage == STAGE_HANDSHAKE) {
-        size_t header_len = server->header_buf->len;
-        brealloc(server->header_buf, server->buf->len + header_len, BUF_SIZE);
-        memcpy(server->header_buf->data + header_len,
-               server->buf->data, server->buf->len);
-        server->header_buf->len = server->buf->len + header_len;
-
-        int ret = is_header_complete(server->buf);
-
-        if (ret == 1) {
-            brealloc(server->buf, server->header_buf->len, BUF_SIZE);
-            memcpy(server->buf->data, server->header_buf->data, server->header_buf->len);
-            server->buf->len = server->header_buf->len;
-            bfree(server->header_buf);
-            ss_free(server->header_buf);
-            server->stage = STAGE_PARSE;
-        } else {
-            if (ret == -1)
-                server->stage = STAGE_ERROR;
-            server->frag++;
-            server->buf->len = 0;
-            server->buf->idx = 0;
-            return;
-        }
+    } else if (err == CRYPTO_NEED_MORE) {
+        return;
     }
 
     // handshake and transmit data
     if (server->stage == STAGE_STREAM) {
-        if (server->auth && !ss_check_hash(remote->buf, server->chunk, server->d_ctx, BUF_SIZE)) {
-            LOGE("hash error");
-            report_addr(server->fd, BAD);
-            close_and_free_server(EV_A_ server);
-            close_and_free_remote(EV_A_ remote);
-            return;
-        }
         int s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
         if (s == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -757,7 +612,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             ev_io_start(EV_A_ & remote->send_ctx->io);
         }
         return;
-    } else if (server->stage == STAGE_PARSE) {
+    } else if (server->stage == STAGE_INIT) {
         /*
          * Shadowsocks TCP Relay Header:
          *
@@ -767,24 +622,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
          *    |  1   | Variable |    2     |      10        |
          *    +------+----------+----------+----------------+
          *
-         *    If ATYP & ONETIMEAUTH_FLAG(0x10) != 0, Authentication (HMAC-SHA1) is enabled.
-         *
-         *    The key of HMAC-SHA1 is (IV + KEY) and the input is the whole header.
-         *    The output of HMAC-SHA is truncated to 10 bytes (leftmost bits).
-         */
-
-        /*
-         * Shadowsocks Request's Chunk Authentication for TCP Relay's payload
-         * (No chunk authentication for response's payload):
-         *
-         *    +------+-----------+-------------+------+
-         *    | LEN  | HMAC-SHA1 |    DATA     |      ...
-         *    +------+-----------+-------------+------+
-         *    |  2   |    10     |  Variable   |      ...
-         *    +------+-----------+-------------+------+
-         *
-         *    The key of HMAC-SHA1 is (IV + CHUNK ID)
-         *    The output of HMAC-SHA is truncated to 10 bytes (leftmost bits).
          */
 
         int offset     = 0;
@@ -796,27 +633,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         struct sockaddr_storage storage;
         memset(&info, 0, sizeof(struct addrinfo));
         memset(&storage, 0, sizeof(struct sockaddr_storage));
-
-        if (auth || (atyp & ONETIMEAUTH_FLAG)) {
-            size_t header_len = parse_header_len(atyp, server->buf->data, offset);
-            size_t len        = server->buf->len;
-
-            if (header_len == 0 || len < offset + header_len + ONETIMEAUTH_BYTES) {
-                report_addr(server->fd, MALFORMED);
-                close_and_free_server(EV_A_ server);
-                return;
-            }
-
-            server->buf->len = offset + header_len + ONETIMEAUTH_BYTES;
-            if (ss_onetimeauth_verify(server->buf, server->d_ctx->evp.iv)) {
-                report_addr(server->fd, BAD);
-                close_and_free_server(EV_A_ server);
-                return;
-            }
-
-            server->buf->len = len;
-            server->auth     = 1;
-        }
 
         // get remote addr and port
         if ((atyp & ADDRTYPE_MASK) == 1) {
@@ -924,10 +740,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         offset += 2;
 
-        if (server->auth) {
-            offset += ONETIMEAUTH_BYTES;
-        }
-
         if (server->buf->len < offset) {
             report_addr(server->fd, MALFORMED);
             close_and_free_server(EV_A_ server);
@@ -942,13 +754,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 LOGI("connect to [%s]:%d", host, ntohs(port));
             else
                 LOGI("connect to %s:%d", host, ntohs(port));
-        }
-
-        if (server->auth && !ss_check_hash(server->buf, server->chunk, server->d_ctx, BUF_SIZE)) {
-            LOGE("hash error");
-            report_addr(server->fd, BAD);
-            close_and_free_server(EV_A_ server);
-            return;
         }
 
         if (!need_query) {
@@ -1067,12 +872,7 @@ server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
         LOGI("TCP connection timeout");
     }
 
-    if (server->stage < STAGE_PARSE) {
-        if (verbose) {
-            size_t len = server->stage ?
-                         server->header_buf->len : server->buf->len;
-            LOGI("incomplete header: %zu", len);
-        }
+    if (server->stage < STAGE_STREAM) {
         report_addr(server->fd, SUSPICIOUS);
     }
 
@@ -1184,7 +984,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     rx += r;
 
     server->buf->len = r;
-    int err = ss_encrypt(server->buf, server->e_ctx, BUF_SIZE);
+    int err = crypto->encrypt(server->buf, server->e_ctx, BUF_SIZE);
 
     if (err) {
         LOGE("invalid password or cipher");
@@ -1386,11 +1186,9 @@ new_server(int fd, listen_ctx_t *listener)
     server->recv_ctx   = ss_malloc(sizeof(server_ctx_t));
     server->send_ctx   = ss_malloc(sizeof(server_ctx_t));
     server->buf        = ss_malloc(sizeof(buffer_t));
-    server->header_buf = ss_malloc(sizeof(buffer_t));
     memset(server->recv_ctx, 0, sizeof(server_ctx_t));
     memset(server->send_ctx, 0, sizeof(server_ctx_t));
     balloc(server->buf, BUF_SIZE);
-    balloc(server->header_buf, BUF_SIZE);
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
@@ -1402,15 +1200,10 @@ new_server(int fd, listen_ctx_t *listener)
     server->listen_ctx          = listener;
     server->remote              = NULL;
 
-    if (listener->method) {
-        server->e_ctx = ss_malloc(sizeof(enc_ctx_t));
-        server->d_ctx = ss_malloc(sizeof(enc_ctx_t));
-        enc_ctx_init(listener->method, server->e_ctx, 1);
-        enc_ctx_init(listener->method, server->d_ctx, 0);
-    } else {
-        server->e_ctx = NULL;
-        server->d_ctx = NULL;
-    }
+    server->e_ctx = ss_malloc(sizeof(cipher_ctx_t));
+    server->d_ctx = ss_malloc(sizeof(cipher_ctx_t));
+    crypto->ctx_init(crypto->cipher, server->e_ctx, 1);
+    crypto->ctx_init(crypto->cipher, server->d_ctx, 0);
 
     int request_timeout = min(MAX_REQUEST_TIMEOUT, listener->timeout)
                           + rand() % MAX_REQUEST_TIMEOUT;
@@ -1419,11 +1212,6 @@ new_server(int fd, listen_ctx_t *listener)
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
                   request_timeout, listener->timeout);
-
-    server->chunk = ss_malloc(sizeof(chunk_t));
-    memset(server->chunk, 0, sizeof(chunk_t));
-    server->chunk->buf = ss_malloc(sizeof(buffer_t));
-    memset(server->chunk->buf, 0, sizeof(buffer_t));
 
     cork_dllist_add(&connections, &server->entries);
 
@@ -1435,31 +1223,20 @@ free_server(server_t *server)
 {
     cork_dllist_remove(&server->entries);
 
-    if (server->chunk != NULL) {
-        if (server->chunk->buf != NULL) {
-            bfree(server->chunk->buf);
-            ss_free(server->chunk->buf);
-        }
-        ss_free(server->chunk);
-    }
     if (server->remote != NULL) {
         server->remote->server = NULL;
     }
     if (server->e_ctx != NULL) {
-        cipher_context_release(&server->e_ctx->evp);
+        crypto->ctx_release(server->e_ctx);
         ss_free(server->e_ctx);
     }
     if (server->d_ctx != NULL) {
-        cipher_context_release(&server->d_ctx->evp);
+        crypto->ctx_release(server->d_ctx);
         ss_free(server->d_ctx);
     }
     if (server->buf != NULL) {
         bfree(server->buf);
         ss_free(server->buf);
-    }
-    if (server->header_buf != NULL) {
-        bfree(server->header_buf);
-        ss_free(server->header_buf);
     }
 
     ss_free(server->recv_ctx);
@@ -1682,9 +1459,6 @@ main(int argc, char **argv)
         case 'h':
             usage();
             exit(EXIT_SUCCESS);
-        case 'A':
-            auth = 1;
-            break;
         case '6':
             ipv6first = 1;
             break;
@@ -1734,9 +1508,6 @@ main(int argc, char **argv)
         }
         if (plugin_opts == NULL) {
             plugin_opts = conf->plugin_opts;
-        }
-        if (auth == 0) {
-            auth = conf->auth;
         }
         if (mode == TCP_ONLY) {
             mode = conf->mode;
@@ -1823,10 +1594,6 @@ main(int argc, char **argv)
 #endif
     }
 
-    if (auth) {
-        LOGI("onetime authentication enabled");
-    }
-
     if (plugin != NULL) {
         LOGI("plugin \"%s\" enabled", plugin);
     }
@@ -1852,18 +1619,15 @@ main(int argc, char **argv)
 
     // setup keys
     LOGI("initializing ciphers... %s", method);
-    int m = enc_init(password, method);
+    crypto = crypto_init(password, method);
+    if (crypto == NULL)
+        FATAL("failed to initialize ciphers");
 
     // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
     // setup udns
-    if (nameserver_num == 0) {
-        nameservers[nameserver_num++] = "8.8.8.8";
-        resolv_init(loop, nameservers, nameserver_num, ipv6first);
-    } else {
-        resolv_init(loop, nameservers, nameserver_num, ipv6first);
-    }
+    resolv_init(loop, nameservers, nameserver_num, ipv6first);
 
     for (int i = 0; i < nameserver_num; i++)
         LOGI("using nameserver: %s", nameservers[i]);
@@ -1916,7 +1680,6 @@ main(int argc, char **argv)
             // Setup proxy context
             listen_ctx->timeout = atoi(timeout);
             listen_ctx->fd      = listenfd;
-            listen_ctx->method  = m;
             listen_ctx->iface   = iface;
             listen_ctx->loop    = loop;
 
@@ -1940,8 +1703,7 @@ main(int argc, char **argv)
                 port = plugin_port;
             }
             // Setup UDP
-            init_udprelay(host, port, mtu, m,
-                    auth, atoi(timeout), iface);
+            init_udprelay(host, port, mtu, crypto, atoi(timeout), iface);
             if (host && strcmp(host, ":") > 0)
                 LOGI("udp server listening at [%s]:%s", host, port);
             else

@@ -1,5 +1,5 @@
 /*
- * acl.h - Define the ACL interface
+ * aead.h - Define the AEAD interface
  *
  * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
@@ -20,21 +20,27 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PLUGIN_H
-#define _PLUGIN_H
+#ifndef _AEAD_H
+#define _AEAD_H
 
-#define PLUGIN_EXIT_ERROR  -2
-#define PLUGIN_EXIT_NORMAL -1
-#define PLUGIN_RUNNING      0
+#include "crypto.h"
 
-int start_plugin(const char *plugin,
-                 const char *plugin_opts,
-                 const char *remote_host,
-                 const char *remote_port,
-                 const char *local_host,
-                 const char *local_port);
-uint16_t get_local_port();
-void stop_plugin();
-int is_plugin_running();
+// currently, XCHACHA20POLY1305IETF is not released yet
+// XCHACHA20POLY1305 is removed in upstream
+#ifdef FS_HAVE_XCHACHA20IETF
+#define AEAD_CIPHER_NUM              6
+#else
+#define AEAD_CIPHER_NUM              5
+#endif
 
-#endif // _PLUGIN_H
+int aead_encrypt_all(buffer_t *, cipher_t *, size_t);
+int aead_decrypt_all(buffer_t *, cipher_t *, size_t);
+
+int aead_encrypt(buffer_t *, cipher_ctx_t *, size_t);
+int aead_decrypt(buffer_t *, cipher_ctx_t *, size_t);
+
+void aead_ctx_init(cipher_t *, cipher_ctx_t *, int);
+void aead_ctx_release(cipher_ctx_t *);
+cipher_t *aead_init(const char *pass, const char *method);
+
+#endif // _AEAD_H

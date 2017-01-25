@@ -8,7 +8,7 @@ ss-redir - shadowsocks client as transparent proxy, libev port
 SYNOPSIS
 --------
 *ss-redir*
- [-AuUv6] [-h|--help]
+ [-uUv6] [-h|--help]
  [-s <server_host>] [-p <server_port>] [-l <local_port>]
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-b <local_address>]
@@ -87,9 +87,6 @@ TPROXY is required in redir mode. You may need root permission.
 
 -U::
 Enable UDP relay and disable TCP relay.
-
--A::
-Enable onetime authentication.
 
 -6::
 Resovle hostname to IPv6 address first.

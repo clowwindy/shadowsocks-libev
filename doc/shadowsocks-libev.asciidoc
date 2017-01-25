@@ -108,9 +108,6 @@ Enable UDP relay and disable TCP relay.
 +
 Not available in local mode.
 
--A::
-Enable onetime authentication.
-
 -L <addr:port>::
 Specify destination server address and port for local port forwarding.
 +
@@ -170,7 +167,6 @@ The config file equivalent of command line options is listed as example below.
 | --plugin "obfs-server"              | "plugin": "obfs-server"
 | --plugin-opts "obfs=http"           | "plugin_opts": "obfs=http"
 | -6                                  | "ipv6_first": true
-| -A                                  | "auth": true
 | -n "/etc/nofile"                    | "nofile": "/etc/nofile"
 | -d "8.8.8.8"                        | "nameserver": "8.8.8.8"
 | -L "somedns.net:53"                 | "tunnel_address": "somedns.net:53"

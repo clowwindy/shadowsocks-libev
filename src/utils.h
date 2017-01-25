@@ -1,7 +1,7 @@
 /*
  * utils.h - Misc utilities
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -184,3 +184,4 @@ void *ss_realloc(void *ptr, size_t new_size);
     } while (0)
 
 #endif // _UTILS_H
+

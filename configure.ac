@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.67])
 AC_INIT([shadowsocks-libev], [2.6.3], [max.c.lv@gmail.com])
-AC_CONFIG_SRCDIR([src/encrypt.c])
+AC_CONFIG_SRCDIR([src/crypto.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR(auto)
 AC_CONFIG_MACRO_DIR([m4])
@@ -37,19 +37,6 @@ AC_ARG_ENABLE(
       *) AC_MSG_ERROR([bad value ${enableval} for --enable-system-shared-lib]) ;;
     esac], [enable_system_shared_lib=false])
 AM_CONDITIONAL([USE_SYSTEM_SHARED_LIB], [test x$enable_system_shared_lib = xtrue])
-
-dnl Checks for crypto library
-AC_ARG_WITH(
-  [crypto-library],
-  [AS_HELP_STRING([--with-crypto-library=library], [build with the given crypto library, TYPE=openssl|polarssl|mbedtls @<:@default=openssl@:>@])],
-  [
-    case "${withval}" in
-      openssl|polarssl|mbedtls) ;;
-      *) AC_MSG_ERROR([bad value ${withval} for --with-crypto-library]) ;;
-    esac
-  ],
-  [with_crypto_library="openssl"]
-)
 
 AC_ARG_ENABLE([documentation],
   AS_HELP_STRING([--disable-documentation], [do not build documentation]),
@@ -92,22 +79,8 @@ esac
 dnl Checks for TLS
 AX_TLS([:], [:])
 
-dnl Checks for crypto library
-case "${with_crypto_library}" in
-  openssl)
-    ss_ZLIB
-    ss_OPENSSL
-    AC_DEFINE([USE_CRYPTO_OPENSSL], [1], [Use OpenSSL library])
-    ;;
-  polarssl)
-    ss_POLARSSL
-    AC_DEFINE([USE_CRYPTO_POLARSSL], [1], [Use PolarSSL library])
-    ;;
-  mbedtls)
-    ss_MBEDTLS
-    AC_DEFINE([USE_CRYPTO_MBEDTLS], [1], [Use mbed TLS library])
-    ;;
-esac
+dnl Checks for crypto libraries
+ss_MBEDTLS
 ss_SODIUM
 
 dnl Checks for Apple CommonCrypto API

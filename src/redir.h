@@ -1,7 +1,7 @@
 /*
  * redir.h - Define the redirector's buffers and callbacks
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -24,7 +24,7 @@
 #define _LOCAL_H
 
 #include <ev.h>
-#include "encrypt.h"
+#include "crypto.h"
 #include "jconf.h"
 
 typedef struct listen_ctx {
@@ -32,7 +32,6 @@ typedef struct listen_ctx {
     int remote_num;
     int timeout;
     int fd;
-    int method;
     int mptcp;
     struct sockaddr **remote_addr;
 } listen_ctx_t;
@@ -47,15 +46,17 @@ typedef struct server {
     int fd;
 
     buffer_t *buf;
-    struct sockaddr_storage destaddr;
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
 
     char *hostname;
     size_t hostname_len;
+
+    struct sockaddr_storage destaddr;
 } server_t;
 
 typedef struct remote_ctx {
