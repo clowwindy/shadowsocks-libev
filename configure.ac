@@ -76,6 +76,19 @@ AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_LANG_SOURCE
 
+dnl Add library for mingw
+case $host in
+  *-mingw*)
+    CFLAGS="$CFLAGS -mno-ms-bitfields"
+    LIBS="$LIBS -ladvapi32 -lgdi32 -lws2_32 -lcrypt32"
+    ;;
+  *-cygwin*)
+    CFLAGS="$CFLAGS -mno-ms-bitfields"
+    ;;
+  *)
+    ;;
+esac
+
 dnl Checks for TLS
 AX_TLS([:], [:])
 
@@ -122,8 +135,15 @@ case $host in
     os_support=linux
     AC_MSG_RESULT(Linux)
     ;;
-  *-cygwin*)
-    CFLAGS="$CFLAGS -mno-ms-bitfields"
+  *-mingw*)
+    dnl Add custom macros for libev
+    AC_DEFINE([FD_SETSIZE], [2048], [Reset max file descriptor size.])
+    AC_DEFINE([EV_FD_TO_WIN32_HANDLE(fd)], [(fd)], [Override libev default fd conversion macro.])
+    AC_DEFINE([EV_WIN32_HANDLE_TO_FD(handle)], [(handle)], [Override libev default handle conversion macro.])
+    AC_DEFINE([EV_WIN32_CLOSE_FD(fd)], [closesocket(fd)], [Override libev default fd close macro.])
+
+    os_support=mingw
+    AC_MSG_RESULT(MinGW)
     ;;
   *)
     AC_MSG_RESULT(transparent proxy does not support for $host)
@@ -168,6 +188,7 @@ if test x$has_stack_protector = xyes && test x$enable_ssp = xyes; then
 fi
 
 AM_CONDITIONAL(BUILD_REDIRECTOR, test "$os_support" = "linux")
+AM_CONDITIONAL(BUILD_WINCOMPAT, test "$os_support" = "mingw")
 
 dnl Checks for header files.
 AC_CHECK_HEADERS([limits.h stdint.h inttypes.h arpa/inet.h fcntl.h langinfo.h locale.h netdb.h netinet/in.h stdlib.h string.h strings.h unistd.h sys/ioctl.h])
@@ -192,6 +213,10 @@ AC_CHECK_HEADERS([net/if.h], [], [],
 ])
 
 case $host in
+  *-mingw*)
+    AC_DEFINE([CONNECT_IN_PROGRESS], [WSAEWOULDBLOCK], [errno for incomplete non-blocking connect(2)])
+    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
+    ;;
   *-linux*)
     AC_DEFINE([CONNECT_IN_PROGRESS], [EINPROGRESS], [errno for incomplete non-blocking connect(2)])
     dnl Checks for netfilter headers
@@ -245,6 +270,31 @@ AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([memset select setresuid setreuid strerror getpwnam_r setrlimit])
 
+dnl Check for select() into ws2_32 for Msys/Mingw
+if test "$ac_cv_func_select" != "yes"; then
+  AC_MSG_CHECKING([for select in ws2_32])
+  AC_TRY_LINK([
+#ifdef HAVE_WINSOCK2_H
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#endif
+    ],[
+      select(0,(fd_set *)NULL,(fd_set *)NULL,(fd_set *)NULL,(struct timeval *)NULL);
+    ],[
+      AC_MSG_RESULT([yes])
+      HAVE_SELECT="1"
+      AC_DEFINE_UNQUOTED(HAVE_SELECT, 1,
+        [Define to 1 if you have the 'select' function.])
+      HAVE_SYS_SELECT_H="1"
+      AC_DEFINE_UNQUOTED(HAVE_SYS_SELECT_H, 1,
+        [Define to 1 if you have the <sys/select.h> header file.])
+    ],[
+      AC_MSG_ERROR([no])
+  ])
+fi
+
 AC_CHECK_LIB(socket, connect)
 
 dnl Checks for library functions.
@@ -254,28 +304,10 @@ dnl Add define for libudns to enable IPv6 support
 dnl This is an option defined in the origin configure script
 AC_DEFINE([HAVE_IPv6], [1], [Enable IPv6 support in libudns])
 
-# Checks for libraries.
-PKG_CHECK_MODULES([LIBUDNS], [libudns], HAVE_LIBUDNS=yes; AC_DEFINE(HAVE_LIBUDNS, 1),
-[AC_LIB_HAVE_LINKFLAGS(udns,, [#include <udns.h>], [dns_init(0, 0);])
- if test x$ac_cv_libudns = xyes; then
-  LIBS="$LIBUDNS $LIBS"
- else
-  AC_MSG_ERROR([[***
-*** Couldn't find libudns. Try installing libudns-dev or udns-devel.
-***]])
- fi
-])
-
-PKG_CHECK_MODULES([LIBEV], [libev], HAVE_LIBEV=yes; AC_DEFINE(HAVE_LIBEV, 1),
-[AC_LIB_HAVE_LINKFLAGS(ev,, [#include <ev.h>], [ev_run(0,0);])
- if test x$ac_cv_libev = xyes; then
-  LIBS="$LIBEV $LIBS"
- else
-  AC_MSG_ERROR([[***
-*** Couldn't find libev. Try installing libev-dev@<:@el@:>@.
-***]])
- fi
-])
+AC_CHECK_HEADERS([udns.h], [], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
+AC_CHECK_LIB([udns], [dns_dnlen], [LIBS="-ludns $LIBS"], [AC_MSG_ERROR([Couldn't find libudns. Try installing libudns-dev or udns-devel.])])
+AC_CHECK_HEADERS([ev.h], [], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
+AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
 
 AM_COND_IF([ENABLE_DOCUMENTATION],
   [AC_CONFIG_FILES([doc/Makefile])

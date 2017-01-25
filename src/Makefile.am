@@ -103,3 +103,4 @@ include_HEADERS = shadowsocks.h
 noinst_HEADERS = acl.h encrypt.h json.h netutils.h redir.h server.h tls.h uthash.h \
 				 cache.h http.h local.h plugin.h resolv.h tunnel.h utils.h \
 				 common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h
+EXTRA_DIST = ss-nat

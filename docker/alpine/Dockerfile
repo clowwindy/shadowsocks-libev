@@ -18,6 +18,12 @@ ENV DNS_ADDR_2  8.8.4.4
 
 RUN set -ex && \
     apk add --no-cache --virtual .build-deps \
+                                libev-dev \
+                                udns-dev \
+                                libsodium-dev \
+								gettext \
+								automake \
+								zlib \
                                 asciidoc \
                                 autoconf \
                                 build-base \
