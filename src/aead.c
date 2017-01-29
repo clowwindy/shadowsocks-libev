@@ -735,8 +735,8 @@ aead_key_init(int method, const char *pass)
         FATAL("Cannot initialize cipher");
     }
 
-    cipher->key_len = crypto_derive_key(cipher, (const uint8_t *)pass,
-                                        cipher->key, supported_aead_ciphers_key_size[cipher->method]);
+    cipher->key_len = crypto_derive_key(cipher, pass, cipher->key,
+                                        supported_aead_ciphers_key_size[cipher->method], 2);
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and nonce");

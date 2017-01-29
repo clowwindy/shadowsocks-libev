@@ -101,9 +101,23 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
 }
 
 int
-crypto_derive_key(const cipher_t *cipher, const uint8_t *pass,
-                  uint8_t *key, size_t nkey)
+crypto_derive_key(const cipher_t *cipher, const char *pass,
+                  uint8_t *key, size_t nkey, int version)
 {
+    if (version == 2) {
+        const unsigned char salt[crypto_pwhash_SALTBYTES] = {
+            's', 'h', 'a', 'd', 'o', 'w', 's', 'o',
+            'c', 'k', 's', ' ', 'h', 'a', 's', 'h'
+        };
+        int err = crypto_pwhash (key, nkey, (char*)pass, strlen(pass), salt,
+                crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE,
+                crypto_pwhash_ALG_DEFAULT);
+        if (err)
+            FATAL("Out of memory when doing password hashing");
+        else
+            return nkey;
+    }
+
     size_t datal;
     datal = strlen((const char *)pass);
 
@@ -130,7 +144,7 @@ crypto_derive_key(const cipher_t *cipher, const uint8_t *pass,
         if (addmd) {
             mbedtls_md_update(&c, md_buf, mds);
         }
-        mbedtls_md_update(&c, pass, datal);
+        mbedtls_md_update(&c, (uint8_t *)pass, datal);
         mbedtls_md_finish(&c, &(md_buf[0]));
 
         for (i = 0; i < mds; i++, j++) {
