@@ -40,7 +40,7 @@ int
 balloc(buffer_t *ptr, size_t capacity)
 {
     sodium_memzero(ptr, sizeof(buffer_t));
-    ptr->data    = ss_malloc(capacity);
+    ptr->data     = ss_malloc(capacity);
     ptr->capacity = capacity;
     return capacity;
 }
@@ -52,7 +52,7 @@ brealloc(buffer_t *ptr, size_t len, size_t capacity)
         return -1;
     size_t real_capacity = max(len, capacity);
     if (ptr->capacity < real_capacity) {
-        ptr->data    = ss_realloc(ptr->data, real_capacity);
+        ptr->data     = ss_realloc(ptr->data, real_capacity);
         ptr->capacity = real_capacity;
     }
     return real_capacity;
@@ -102,7 +102,7 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
 
 int
 crypto_derive_key(const cipher_t *cipher, const uint8_t *pass,
-        uint8_t *key, size_t nkey)
+                  uint8_t *key, size_t nkey)
 {
     size_t datal;
     datal = strlen((const char *)pass);
@@ -117,7 +117,7 @@ crypto_derive_key(const cipher_t *cipher, const uint8_t *pass,
     int addmd;
     unsigned int i, j, mds;
 
-    mds  = mbedtls_md_get_size(md);
+    mds = mbedtls_md_get_size(md);
     memset(&c, 0, sizeof(mbedtls_md_context_t));
 
     if (pass == NULL)
@@ -158,48 +158,46 @@ crypto_init(const char *password, const char *method)
     cache_create(&nonce_cache, 1024, NULL);
 
     if (method != NULL) {
-        for (i = 0; i < STREAM_CIPHER_NUM; i++) {
+        for (i = 0; i < STREAM_CIPHER_NUM; i++)
             if (strcmp(method, supported_stream_ciphers[i]) == 0) {
                 m = i;
                 break;
             }
-        }
         if (m != -1) {
             cipher_t *cipher = stream_init(password, method);
-            if (cipher == NULL) 
+            if (cipher == NULL)
                 return NULL;
             crypto_t *crypto = (crypto_t *)malloc(sizeof(crypto_t));
-            crypto_t tmp = {
-                .cipher = cipher,
+            crypto_t tmp     = {
+                .cipher      = cipher,
                 .encrypt_all = &stream_encrypt_all,
                 .decrypt_all = &stream_decrypt_all,
-                .encrypt = &stream_encrypt,
-                .decrypt = &stream_decrypt,
-                .ctx_init = &stream_ctx_init,
+                .encrypt     = &stream_encrypt,
+                .decrypt     = &stream_decrypt,
+                .ctx_init    = &stream_ctx_init,
                 .ctx_release = &stream_ctx_release
             };
             memcpy(crypto, &tmp, sizeof(crypto_t));
             return crypto;
         }
 
-        for (i = 0; i < AEAD_CIPHER_NUM; i++) {
+        for (i = 0; i < AEAD_CIPHER_NUM; i++)
             if (strcmp(method, supported_aead_ciphers[i]) == 0) {
                 m = i;
                 break;
             }
-        }
         if (m != -1) {
             cipher_t *cipher = aead_init(password, method);
-            if (cipher == NULL) 
+            if (cipher == NULL)
                 return NULL;
             crypto_t *crypto = (crypto_t *)ss_malloc(sizeof(crypto_t));
-            crypto_t tmp = {
-                .cipher = cipher,
+            crypto_t tmp     = {
+                .cipher      = cipher,
                 .encrypt_all = &aead_encrypt_all,
                 .decrypt_all = &aead_decrypt_all,
-                .encrypt = &aead_encrypt,
-                .decrypt = &aead_decrypt,
-                .ctx_init = &aead_ctx_init,
+                .encrypt     = &aead_encrypt,
+                .decrypt     = &aead_decrypt,
+                .ctx_init    = &aead_ctx_init,
                 .ctx_release = &aead_ctx_release
             };
             memcpy(crypto, &tmp, sizeof(crypto_t));

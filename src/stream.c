@@ -35,7 +35,6 @@
 #include "stream.h"
 #include "utils.h"
 
-
 #define SODIUM_BLOCK_SIZE   64
 
 #define NONE                -1
@@ -156,6 +155,7 @@ dump(char *tag, char *text, int len)
         printf("0x%02x ", (uint8_t)text[i]);
     printf("\n");
 }
+
 #endif
 
 int
@@ -201,7 +201,7 @@ stream_get_cipher_type(int method)
         return NULL;
     }
 
-    const char *ciphername = supported_stream_ciphers[method];
+    const char *ciphername  = supported_stream_ciphers[method];
     const char *mbedtlsname = supported_stream_ciphers_mbedtls[method];
     if (strcmp(mbedtlsname, CIPHER_UNSUPPORTED) == 0) {
         LOGE("Cipher %s currently is not supported by mbed TLS library",
@@ -223,7 +223,7 @@ stream_cipher_ctx_init(cipher_ctx_t *ctx, int method, int enc)
         return;
     }
 
-    const char *ciphername = supported_stream_ciphers[method];
+    const char *ciphername    = supported_stream_ciphers[method];
     const cipher_kt_t *cipher = stream_get_cipher_type(method);
 
     ctx->evp = ss_malloc(sizeof(cipher_evp_t));
@@ -249,7 +249,7 @@ stream_cipher_ctx_release(cipher_ctx_t *cipher_ctx)
 
 void
 cipher_ctx_set_nonce(cipher_ctx_t *cipher_ctx, uint8_t *nonce, size_t nonce_len,
-                      int enc)
+                     int enc)
 {
     const unsigned char *true_key;
 
@@ -272,8 +272,8 @@ cipher_ctx_set_nonce(cipher_ctx_t *cipher_ctx, uint8_t *nonce, size_t nonce_len,
         unsigned char key_nonce[32];
         memcpy(key_nonce, cipher->key, 16);
         memcpy(key_nonce + 16, cipher_ctx->nonce, 16);
-        true_key = crypto_md5(key_nonce, 32, NULL);
-        nonce_len   = 0;
+        true_key  = crypto_md5(key_nonce, 32, NULL);
+        nonce_len = 0;
     } else {
         true_key = cipher->key;
     }
@@ -303,11 +303,11 @@ cipher_ctx_set_nonce(cipher_ctx_t *cipher_ctx, uint8_t *nonce, size_t nonce_len,
 
 static int
 cipher_ctx_update(cipher_ctx_t *ctx, uint8_t *output, size_t *olen,
-                      const uint8_t *input, size_t ilen)
+                  const uint8_t *input, size_t ilen)
 {
     cipher_evp_t *evp = ctx->evp;
     return mbedtls_cipher_update(evp, (const uint8_t *)input, ilen,
-                                  (uint8_t *)output, olen);
+                                 (uint8_t *)output, olen);
 }
 
 int
@@ -317,7 +317,7 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     stream_ctx_init(cipher, &cipher_ctx, 1);
 
     size_t nonce_len = cipher->nonce_len;
-    int err       = CRYPTO_OK;
+    int err          = CRYPTO_OK;
 
     static buffer_t tmp = { 0, 0, 0, NULL };
     brealloc(&tmp, nonce_len + plaintext->len, capacity);
@@ -332,13 +332,13 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
 
     if (cipher->method >= SALSA20) {
         crypto_stream_xor_ic((uint8_t *)(ciphertext->data + nonce_len),
-                (const uint8_t *)plaintext->data, (uint64_t)(plaintext->len),
-                (const uint8_t *)nonce,
-                0, cipher->key, cipher->method);
+                             (const uint8_t *)plaintext->data, (uint64_t)(plaintext->len),
+                             (const uint8_t *)nonce,
+                             0, cipher->key, cipher->method);
     } else {
         err = cipher_ctx_update(&cipher_ctx, (uint8_t *)(ciphertext->data + nonce_len),
-                &ciphertext->len, (const uint8_t *)plaintext->data,
-                plaintext->len);
+                                &ciphertext->len, (const uint8_t *)plaintext->data,
+                                plaintext->len);
     }
 
     if (err) {
@@ -368,10 +368,10 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         return CRYPTO_ERROR;
 
     cipher_t *cipher = cipher_ctx->cipher;
-    
+
     static buffer_t tmp = { 0, 0, 0, NULL };
 
-    int err       = CRYPTO_OK;
+    int err          = CRYPTO_OK;
     size_t nonce_len = 0;
     if (!cipher_ctx->init) {
         nonce_len = cipher_ctx->cipher->nonce_len;
@@ -397,11 +397,11 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
             sodium_memzero(plaintext->data, padding);
         }
         crypto_stream_xor_ic((uint8_t *)(ciphertext->data + nonce_len),
-                (const uint8_t *)plaintext->data,
-                (uint64_t)(plaintext->len + padding),
-                (const uint8_t *)cipher_ctx->nonce,
-                cipher_ctx->counter / SODIUM_BLOCK_SIZE, cipher->key,
-                cipher->method);
+                             (const uint8_t *)plaintext->data,
+                             (uint64_t)(plaintext->len + padding),
+                             (const uint8_t *)cipher_ctx->nonce,
+                             cipher_ctx->counter / SODIUM_BLOCK_SIZE, cipher->key,
+                             cipher->method);
         cipher_ctx->counter += plaintext->len;
         if (padding) {
             memmove(ciphertext->data + nonce_len,
@@ -409,9 +409,9 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         }
     } else {
         err = cipher_ctx_update(cipher_ctx,
-                    (uint8_t *)(ciphertext->data + nonce_len),
-                    &ciphertext->len, (const uint8_t *)plaintext->data,
-                    plaintext->len);
+                                (uint8_t *)(ciphertext->data + nonce_len),
+                                &ciphertext->len, (const uint8_t *)plaintext->data,
+                                plaintext->len);
         if (err) {
             return CRYPTO_ERROR;
         }
@@ -433,7 +433,7 @@ int
 stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 {
     size_t nonce_len = cipher->nonce_len;
-    int err       = CRYPTO_OK;
+    int err          = CRYPTO_OK;
 
     if (ciphertext->len <= nonce_len) {
         return CRYPTO_ERROR;
@@ -453,13 +453,13 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 
     if (cipher->method >= SALSA20) {
         crypto_stream_xor_ic((uint8_t *)plaintext->data,
-                (const uint8_t *)(ciphertext->data + nonce_len),
-                (uint64_t)(ciphertext->len - nonce_len),
-                (const uint8_t *)nonce, 0, cipher->key, cipher->method);
+                             (const uint8_t *)(ciphertext->data + nonce_len),
+                             (uint64_t)(ciphertext->len - nonce_len),
+                             (const uint8_t *)nonce, 0, cipher->key, cipher->method);
     } else {
         err = cipher_ctx_update(&cipher_ctx, (uint8_t *)plaintext->data, &plaintext->len,
-                (const uint8_t *)(ciphertext->data + nonce_len),
-                ciphertext->len - nonce_len);
+                                (const uint8_t *)(ciphertext->data + nonce_len),
+                                ciphertext->len - nonce_len);
     }
 
     if (err) {
@@ -485,24 +485,26 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 int
 stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 {
-    if (cipher_ctx == NULL) return -1;
+    if (cipher_ctx == NULL)
+        return -1;
 
     cipher_t *cipher = cipher_ctx->cipher;
 
     static buffer_t tmp = { 0, 0, 0, NULL };
 
     size_t nonce_len = 0;
-    int err       = CRYPTO_OK;
+    int err          = CRYPTO_OK;
 
     brealloc(&tmp, ciphertext->len, capacity);
     buffer_t *plaintext = &tmp;
     plaintext->len = ciphertext->len;
 
     if (!cipher_ctx->init) {
-        if (plaintext->len <= nonce_len) return CRYPTO_ERROR;
+        if (plaintext->len <= nonce_len)
+            return CRYPTO_ERROR;
 
         uint8_t nonce[MAX_NONCE_LENGTH];
-        nonce_len      = cipher->nonce_len;
+        nonce_len       = cipher->nonce_len;
         plaintext->len -= nonce_len;
 
         memcpy(nonce, ciphertext->data, nonce_len);
@@ -531,19 +533,19 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
             sodium_memzero(ciphertext->data + nonce_len, padding);
         }
         crypto_stream_xor_ic((uint8_t *)plaintext->data,
-                (const uint8_t *)(ciphertext->data + nonce_len),
-                (uint64_t)(ciphertext->len - nonce_len + padding),
-                (const uint8_t *)cipher_ctx->nonce,
-                cipher_ctx->counter / SODIUM_BLOCK_SIZE, cipher->key,
-                cipher->method);
+                             (const uint8_t *)(ciphertext->data + nonce_len),
+                             (uint64_t)(ciphertext->len - nonce_len + padding),
+                             (const uint8_t *)cipher_ctx->nonce,
+                             cipher_ctx->counter / SODIUM_BLOCK_SIZE, cipher->key,
+                             cipher->method);
         cipher_ctx->counter += ciphertext->len - nonce_len;
         if (padding) {
             memmove(plaintext->data, plaintext->data + padding, plaintext->len);
         }
     } else {
         err = cipher_ctx_update(cipher_ctx, (uint8_t *)plaintext->data, &plaintext->len,
-                (const uint8_t *)(ciphertext->data + nonce_len),
-                ciphertext->len - nonce_len);
+                                (const uint8_t *)(ciphertext->data + nonce_len),
+                                ciphertext->len - nonce_len);
     }
 
     if (err) {
@@ -586,7 +588,7 @@ stream_ctx_release(cipher_ctx_t *cipher_ctx)
     ss_free(cipher_ctx->evp);
 }
 
-cipher_t*
+cipher_t *
 stream_key_init(int method, const char *pass)
 {
     if (method <= TABLE || method >= STREAM_CIPHER_NUM) {
@@ -613,7 +615,7 @@ stream_key_init(int method, const char *pass)
     }
 
     cipher->key_len = crypto_derive_key(cipher, (const uint8_t *)pass,
-            cipher->key, cipher_key_size(cipher));
+                                        cipher->key, cipher_key_size(cipher));
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and NONCE");
@@ -648,4 +650,3 @@ stream_init(const char *pass, const char *method)
     }
     return stream_key_init(m, pass);
 }
-
