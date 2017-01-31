@@ -872,10 +872,6 @@ server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
         LOGI("TCP connection timeout");
     }
 
-    if (server->stage < STAGE_STREAM) {
-        report_addr(server->fd, SUSPICIOUS);
-    }
-
     close_and_free_remote(EV_A_ remote);
     close_and_free_server(EV_A_ server);
 }
