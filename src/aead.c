@@ -740,7 +740,7 @@ aead_key_init(int method, const char *pass)
     }
 
     cipher->key_len = crypto_derive_key(cipher, pass, cipher->key,
-                                        supported_aead_ciphers_key_size[cipher->method], 2);
+                                        supported_aead_ciphers_key_size[method], 2);
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and nonce");

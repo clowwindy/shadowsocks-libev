@@ -13,6 +13,12 @@ before_install:
     - ./configure --prefix=/usr && make
     - sudo make install
     - popd
+    - wget https://tls.mbed.org/download/start/mbedtls-2.4.0-gpl.tgz
+    - tar xvf mbedtls-2.4.0-gpl.tgz
+    - pushd mbedtls-2.4.0-gpl
+    - make
+    - sudo make install
+    - popd
 addons:
     apt:
         packages:
