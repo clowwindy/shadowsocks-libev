@@ -1627,7 +1627,11 @@ main(int argc, char **argv)
     struct ev_loop *loop = EV_DEFAULT;
 
     // setup udns
-    resolv_init(loop, nameservers, nameserver_num, ipv6first);
+    if (nameserver_num == 0) {
+        resolv_init(loop, NULL, 0, ipv6first);
+    } else {
+        resolv_init(loop, nameservers, nameserver_num, ipv6first);
+    }
 
     for (int i = 0; i < nameserver_num; i++)
         LOGI("using nameserver: %s", nameservers[i]);

@@ -505,7 +505,7 @@ aead_chunk_encrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c, uint8_t *n,
     int err;
     size_t clen;
     uint8_t len_buf[CHUNK_SIZE_LEN];
-    uint16_t t = ntohs((plen + tlen) & CHUNK_SIZE_MASK);
+    uint16_t t = htons((plen + tlen) & CHUNK_SIZE_MASK);
     memcpy(len_buf, &t, CHUNK_SIZE_LEN);
 
     clen = CHUNK_SIZE_LEN + tlen;
@@ -599,7 +599,7 @@ aead_chunk_decrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c, uint8_t *n,
         return CRYPTO_ERROR;
     assert(*plen == CHUNK_SIZE_LEN);
 
-    mlen = htons(*(uint16_t *)len_buf);
+    mlen = ntohs(*(uint16_t *)len_buf);
     mlen = mlen & CHUNK_SIZE_MASK;
 
     size_t chunk_len = tlen + CHUNK_SIZE_LEN + mlen;
