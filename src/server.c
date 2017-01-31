@@ -264,7 +264,7 @@ reset_addr(int fd)
 }
 
 static void
-report_addr(int fd, int err_level)
+report_addr(int fd, int err_level, const char* info)
 {
 #ifdef __linux__
     set_linger(fd);
@@ -273,7 +273,7 @@ report_addr(int fd, int err_level)
     char *peer_name;
     peer_name = get_peer_name(fd);
     if (peer_name != NULL) {
-        LOGE("failed to handshake with %s", peer_name);
+        LOGE("failed to handshake with %s: %s", peer_name, info);
         update_block_list(peer_name, err_level);
     }
 }
@@ -583,7 +583,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     int err = crypto->decrypt(buf, server->d_ctx, BUF_SIZE);
 
     if (err == CRYPTO_ERROR) {
-        report_addr(server->fd, MALICIOUS);
+        report_addr(server->fd, MALICIOUS, "authentication error");
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
@@ -646,8 +646,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                          host, INET_ADDRSTRLEN);
                 offset += in_addr_len;
             } else {
-                LOGE("invalid header with addr type %d", atyp);
-                report_addr(server->fd, MALFORMED);
+                report_addr(server->fd, MALFORMED, "invalid length for ipv4 address");
                 close_and_free_server(EV_A_ server);
                 return;
             }
@@ -664,8 +663,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 memcpy(host, server->buf->data + offset + 1, name_len);
                 offset += name_len + 1;
             } else {
-                LOGE("invalid name length: %d", name_len);
-                report_addr(server->fd, MALFORMED);
+                report_addr(server->fd, MALFORMED, "invalid host name length");
                 close_and_free_server(EV_A_ server);
                 return;
             }
@@ -698,8 +696,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
             } else {
                 if (!validate_hostname(host, name_len)) {
-                    LOGE("invalid host name");
-                    report_addr(server->fd, MALFORMED);
+                    report_addr(server->fd, MALFORMED, "invalid host name");
                     close_and_free_server(EV_A_ server);
                     return;
                 }
@@ -717,7 +714,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 offset += in6_addr_len;
             } else {
                 LOGE("invalid header with addr type %d", atyp);
-                report_addr(server->fd, MALFORMED);
+                report_addr(server->fd, MALFORMED, "invalid length for ipv6 address");
                 close_and_free_server(EV_A_ server);
                 return;
             }
@@ -730,8 +727,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         if (offset == 1) {
-            LOGE("invalid header with addr type %d", atyp);
-            report_addr(server->fd, MALFORMED);
+            report_addr(server->fd, MALFORMED, "invalid address type");
             close_and_free_server(EV_A_ server);
             return;
         }
@@ -741,7 +737,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         offset += 2;
 
         if (server->buf->len < offset) {
-            report_addr(server->fd, MALFORMED);
+            report_addr(server->fd, MALFORMED, "invalid request length");
             close_and_free_server(EV_A_ server);
             return;
         } else {
