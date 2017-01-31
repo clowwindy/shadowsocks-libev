@@ -15,7 +15,7 @@ before_install:
     - popd
     - wget https://tls.mbed.org/download/mbedtls-2.4.0-gpl.tgz
     - tar xvf mbedtls-2.4.0-gpl.tgz
-    - pushd mbedtls-2.4.0-gpl
+    - pushd mbedtls-2.4.0
     - make
     - sudo make install
     - popd

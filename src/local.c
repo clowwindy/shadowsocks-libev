@@ -532,6 +532,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             char host[257], ip[INET6_ADDRSTRLEN], port[16];
 
             buffer_t *abuf = server->abuf;
+            abuf->idx = 0;
+            abuf->len = 0;
 
             abuf->data[abuf->len++] = request->atyp;
             int atyp = request->atyp;
