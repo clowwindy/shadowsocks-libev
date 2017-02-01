@@ -7,7 +7,7 @@ show_help()
     echo
     echo -e "Options:"
     echo -e "  -h    show this help."
-    echo -e "  -v    with argument version (2.6.3 by default)."
+    echo -e "  -v    with argument version (3.0.0 by default)."
     echo -e "  -f    with argument format (tar.xz by default) used by git archive."
     echo
     echo -e "Examples:"
@@ -38,7 +38,7 @@ do
     esac
 done
 
-: ${version:=2.6.3}
+: ${version:=3.0.0}
 : ${format:=tar.gz}
 
 name="shadowsocks-libev"
