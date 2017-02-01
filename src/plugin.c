@@ -78,50 +78,22 @@ struct cork_stream_consumer plugin_log = {
     .free = plugin_log__free,
 };
 
-int
-start_plugin(const char *plugin,
-             const char *plugin_opts,
-             const char *remote_host,
-             const char *remote_port,
-             const char *local_host,
-             const char *local_port)
+static int start_ss_plugin(const char *plugin,
+                           const char *plugin_opts,
+                           const char *remote_host,
+                           const char *remote_port,
+                           const char *local_host,
+                           const char *local_port,
+                           enum plugin_mode mode)
 {
     char *new_path = NULL;
     char *cmd      = NULL;
-
-    if (plugin == NULL)
-        return -1;
-
-    if (strlen(plugin) == 0)
-        return 0;
 
     size_t plugin_len = strlen(plugin);
     size_t cmd_len = plugin_len + CMD_RESRV_LEN;
     cmd = ss_malloc(cmd_len);
 
     snprintf(cmd, cmd_len, "exec %s", plugin);
-
-    env = cork_env_clone_current();
-    const char *path = cork_env_get(env, "PATH");
-    if (path != NULL) {
-#ifdef __GLIBC__
-        char *cwd = get_current_dir_name();
-        if (cwd) {
-#else
-        char cwd[PATH_MAX];
-        if (!getcwd(cwd, PATH_MAX)) {
-#endif
-            size_t path_len = strlen(path) + strlen(cwd) + 2;
-            new_path = ss_malloc(path_len);
-            snprintf(new_path, path_len, "%s:%s", cwd, path);
-#ifdef __GLIBC__
-            free(cwd);
-#endif
-        }
-    }
-
-    if (new_path != NULL)
-        cork_env_add(env, "PATH", new_path);
 
     cork_env_add(env, "SS_REMOTE_HOST", remote_host);
     cork_env_add(env, "SS_REMOTE_PORT", remote_port);
@@ -146,6 +118,142 @@ start_plugin(const char *plugin,
         ss_free(new_path);
 
     return err;
+}
+
+#define OBFSPROXY_OPTS_MAX  4096
+/*
+ * For obfsproxy, we use standalone mode for now.
+ * Managed mode needs to use SOCKS5 proxy as forwarder, which is not supported
+ * yet.
+ *
+ * The idea of using standalone mode is quite simple, just assemble the
+ * internal port into obfsproxy parameters.
+ *
+ * Using manually ran scramblesuit as an example:
+ * obfsproxy \
+ * --data-dir /tmp/ss_libev_plugin_with_suffix \
+ * scramblesuit \
+ * --password SOMEMEANINGLESSPASSWORDASEXAMPLE \
+ * --dest some.server.org:12345 \
+ * client \
+ * 127.0.0.1:54321
+ *
+ * In above case, @plugin = "obfsproxy",
+ * @plugin_opts = "scramblesuit --password SOMEMEANINGLESSPASSWORDASEXAMPLE"
+ * For obfs3, it's even easier, just pass @plugin = "obfsproxy"
+ * @plugin_opts = "obfs3"
+ *
+ * And the rest parameters are all assembled here.
+ * Some old obfsproxy will not be supported as it doesn't even support
+ * "--data-dir" option
+ */
+static int start_obfsproxy(const char *plugin,
+                           const char *plugin_opts,
+                           const char *remote_host,
+                           const char *remote_port,
+                           const char *local_host,
+                           const char *local_port,
+                           enum plugin_mode mode)
+{
+    char *pch;
+    char *opts_dump;
+    char buf[PATH_MAX];
+    int ret;
+
+    opts_dump = strndup(plugin_opts, OBFSPROXY_OPTS_MAX);
+    if (!opts_dump) {
+        ERROR("start_obfsproxy strndup failed");
+        return -ENOMEM;
+    }
+    exec = cork_exec_new(plugin);
+
+    /* The first parameter will be skipped, so pass @plugin again */
+    cork_exec_add_param(exec, plugin);
+
+    cork_exec_add_param(exec, "--data-dir");
+    snprintf(buf, PATH_MAX, "/tmp/%s_%s:%s_%s:%s", plugin,
+             remote_host, remote_port, local_host, local_port);
+    cork_exec_add_param(exec, buf);
+
+    /*
+     * Iterate @plugin_opts by space
+     */
+    pch = strtok(opts_dump, " ");
+    while (pch) {
+        cork_exec_add_param(exec, pch);
+        pch = strtok(NULL, " ");
+    }
+
+    /* The rest options */
+    if (mode == MODE_CLIENT) {
+        /* Client mode */
+        cork_exec_add_param(exec, "--dest");
+        snprintf(buf, PATH_MAX, "%s:%s", remote_host, remote_port);
+        cork_exec_add_param(exec, buf);
+        cork_exec_add_param(exec, "client");
+        snprintf(buf, PATH_MAX, "%s:%s", local_host, local_port);
+        cork_exec_add_param(exec, buf);
+    } else {
+        /* Server mode */
+        cork_exec_add_param(exec, "--dest");
+        snprintf(buf, PATH_MAX, "%s:%s", local_host, local_port);
+        cork_exec_add_param(exec, buf);
+        cork_exec_add_param(exec, "server");
+        snprintf(buf, PATH_MAX, "%s:%s", remote_host, remote_port);
+        cork_exec_add_param(exec, buf);
+    }
+    cork_exec_set_env(exec, env);
+    sub = cork_subprocess_new_exec(exec, NULL, NULL, &exit_code);
+    ret = cork_subprocess_start(sub);
+    ss_free(opts_dump);
+    return ret;
+}
+
+int
+start_plugin(const char *plugin,
+             const char *plugin_opts,
+             const char *remote_host,
+             const char *remote_port,
+             const char *local_host,
+             const char *local_port,
+             enum plugin_mode mode)
+{
+    char *new_path = NULL;
+    const char *current_path;
+    char cwd[PATH_MAX];
+    size_t new_path_len;
+    int ret;
+
+    if (plugin == NULL)
+        return -1;
+
+    if (strlen(plugin) == 0)
+        return 0;
+
+    /*
+     * Add current dir to PATH, so we can search plugin in current dir
+     */
+    env = cork_env_clone_current();
+    current_path = cork_env_get(env, "PATH");
+    if (current_path != NULL) {
+        if (!getcwd(cwd, PATH_MAX)) {
+            new_path_len = strlen(current_path) + strlen(cwd) + 2;
+            new_path = ss_malloc(new_path_len);
+            snprintf(new_path, new_path_len, "%s:%s", cwd, current_path);
+        }
+    }
+    if (new_path != NULL)
+        cork_env_add(env, "PATH", new_path);
+
+    if (!strncmp(plugin, "obfsproxy", strlen("obfsproxy")))
+        ret = start_obfsproxy(plugin, plugin_opts, remote_host, remote_port,
+                              local_host, local_port, mode);
+    else
+        ret = start_ss_plugin(plugin, plugin_opts, remote_host, remote_port,
+                              local_host, local_port, mode);
+    ss_free(new_path);
+    env = NULL;
+    return ret;
 }
 
 uint16_t
