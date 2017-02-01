@@ -15,9 +15,8 @@ Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg
 
 ## Features
 
-Shadowsocks-libev is written in pure C and only depends on
-[libev](http://software.schmorp.de/pkg/libev.html) and
-[OpenSSL](https://www.openssl.org/) or [mbedTLS](https://tls.mbed.org/).
+Shadowsocks-libev is written in pure C and depends on
+[libev](http://software.schmorp.de/pkg/libev.html).
 
 In normal usage, the memory footprint is about 600KB and the CPU utilization is
 no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU,
@@ -66,20 +65,6 @@ git submodule update --init --recursive
 For a complete list of avaliable configure-time option,
 try `configure --help`.
 
-#### Using alternative crypto library
-
-There are three crypto libraries available:
-
-- OpenSSL (**default**)
-- mbedTLS
-
-##### mbedTLS
-To build against mbedTLS, specify `--with-crypto-library=mbedtls`
-and `--with-mbedtls=/path/to/mbedtls` when running `./configure`.
-
-Windows users will need extra work when compiling mbedTLS library,
-see [this issue](https://github.com/shadowsocks/shadowsocks-libev/issues/422) for detail info.
-
 ### Debian & Ubuntu
 
 #### Install from repository
@@ -126,8 +111,8 @@ section below.
 
 ``` bash
 cd shadowsocks-libev
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libssl-dev \
-    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev zlib1g-dev \
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool \
+    gawk debhelper dh-systemd init-system-helpers pkg-config asciidoc xmlto apg libpcre3-dev libmbedtls-dev \
     libev-dev libudns-dev libsodium-dev
 ./autogen.sh && dpkg-buildpackage -b -us -uc -i
 cd ..
@@ -160,7 +145,7 @@ If you are using CentOS 7, you need to install these prequirement to build from 
 
 ```bash 
 yum install epel-release -y
-yum install gcc gettext autoconf libtool automake make openssl-devel pcre-devel asciidoc xmlto zlib-devel openssl-devel libsodium-devel udns-devel libev-devel  -y
+yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto libsodium-devel udns-devel libev-devel libmbedtls-devel -y
 ```
 
 #### Install from repository
@@ -186,32 +171,6 @@ or `yum`:
 su -c 'yum update'
 su -c 'yum install shadowsocks-libev'
 ```
-### OpenSUSE
-
-#### Install from repository
-Use the following command to install from repository.
-
-```bash
-sudo zypper install shadowsocks-libev
-```
-
-#### Build from source
-You should install `zlib-devel` and `libopenssl-devel` first.
-
-```bash
-sudo zypper update
-sudo zypper install zlib-devel libopenssl-devel
-```
-
-Then download the source package and compile.
-
-```bash
-git clone https://github.com/shadowsocks/shadowsocks-libev.git
-cd shadowsocks-libev
-./autogen.sh && ./configure && make
-sudo make install
-```
-
 ### Archlinux
 
 ```bash
@@ -240,11 +199,11 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto zlib1g-dev libev-dev libudns-dev libsodium-dev
+sudo apt-get install --no-install-recommends gettext build-essential autoconf libtool libpcre3-dev asciidoc xmlto libmbedtls-dev libev-dev libudns-dev libsodium-dev
 # CentOS / Fedora / RHEL
-sudo yum install gettext gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto udns-devel libev-devel
+sudo yum install gettext gcc autoconf libtool automake make libmbedtls-devel asciidoc xmlto udns-devel libev-devel
 # Arch
-sudo pacman -S gettext gcc autoconf libtool automake make zlib openssl asciidoc xmlto udns libev
+sudo pacman -S gettext gcc autoconf libtool automake make mbedtls asciidoc xmlto udns libev
 ./autogen.sh && ./configure && make
 sudo make install
 ```
@@ -290,29 +249,6 @@ Install shadowsocks-libev:
 brew install shadowsocks-libev
 ```
 
-### Windows
-
-For Windows, use either MinGW (msys) or Cygwin to build.
-At the moment, only `ss-local` is supported to build against MinGW (msys).
-
-If you are using MinGW (msys), please download OpenSSL source tarball
-to the home directory of msys, and build it like this (may take a few minutes):
-
-```bash
-tar zxf openssl-1.0.1e.tar.gz
-cd openssl-1.0.1e
-./config --prefix="$HOME/prebuilt" --openssldir="$HOME/prebuilt/openssl"
-./autogen.sh && make && make install
-```
-
-Then, build the binary using the commands below, and all `.exe` files
-will be built at `$HOME/ss/bin`:
-
-```bash
-./configure --prefix="$HOME/ss" --with-openssl="$HOME/prebuilt"
-./autogen.sh && make && make install
-```
-
 ## Usage
 
 For a detailed and complete list of all supported arguments, you may refer to the
@@ -329,12 +265,14 @@ man pages of the applications, respectively.
 
        -k <password>              password of your remote server
 
-       [-m <encrypt_method>]      encrypt method: table, rc4, rc4-md5,
+       -m <encrypt_method>        Encrypt method: rc4-md5,
+                                  aes-128-gcm, aes-192-gcm, aes-256-gcm,
                                   aes-128-cfb, aes-192-cfb, aes-256-cfb,
-                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,
-                                  camellia-256-cfb, cast5-cfb, des-cfb, idea-cfb,
-                                  rc2-cfb, seed-cfb, salsa20 ,chacha20 and
-                                  chacha20-ietf
+                                  aes-128-ctr, aes-192-ctr, aes-256-ctr,
+                                  camellia-128-cfb, camellia-192-cfb,
+                                  camellia-256-cfb, bf-cfb,
+                                  chacha20-poly1305, chacha20-ietf-poly1305
+                                  salsa20, chacha20 and chacha20-ietf.
 
        [-f <pid_file>]            the file path to store pid
 

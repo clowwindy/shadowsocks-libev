@@ -35,6 +35,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <sodium.h>
+
 #include "utils.h"
 
 #ifdef HAVE_SETRLIMIT
@@ -268,24 +270,25 @@ usage()
     printf(
         "       -k <password>              Password of your remote server.\n");
     printf(
-        "       -m <encrypt_method>        Encrypt method: table, rc4, rc4-md5,\n");
+        "       -m <encrypt_method>        Encrypt method: rc4-md5, \n");
+    printf(
+        "                                  aes-128-gcm, aes-192-gcm, aes-256-gcm,\n");
     printf(
         "                                  aes-128-cfb, aes-192-cfb, aes-256-cfb,\n");
     printf(
         "                                  aes-128-ctr, aes-192-ctr, aes-256-ctr,\n");
     printf(
-        "                                  bf-cfb, camellia-128-cfb, camellia-192-cfb,\n");
+        "                                  camellia-128-cfb, camellia-192-cfb,\n");
     printf(
-        "                                  camellia-256-cfb, cast5-cfb, des-cfb,\n");
-    printf(
+        "                                  camellia-256-cfb, bf-cfb,\n");
 #if SODIUM_LIBRARY_VERSION_MAJOR >= 8
-        "                                  idea-cfb, rc2-cfb, seed-cfb, salsa20,\n");
     printf(
-        "                                  chacha20 and chacha20-ietf.\n");
+        "                                  chacha20-poly1305, chacha20-ietf-poly1305\n");
+    printf(
+        "                                  salsa20, chacha20 and chacha20-ietf.\n");
 #else
-        "                                  idea-cfb, rc2-cfb, seed-cfb, salsa20 and\n");
     printf(
-        "                                  chacha20.\n");
+        "                                  chacha20-poly1305, salsa20, chacha20.\n");
 #endif
     printf(
         "                                  The default cipher is rc4-md5.\n");
