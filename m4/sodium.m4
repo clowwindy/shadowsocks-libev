@@ -27,4 +27,14 @@ AC_DEFUN([ss_SODIUM],
     [AC_MSG_ERROR([The Sodium crypto library libraries not found.])]
     )
 
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+    #include <sodium.h>
+    ], [
+    #if SODIUM_LIBRARY_VERSION_MAJOR < 9
+    # error
+    #endif
+    ])],
+    [AC_MSG_RESULT([checking for version of libsodium... yes])],
+    [AC_MSG_ERROR([Wrong libsodium: version >= 1.0.9 required])])
+
 ])
