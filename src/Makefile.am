@@ -104,7 +104,7 @@ libshadowsocks_libev_la_LDFLAGS = -version-info $(VERSION_INFO)
 libshadowsocks_libev_la_LIBADD = $(ss_local_LDADD)
 include_HEADERS = shadowsocks.h
 
-noinst_HEADERS = acl.h crypto.h stream.h json.h netutils.h redir.h server.h tls.h uthash.h \
+noinst_HEADERS = acl.h crypto.h stream.h aead.h json.h netutils.h redir.h server.h tls.h uthash.h \
                  cache.h http.h local.h plugin.h resolv.h tunnel.h utils.h \
                  common.h jconf.h manager.h protocol.h rule.h socks5.h udprelay.h
 EXTRA_DIST = ss-nat
