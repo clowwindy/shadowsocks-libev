@@ -1,7 +1,7 @@
 /*
  * udprelay.h - Define UDP relay's buffers and callbacks
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -26,7 +26,7 @@
 #include <ev.h>
 #include <time.h>
 
-#include "encrypt.h"
+#include "crypto.h"
 #include "jconf.h"
 
 #ifdef MODULE_REMOTE
@@ -44,8 +44,7 @@
 typedef struct server_ctx {
     ev_io io;
     int fd;
-    int method;
-    int auth;
+    crypto_t *crypto;
     int timeout;
     const char *iface;
     struct cache *conn_cache;

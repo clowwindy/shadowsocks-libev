@@ -1,7 +1,7 @@
 /*
  * server.h - Define shadowsocks server's buffers and callbacks
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -27,7 +27,7 @@
 #include <time.h>
 #include <libcork/ds.h>
 
-#include "encrypt.h"
+#include "crypto.h"
 #include "jconf.h"
 #include "resolv.h"
 
@@ -37,7 +37,6 @@ typedef struct listen_ctx {
     ev_io io;
     int fd;
     int timeout;
-    int method;
     char *iface;
     struct ev_loop *loop;
 } listen_ctx_t;
@@ -52,16 +51,12 @@ typedef struct server_ctx {
 typedef struct server {
     int fd;
     int stage;
-    int auth;
     int frag;
 
     buffer_t *buf;
-    buffer_t *header_buf;
 
-    struct chunk *chunk;
-
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct listen_ctx *listen_ctx;

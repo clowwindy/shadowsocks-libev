@@ -1,5 +1,5 @@
 /*
- * acl.h - Define the ACL interface
+ * aead.h - Define the AEAD interface
  *
  * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
@@ -20,34 +20,27 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _ACL_H
-#define _ACL_H
+#ifndef _AEAD_H
+#define _AEAD_H
 
-#define BLACK_LIST 0
-#define WHITE_LIST 1
+#include "crypto.h"
 
-#define MAX_TRIES  64
-#define MALICIOUS  8
-#define SUSPICIOUS 4
-#define BAD        2
-#define MALFORMED  1
+// currently, XCHACHA20POLY1305IETF is not released yet
+// XCHACHA20POLY1305 is removed in upstream
+#ifdef FS_HAVE_XCHACHA20IETF
+#define AEAD_CIPHER_NUM              6
+#else
+#define AEAD_CIPHER_NUM              5
+#endif
 
-int init_acl(const char *path);
-void free_acl(void);
-void clear_block_list(void);
+int aead_encrypt_all(buffer_t *, cipher_t *, size_t);
+int aead_decrypt_all(buffer_t *, cipher_t *, size_t);
 
-int acl_match_host(const char *ip);
-int acl_add_ip(const char *ip);
-int acl_remove_ip(const char *ip);
+int aead_encrypt(buffer_t *, cipher_ctx_t *, size_t);
+int aead_decrypt(buffer_t *, cipher_ctx_t *, size_t);
 
-int get_acl_mode(void);
+void aead_ctx_init(cipher_t *, cipher_ctx_t *, int);
+void aead_ctx_release(cipher_ctx_t *);
+cipher_t *aead_init(const char *pass, const char *method);
 
-void init_block_list();
-void free_block_list();
-int check_block_list(char *addr);
-int update_block_list(char *addr, int err_level);
-int remove_from_block_list(char *addr);
-
-int outbound_block_match_host(const char *host);
-
-#endif // _ACL_H
+#endif // _AEAD_H

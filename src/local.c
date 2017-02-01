@@ -1,7 +1,7 @@
 /*
  * local.c - Setup a socks5 proxy through remote shadowsocks server
  *
- * Copyright (C) 2013 - 2016, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -95,8 +95,9 @@ uint64_t rx    = 0;
 ev_tstamp last = 0;
 #endif
 
+static crypto_t *crypto;
+
 static int acl       = 0;
-static int auth      = 0;
 static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 static int fast_open = 0;
@@ -130,7 +131,7 @@ static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
 
 static remote_t *new_remote(int fd, int timeout);
-static server_t *new_server(int fd, int method);
+static server_t *new_server(int fd);
 
 static struct cork_dllist connections;
 
@@ -287,22 +288,25 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 return;
             }
 
-            if (!remote->direct && remote->send_ctx->connected && auth) {
-                ss_gen_hash(remote->buf, &remote->counter, server->e_ctx, BUF_SIZE);
-            }
-
             // insert shadowsocks header
             if (!remote->direct) {
 #ifdef ANDROID
                 tx += remote->buf->len;
 #endif
-                int err = ss_encrypt(remote->buf, server->e_ctx, BUF_SIZE);
+                int err = crypto->encrypt(remote->buf, server->e_ctx, BUF_SIZE);
 
                 if (err) {
                     LOGE("invalid password or cipher");
                     close_and_free_remote(EV_A_ remote);
                     close_and_free_server(EV_A_ server);
                     return;
+                }
+
+                if (server->abuf) {
+                    bprepend(remote->buf, server->abuf, BUF_SIZE);
+                    bfree(server->abuf);
+                    ss_free(server->abuf);
+                    server->abuf = NULL;
                 }
             }
 
@@ -527,9 +531,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             char host[257], ip[INET6_ADDRSTRLEN], port[16];
 
-            buffer_t ss_addr_to_send;
-            buffer_t *abuf = &ss_addr_to_send;
-            balloc(abuf, BUF_SIZE);
+            buffer_t *abuf = server->abuf;
+            abuf->idx = 0;
+            abuf->len = 0;
 
             abuf->data[abuf->len++] = request->atyp;
             int atyp = request->atyp;
@@ -574,7 +578,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     sprintf(port, "%d", p);
                 }
             } else {
-                bfree(abuf);
                 LOGE("unsupported addrtype: %d", request->atyp);
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
@@ -596,7 +599,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                                                      buf->len - 3 - abuf->len, &hostname);
                 if (ret == -1 && buf->len < BUF_SIZE) {
                     server->stage = STAGE_PARSE;
-                    bfree(abuf);
                     return;
                 } else if (ret > 0) {
                     sni_detected = 1;
@@ -667,9 +669,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         else if (atyp == 4)
                             LOGI("bypass [%s]:%s", ip, port);
                     }
+                    int err;
                     struct sockaddr_storage storage;
                     memset(&storage, 0, sizeof(struct sockaddr_storage));
-                    int err = get_sockaddr(ip, port, &storage, 0, ipv6first);
+                    if (sni_detected || atyp == 3)
+                       err = get_sockaddr(host, port, &storage, 0, ipv6first);
+                    else
+                       err = get_sockaddr(ip, port, &storage, 0, ipv6first);
                     if (err != -1) {
                         remote = create_remote(server->listener, (struct sockaddr *)&storage);
                         if (remote != NULL)
@@ -684,40 +690,28 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             }
 
             if (remote == NULL) {
-                bfree(abuf);
                 LOGE("invalid remote addr");
                 close_and_free_server(EV_A_ server);
                 return;
             }
 
             if (!remote->direct) {
-                if (auth) {
-                    abuf->data[0] |= ONETIMEAUTH_FLAG;
-                    ss_onetimeauth(abuf, server->e_ctx->evp.iv, BUF_SIZE);
+                int err = crypto->encrypt(abuf, server->e_ctx, BUF_SIZE);
+                if (err) {
+                    LOGE("invalid password or cipher");
+                    close_and_free_remote(EV_A_ remote);
+                    close_and_free_server(EV_A_ server);
+                    return;
                 }
+            }
 
-                if (buf->len > 0 && auth) {
-                    ss_gen_hash(buf, &remote->counter, server->e_ctx, BUF_SIZE);
-                }
-
-                brealloc(remote->buf, buf->len + abuf->len, BUF_SIZE);
-                memcpy(remote->buf->data, abuf->data, abuf->len);
-                remote->buf->len = buf->len + abuf->len;
-
-                if (buf->len > 0) {
-                    memcpy(remote->buf->data + abuf->len, buf->data, buf->len);
-                }
-            } else {
-                if (buf->len > 0) {
-                    memcpy(remote->buf->data, buf->data, buf->len);
-                    remote->buf->len = buf->len;
-                }
+            if (buf->len > 0) {
+                memcpy(remote->buf->data, buf->data, buf->len);
+                remote->buf->len = buf->len;
             }
 
             server->remote = remote;
             remote->server = server;
-
-            bfree(abuf);
         }
     }
 }
@@ -829,12 +823,14 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef ANDROID
         rx += server->buf->len;
 #endif
-        int err = ss_decrypt(server->buf, server->d_ctx, BUF_SIZE);
-        if (err) {
+        int err = crypto->decrypt(server->buf, server->d_ctx, BUF_SIZE);
+        if (err == CRYPTO_ERROR) {
             LOGE("invalid password or cipher");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
             return;
+        } else if (err == CRYPTO_NEED_MORE) {
+            return; // Wait for more
         }
     }
 
@@ -991,7 +987,7 @@ close_and_free_remote(EV_P_ remote_t *remote)
 }
 
 static server_t *
-new_server(int fd, int method)
+new_server(int fd)
 {
     server_t *server;
     server = ss_malloc(sizeof(server_t));
@@ -1001,7 +997,9 @@ new_server(int fd, int method)
     server->recv_ctx = ss_malloc(sizeof(server_ctx_t));
     server->send_ctx = ss_malloc(sizeof(server_ctx_t));
     server->buf      = ss_malloc(sizeof(buffer_t));
+    server->abuf     = ss_malloc(sizeof(buffer_t));
     balloc(server->buf, BUF_SIZE);
+    balloc(server->abuf, BUF_SIZE);
     memset(server->recv_ctx, 0, sizeof(server_ctx_t));
     memset(server->send_ctx, 0, sizeof(server_ctx_t));
     server->stage               = STAGE_INIT;
@@ -1011,15 +1009,10 @@ new_server(int fd, int method)
     server->recv_ctx->server    = server;
     server->send_ctx->server    = server;
 
-    if (method) {
-        server->e_ctx = ss_malloc(sizeof(struct enc_ctx));
-        server->d_ctx = ss_malloc(sizeof(struct enc_ctx));
-        enc_ctx_init(method, server->e_ctx, 1);
-        enc_ctx_init(method, server->d_ctx, 0);
-    } else {
-        server->e_ctx = NULL;
-        server->d_ctx = NULL;
-    }
+    server->e_ctx = ss_malloc(sizeof(cipher_ctx_t));
+    server->d_ctx = ss_malloc(sizeof(cipher_ctx_t));
+    crypto->ctx_init(crypto->cipher, server->e_ctx, 1);
+    crypto->ctx_init(crypto->cipher, server->d_ctx, 0);
 
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
@@ -1038,16 +1031,20 @@ free_server(server_t *server)
         server->remote->server = NULL;
     }
     if (server->e_ctx != NULL) {
-        cipher_context_release(&server->e_ctx->evp);
+        crypto->ctx_release(server->e_ctx);
         ss_free(server->e_ctx);
     }
     if (server->d_ctx != NULL) {
-        cipher_context_release(&server->d_ctx->evp);
+        crypto->ctx_release(server->d_ctx);
         ss_free(server->d_ctx);
     }
     if (server->buf != NULL) {
         bfree(server->buf);
         ss_free(server->buf);
+    }
+    if (server->abuf != NULL) {
+        bfree(server->abuf);
+        ss_free(server->abuf);
     }
     ss_free(server->recv_ctx);
     ss_free(server->send_ctx);
@@ -1153,7 +1150,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
-    server_t *server = new_server(serverfd, listener->method);
+    server_t *server = new_server(serverfd);
     server->listener = listener;
 
     ev_io_start(EV_A_ & server->recv_ctx->io);
@@ -1205,10 +1202,10 @@ main(int argc, char **argv)
     USE_TTY();
 
 #ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvVA6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvV6",
                             long_options, NULL)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvA6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUv6",
                             long_options, NULL)) != -1) {
 #endif
         switch (c) {
@@ -1288,9 +1285,6 @@ main(int argc, char **argv)
         case GETOPT_VAL_HELP:
             usage();
             exit(EXIT_SUCCESS);
-        case 'A':
-            auth = 1;
-            break;
         case '6':
             ipv6first = 1;
             break;
@@ -1350,9 +1344,6 @@ main(int argc, char **argv)
         }
         if (plugin_opts == NULL) {
             plugin_opts = conf->plugin_opts;
-        }
-        if (auth == 0) {
-            auth = conf->auth;
         }
         if (fast_open == 0) {
             fast_open = conf->fast_open;
@@ -1437,10 +1428,6 @@ main(int argc, char **argv)
         LOGI("resolving hostname to IPv6 address first");
     }
 
-    if (auth) {
-        LOGI("onetime authentication enabled");
-    }
-
     if (plugin != NULL) {
         int len = 0;
         size_t buf_size = 256 * remote_num;
@@ -1465,7 +1452,9 @@ main(int argc, char **argv)
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
-    int m = enc_init(password, method);
+    crypto = crypto_init(password, method);
+    if (crypto == NULL)
+        FATAL("failed to initialize ciphers");
 
     // Setup proxy context
     listen_ctx_t listen_ctx;
@@ -1491,7 +1480,6 @@ main(int argc, char **argv)
     }
     listen_ctx.timeout = atoi(timeout);
     listen_ctx.iface   = iface;
-    listen_ctx.method  = m;
     listen_ctx.mptcp   = mptcp;
 
     // Setup signal handler
@@ -1538,7 +1526,7 @@ main(int argc, char **argv)
         }
         struct sockaddr *addr = (struct sockaddr *)storage;
         init_udprelay(local_addr, local_port, addr,
-                      get_sockaddr_len(addr), mtu, m, auth, listen_ctx.timeout, iface);
+                      get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
     }
 
 #ifdef HAVE_LAUNCHD
@@ -1609,7 +1597,6 @@ start_ss_local_server(profile_t profile)
     int mtu           = 0;
     int mptcp         = 0;
 
-    auth      = profile.auth;
     mode      = profile.mode;
     fast_open = profile.fast_open;
     verbose   = profile.verbose;
@@ -1646,7 +1633,9 @@ start_ss_local_server(profile_t profile)
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
-    int m = enc_init(password, method);
+    crypto = crypto_init(password, method);
+    if (crypto == NULL)
+        FATAL("failed to init ciphers");
 
     struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
     memset(storage, 0, sizeof(struct sockaddr_storage));
@@ -1663,7 +1652,6 @@ start_ss_local_server(profile_t profile)
     listen_ctx.remote_addr    = remote_addr_tmp;
     listen_ctx.remote_addr[0] = (struct sockaddr *)storage;
     listen_ctx.timeout        = timeout;
-    listen_ctx.method         = m;
     listen_ctx.iface          = NULL;
     listen_ctx.mptcp          = mptcp;
 
@@ -1692,7 +1680,7 @@ start_ss_local_server(profile_t profile)
         LOGI("udprelay enabled");
         struct sockaddr *addr = (struct sockaddr *)storage;
         init_udprelay(local_addr, local_port_str, addr,
-                      get_sockaddr_len(addr), mtu, m, auth, timeout, NULL);
+                      get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
     }
 
     if (strcmp(local_addr, ":") > 0)
