@@ -6,7 +6,7 @@ FROM alpine
 MAINTAINER kev <noreply@datageek.info>
 
 ARG SS_VER=3.0.0
-ARG SS_URL=https://github.com/shadowsocks/shadowsocks-libev/archive/v$SS_VER.tar.gz
+ARG SS_URL=https://github.com/shadowsocks/shadowsocks-libev/releases/download/v$SS_VER/shadowsocks-libev-$SS_VER.tar.gz
 
 ENV SERVER_ADDR 0.0.0.0
 ENV SERVER_PORT 8388
@@ -18,25 +18,21 @@ ENV DNS_ADDR_2  8.8.4.4
 
 RUN set -ex && \
     apk add --no-cache --virtual .build-deps \
-                                libev-dev \
-                                udns-dev \
-                                libsodium-dev \
-								gettext \
-								automake \
-								zlib \
-                                asciidoc \
                                 autoconf \
                                 build-base \
-                                curl \
-                                libtool \
-                                linux-headers \
-                                openssl-dev \
-                                pcre-dev \
-                                tar \
-                                xmlto && \
+				curl \
+                                libev-dev \
+				libtool \
+				linux-headers \
+                                udns-dev \
+                                libsodium-dev \
+				mbedtls-dev \
+				openssl-dev \
+				pcre-dev \
+				tar \
+				udns-dev && \
     cd /tmp && \
     curl -sSL $SS_URL | tar xz --strip 1 && \
-    ./autogen.sh && \
     ./configure --prefix=/usr --disable-documentation && \
     make install && \
     cd .. && \
