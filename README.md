@@ -163,7 +163,7 @@ If you are using CentOS 7, you need to install these prequirement to build from 
 
 ```bash 
 yum install epel-release -y
-yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto libsodium-devel udns-devel libev-devel libmbedtls-devel -y
+yum install gcc gettext autoconf libtool automake make pcre-devel asciidoc xmlto udns-devel libev-devel libmbedtls-devel -y
 ```
 
 #### Install from repository
