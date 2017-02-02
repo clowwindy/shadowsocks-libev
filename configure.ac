@@ -282,14 +282,17 @@ AC_CHECK_LIB([udns], [dns_dnlen], [LIBS="-ludns $LIBS"], [AC_MSG_ERROR([Couldn't
 AC_CHECK_HEADERS([ev.h], [], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
 AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
 
+AC_CONFIG_FILES([shadowsocks-libev.pc
+                 Makefile
+                 src/Makefile])
+
+AM_COND_IF([USE_SYSTEM_SHARED_LIB],
+		   [],
+		   [AC_CONFIG_FILES([libcork/Makefile
+							 libipset/Makefile])])
+
 AM_COND_IF([ENABLE_DOCUMENTATION],
   [AC_CONFIG_FILES([doc/Makefile])
 ])
-
-AC_CONFIG_FILES([shadowsocks-libev.pc
-                 Makefile
-                 libcork/Makefile
-                 libipset/Makefile
-                 src/Makefile])
 
 AC_OUTPUT

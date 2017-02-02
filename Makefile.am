@@ -1,4 +1,8 @@
+if USE_SYSTEM_SHARED_LIB
+SUBDIRS = src
+else
 SUBDIRS = libcork libipset src
+endif
 
 if ENABLE_DOCUMENTATION
 SUBDIRS += doc
