@@ -25,7 +25,7 @@ no more than 5% on a low-end router (Buffalo WHR-G300N V2 with a 400MHz MIPS CPU
 For a full list of feature comparison between different versions of shadowsocks,
 refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature-Comparison-across-Different-Versions).
 
-## Installation
+## Prerequisites
 
 ### Get the latest source code
 
@@ -36,6 +36,27 @@ git clone https://github.com/shadowsocks/shadowsocks-libev.git
 cd shadowsocks-libev
 git submodule update --init --recursive
 ```
+
+### Build and install the latest mbedTLS and libsodium
+
+```bash
+export LIBSODIUM_VER=1.0.11
+export MBEDTLS_VER=2.4.0
+wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
+tar xvf libsodium-$LIBSODIUM_VER.tar.gz
+pushd libsodium-$LIBSODIUM_VER
+./configure --prefix=/usr && make
+sudo make install
+popd
+wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
+tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
+pushd mbedtls-$MBEDTLS_VER
+make
+sudo make install
+popd
+```
+
+## Installation
 
 ### Distribution-specific guide
 
