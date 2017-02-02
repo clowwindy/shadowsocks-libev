@@ -3,7 +3,7 @@ shadowsocks-libev (3.0.0-1) unstable; urgency=medium
   * Drop dependencies of OpenSSL and PolarSSL.
   * Deprecate OTA (One-Time-Auth).
   * Add new ciphers for SIP004: aes-128-gcm, aes-192-gcm, aes-256-gcm,
-    chacha20-poly1305 and chacha20-ieft-poly1305.
+    chacha20-poly1305 and chacha20-ietf-poly1305.
   * Refine SIP003 to support standalone mode of obfsproxy.
 
  -- Max Lv <max.c.lv@gmail.com>  Wed, 01 Feb 2017 19:10:14 +0800
