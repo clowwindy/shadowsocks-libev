@@ -417,6 +417,7 @@ setting up your server's firewall rules to limit connections from each user:
 
 ## License
 
+```
 Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
            2013-2017, Max Lv <max.c.lv@gmail.com>
            2014, Linus Yang <linusyang@gmail.com>
@@ -433,3 +434,4 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
+```
