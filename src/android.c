@@ -115,7 +115,7 @@ send_traffic_stat(uint64_t tx, uint64_t rx)
     strncpy(addr.sun_path, "stat_path", sizeof(addr.sun_path) - 1);
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOGE("[android] connect() failed for stat_path: %s (socket fd = %d): %s\n",
+        LOGE("[android] connect() failed for stat_path: %s (socket fd = %d)\n",
              strerror(errno), sock);
         close(sock);
         return -1;
