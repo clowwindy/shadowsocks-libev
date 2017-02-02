@@ -211,6 +211,10 @@ read_jconf(const char *file)
                 check_json_value_type(value, json_boolean,
                         "invalid config file: option 'fast_open' must be a boolean");
                 conf.fast_open = value->u.boolean;
+            } else if (strcmp(name, "reuse_port") == 0) {
+                check_json_value_type(value, json_boolean,
+                        "invalid config file: option 'reuse_port' must be a boolean");
+                conf.reuse_port = value->u.boolean;
             } else if (strcmp(name, "auth") == 0) {
                 check_json_value_type(value, json_boolean,
                         "invalid config file: option 'auth' must be a boolean");

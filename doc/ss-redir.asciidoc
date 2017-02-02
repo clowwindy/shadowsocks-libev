@@ -99,6 +99,11 @@ Enable Multipath TCP.
 +
 Only available with MPTCP enabled Linux kernel.
 
+--reuse-port::
+Enable port reuse.
++
+Only available with Linux kernel > 3.9.0.
+
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)
 

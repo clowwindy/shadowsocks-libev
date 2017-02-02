@@ -99,7 +99,8 @@ static void close_and_free_server(EV_P_ server_t *server);
 static void server_resolve_cb(struct sockaddr *addr, void *data);
 static void query_free_cb(void *data);
 
-int verbose = 0;
+int verbose     = 0;
+int reuse_port = 0;
 
 static crypto_t *crypto;
 
@@ -379,9 +380,11 @@ create_and_bind(const char *host, const char *port, int mptcp)
 #ifdef SO_NOSIGPIPE
         setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
-        int err = set_reuseport(listen_sock);
-        if (err == 0) {
-            LOGI("tcp port reuse enabled");
+        if (reuse_port) {
+            int err = set_reuseport(listen_sock);
+            if (err == 0) {
+                LOGI("tcp port reuse enabled");
+            }
         }
 
         if (mptcp == 1) {
@@ -1353,6 +1356,7 @@ main(int argc, char **argv)
 
     static struct option long_options[] = {
         { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
+        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
         { "acl",             required_argument, NULL, GETOPT_VAL_ACL },
         { "manager-address", required_argument, NULL,
                                                 GETOPT_VAL_MANAGER_ADDRESS },
@@ -1360,6 +1364,7 @@ main(int argc, char **argv)
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP },
         { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
+        { "port-reuse",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
 #ifdef __linux__
         { "mptcp",           no_argument,       NULL, GETOPT_VAL_MPTCP },
 #endif
@@ -1396,6 +1401,9 @@ main(int argc, char **argv)
         case GETOPT_VAL_MPTCP:
             mptcp = 1;
             LOGI("enable multipath TCP");
+            break;
+        case GETOPT_VAL_REUSE_PORT:
+            reuse_port = 1;
             break;
         case 's':
             if (server_num < MAX_REMOTE_NUM) {
@@ -1512,11 +1520,12 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
-#ifdef TCP_FASTOPEN
+        if (reuse_port == 0) {
+            reuse_port = conf->reuse_port;
+        }
         if (fast_open == 0) {
             fast_open = conf->fast_open;
         }
-#endif
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;

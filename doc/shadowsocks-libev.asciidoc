@@ -126,6 +126,11 @@ Enable TCP fast open.
 +
 Not available in redir nor tunnel mode, with Linux kernel > 3.7.0.
 
+--reuse-port::
+Enable port reuse.
++
+Only available with Linux kernel > 3.9.0.
+
 --acl <acl_config>::
 Enable ACL (Access Control List) and specify config file.
 +
@@ -166,6 +171,7 @@ The config file equivalent of command line options is listed as example below.
 | -t 60                               | "timeout": 60
 | -a nobody                           | "user": "nobody"
 | --fast-open                         | "fast_open": true
+| --reuse-port                        | "reuse_port": true
 | --plugin "obfs-server"              | "plugin": "obfs-server"
 | --plugin-opts "obfs=http"           | "plugin_opts": "obfs=http"
 | -6                                  | "ipv6_first": true

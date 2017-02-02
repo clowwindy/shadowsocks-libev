@@ -57,4 +57,18 @@ int send_traffic_stat(uint64_t tx, uint64_t rx);
 #define STAGE_RESOLVE    4  /* Resolve the hostname             */
 #define STAGE_STREAM     5  /* Stream between client and server */
 
+/* Vals for long options */
+enum {
+    GETOPT_VAL_HELP = 257,
+    GETOPT_VAL_REUSE_PORT,
+    GETOPT_VAL_FAST_OPEN,
+    GETOPT_VAL_ACL,
+    GETOPT_VAL_MTU,
+    GETOPT_VAL_MPTCP,
+    GETOPT_VAL_PLUGIN,
+    GETOPT_VAL_PLUGIN_OPTS,
+    GETOPT_VAL_MANAGER_ADDRESS,
+    GETOPT_VAL_EXECUTABLE
+};
+
 #endif // _COMMON_H

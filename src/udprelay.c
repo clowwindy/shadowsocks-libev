@@ -92,6 +92,7 @@ extern int vpn;
 #endif
 
 extern int verbose;
+extern int reuse_port;
 #ifdef MODULE_REMOTE
 extern uint64_t tx;
 extern uint64_t rx;
@@ -425,9 +426,11 @@ create_server_socket(const char *host, const char *port)
 #ifdef SO_NOSIGPIPE
         set_nosigpipe(server_sock);
 #endif
-        int err = set_reuseport(server_sock);
-        if (err == 0) {
-            LOGI("udp port reuse enabled");
+        if (reuse_port) {
+            int err = set_reuseport(server_sock);
+            if (err == 0) {
+                LOGI("udp port reuse enabled");
+            }
         }
 #ifdef IP_TOS
         // Set QoS flag

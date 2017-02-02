@@ -337,6 +337,8 @@ usage()
     printf(
         "       [-d <addr>]                Name servers for internal DNS resolver.\n");
 #endif
+    printf(
+        "       [--reuse-port]             Enable port reuse.\n");
 #if defined(MODULE_REMOTE) || defined(MODULE_LOCAL)
     printf(
         "       [--fast-open]              Enable TCP fast open.\n");

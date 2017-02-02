@@ -13,7 +13,7 @@ SYNOPSIS
  [-k <password>] [-m <encrypt_method>] [-f <pid_file>]
  [-t <timeout>] [-c <config_file>] [-i <interface>]
  [-b <local_addr>] [-a <user_name>] [-n <nofile>]
- [-L addr:port] [--mtu <MTU>]
+ [-L addr:port] [--mtu <MTU>] [--mptcp] [--reuse-port]
  [--plugin <plugin_name>] [--plugin-opts <plugin_options]
 
 DESCRIPTION
@@ -109,6 +109,11 @@ Specify the MTU of your network interface.
 Enable Multipath TCP.
 +
 Only available with MPTCP enabled Linux kernel.
+
+--reuse-port::
+Enable port reuse.
++
+Only available with Linux kernel > 3.9.0.
 
 --plugin <plugin_name>::
 Enable SIP003 plugin. (Experimental)

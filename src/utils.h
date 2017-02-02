@@ -161,18 +161,6 @@ extern int use_syslog;
 
 #endif // if ANDROID
 
-/* Vals for long options */
-enum { GETOPT_VAL_HELP = 257,
-       GETOPT_VAL_FAST_OPEN,
-       GETOPT_VAL_ACL,
-       GETOPT_VAL_MTU,
-       GETOPT_VAL_MPTCP,
-       GETOPT_VAL_PLUGIN,
-       GETOPT_VAL_PLUGIN_OPTS,
-       GETOPT_VAL_MANAGER_ADDRESS,
-       GETOPT_VAL_EXECUTABLE
-};
-
 void ERROR(const char *s);
 
 char *ss_itoa(int i);

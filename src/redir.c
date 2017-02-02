@@ -87,6 +87,7 @@ static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
 
 int verbose        = 0;
+int reuse_port     = 0;
 int keep_resolving = 1;
 
 static crypto_t *crypto;
@@ -155,9 +156,11 @@ create_and_bind(const char *addr, const char *port)
 #ifdef SO_NOSIGPIPE
         setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
-        int err = set_reuseport(listen_sock);
-        if (err == 0) {
-            LOGI("tcp port reuse enabled");
+        if (reuse_port) {
+            int err = set_reuseport(listen_sock);
+            if (err == 0) {
+                LOGI("tcp port reuse enabled");
+            }
         }
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
@@ -803,6 +806,7 @@ main(int argc, char **argv)
         { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP },
         { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
+        { "port-reuse",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
         { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
         { NULL,          0,                 NULL, 0 }
     };
@@ -827,6 +831,9 @@ main(int argc, char **argv)
             break;
         case GETOPT_VAL_PLUGIN_OPTS:
             plugin_opts = optarg;
+            break;
+        case GETOPT_VAL_REUSE_PORT:
+            reuse_port = 1;
             break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
@@ -941,6 +948,9 @@ main(int argc, char **argv)
         }
         if (mptcp == 0) {
             mptcp = conf->mptcp;
+        }
+        if (reuse_port == 0) {
+            reuse_port = conf->reuse_port;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {

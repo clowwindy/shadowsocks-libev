@@ -159,6 +159,10 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
     }
+    if (manager->reuse_port) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " --reuse-port");
+    }
     if (manager->ipv6first) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -6");
@@ -313,7 +317,7 @@ create_and_bind(const char *host, const char *port, int protocol)
 {
     struct addrinfo hints;
     struct addrinfo *result, *rp, *ipv4v6bindall;
-    int s, listen_sock = -1, is_port_reuse = 0;
+    int s, listen_sock = -1, is_reuse_port = 0;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family   = AF_UNSPEC;                  /* Return IPv4 and IPv6 choices */
@@ -372,14 +376,14 @@ create_and_bind(const char *host, const char *port, int protocol)
             if (verbose) {
                 LOGI("%s port reuse enabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
             }
-            is_port_reuse = 1;
+            is_reuse_port = 1;
         }
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
             /* We managed to bind successfully! */
 
-            if (!is_port_reuse) {
+            if (!is_reuse_port) {
                 if (verbose) {
                     LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
                 }
@@ -401,7 +405,7 @@ create_and_bind(const char *host, const char *port, int protocol)
         return -1;
     }
 
-    return is_port_reuse ? listen_sock : -2;
+    return is_reuse_port ? listen_sock : -2;
 }
 
 static void
@@ -876,11 +880,12 @@ main(int argc, char **argv)
     char *plugin          = NULL;
     char *plugin_opts     = NULL;
 
-    int auth      = 0;
-    int fast_open = 0;
-    int mode      = TCP_ONLY;
-    int mtu       = 0;
-    int ipv6first = 0;
+    int auth       = 0;
+    int fast_open  = 0;
+    int reuse_port = 0;
+    int mode       = TCP_ONLY;
+    int mtu        = 0;
+    int ipv6first  = 0;
 
 #ifdef HAVE_SETRLIMIT
     static int nofile = 0;
@@ -896,6 +901,7 @@ main(int argc, char **argv)
 
     static struct option long_options[] = {
         { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
+        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
         { "acl",             required_argument, NULL, GETOPT_VAL_ACL },
         { "manager-address", required_argument, NULL,
                                                 GETOPT_VAL_MANAGER_ADDRESS },
@@ -915,6 +921,9 @@ main(int argc, char **argv)
     while ((c = getopt_long(argc, argv, "f:s:l:k:t:m:c:i:d:a:n:6huUvA",
                             long_options, NULL)) != -1)
         switch (c) {
+        case GETOPT_VAL_REUSE_PORT:
+            reuse_port = 1;
+            break;
         case GETOPT_VAL_FAST_OPEN:
             fast_open = 1;
             break;
@@ -1023,11 +1032,12 @@ main(int argc, char **argv)
         if (user == NULL) {
             user = conf->user;
         }
-#ifdef TCP_FASTOPEN
         if (fast_open == 0) {
             fast_open = conf->fast_open;
         }
-#endif
+        if (reuse_port == 0) {
+            reuse_port = conf->reuse_port;
+        }
         if (conf->nameserver != NULL) {
             nameservers[nameserver_num++] = conf->nameserver;
         }
@@ -1105,6 +1115,7 @@ main(int argc, char **argv)
     struct manager_ctx manager;
     memset(&manager, 0, sizeof(struct manager_ctx));
 
+    manager.reuse_port      = reuse_port;
     manager.fast_open       = fast_open;
     manager.verbose         = verbose;
     manager.mode            = mode;
