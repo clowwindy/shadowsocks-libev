@@ -221,7 +221,7 @@ sudo apt-get install --no-install-recommends gettext build-essential autoconf li
 # CentOS / Fedora / RHEL
 sudo yum install gettext gcc autoconf libtool automake make libmbedtls-devel asciidoc xmlto udns-devel libev-devel
 # Arch
-sudo pacman -S gettext gcc autoconf libtool automake make mbedtls asciidoc xmlto udns libev
+sudo pacman -S gettext gcc autoconf libtool automake make mbedtls asciidoc xmlto udns libev libsodium
 ./autogen.sh && ./configure && make
 sudo make install
 ```
