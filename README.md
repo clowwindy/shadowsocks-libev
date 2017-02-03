@@ -92,16 +92,16 @@ try `configure --help`.
 Shadowsocks-libev is available in the official repository for Debian 9("Stretch"), unstable, Ubuntu 16.10 and later derivatives:
 
 ```bash
-sudo apt update
-sudo apt install shadowsocks-libev
+sudo apt-get update
+sudo apt-get install shadowsocks-libev
 ```
 
 For Debian Jessie users, please install it from `jessie-backports`:
 
 ```bash
 sudo sh -c 'printf "deb http://httpredir.debian.org/debian jessie-backports main" > /etc/apt/sources.list.d/jessie-backports.list'
-sudo apt update
-sudo apt -t jessie-backports install shadowsocks-libev
+sudo apt-get update
+sudo apt-get -t jessie-backports install shadowsocks-libev
 ```
 
 #### Build deb package from source
