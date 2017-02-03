@@ -325,9 +325,7 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     buffer_t *ciphertext = &tmp;
     ciphertext->len = plaintext->len;
 
-    uint8_t nonce[MAX_NONCE_LENGTH];
-
-    rand_bytes(nonce, nonce_len);
+    uint8_t *nonce = cipher_ctx.nonce;
     cipher_ctx_set_nonce(&cipher_ctx, nonce, nonce_len, 1);
     memcpy(ciphertext->data, nonce, nonce_len);
 
@@ -449,7 +447,7 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
     buffer_t *plaintext = &tmp;
     plaintext->len = ciphertext->len - nonce_len;
 
-    uint8_t nonce[MAX_NONCE_LENGTH];
+    uint8_t *nonce = cipher_ctx.nonce;
     memcpy(nonce, ciphertext->data, nonce_len);
     cipher_ctx_set_nonce(&cipher_ctx, nonce, nonce_len, 0);
 

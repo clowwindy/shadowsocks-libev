@@ -399,9 +399,7 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     ciphertext->len = tag_len + plaintext->len;
 
     // generate nonce
-    uint8_t nonce[MAX_NONCE_LENGTH];
-    rand_bytes(nonce, nonce_len);
-
+    uint8_t *nonce = cipher_ctx.nonce;
     /* copy nonce to first pos */
     memcpy(ciphertext->data, nonce, nonce_len);
 
@@ -460,7 +458,7 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
     plaintext->len = ciphertext->len - nonce_len - tag_len;
 
     /* get nonce */
-    uint8_t nonce[MAX_NONCE_LENGTH];
+    uint8_t *nonce = cipher_ctx.nonce;
     memcpy(nonce, ciphertext->data, nonce_len);
 
     size_t plen = plaintext->len;

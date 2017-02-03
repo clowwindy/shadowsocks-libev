@@ -675,9 +675,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     int err;
                     struct sockaddr_storage storage;
                     memset(&storage, 0, sizeof(struct sockaddr_storage));
+#ifndef ANDROID
                     if (sni_detected || atyp == 3)
                        err = get_sockaddr(host, port, &storage, 0, ipv6first);
                     else
+#endif
                        err = get_sockaddr(ip, port, &storage, 0, ipv6first);
                     if (err != -1) {
                         remote = create_remote(server->listener, (struct sockaddr *)&storage);
