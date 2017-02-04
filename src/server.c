@@ -1364,7 +1364,6 @@ main(int argc, char **argv)
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP },
         { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "port-reuse",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
 #ifdef __linux__
         { "mptcp",           no_argument,       NULL, GETOPT_VAL_MPTCP },
 #endif

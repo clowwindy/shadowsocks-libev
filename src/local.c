@@ -1199,7 +1199,6 @@ main(int argc, char **argv)
         { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP },
         { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "port-reuse",  no_argument      , NULL, GETOPT_VAL_REUSE_PORT },
         { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
         { NULL,          0,                 NULL, 0 }
     };
