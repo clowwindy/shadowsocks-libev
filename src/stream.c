@@ -497,7 +497,7 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
     plaintext->len = ciphertext->len;
 
     if (!cipher_ctx->init) {
-        if (plaintext->len <= nonce_len)
+        if (ciphertext->len <= cipher->nonce_len)
             return CRYPTO_ERROR;
 
         uint8_t *nonce  = cipher_ctx->nonce;
