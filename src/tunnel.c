@@ -325,12 +325,13 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     server->buf->len = r;
 
     int err = crypto->decrypt(server->buf, server->d_ctx, BUF_SIZE);
-
-    if (err) {
+    if (err == CRYPTO_ERROR) {
         LOGE("invalid password or cipher");
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
+    } else if (err == CRYPTO_NEED_MORE) {
+        return; // Wait for more
     }
 
     int s = send(server->fd, server->buf->data, server->buf->len, 0);
@@ -354,8 +355,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         ev_io_start(EV_A_ & server->send_ctx->io);
     }
 
+    // Disable TCP_NODELAY after the first response are sent
     if (!remote->recv_ctx->connected) {
-        // Disable TCP_NODELAY after the first response are sent
         int opt = 0;
         setsockopt(server->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
         setsockopt(remote->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
@@ -498,12 +499,11 @@ static remote_t *
 new_remote(int fd, int timeout)
 {
     remote_t *remote = ss_malloc(sizeof(remote_t));
-
     memset(remote, 0, sizeof(remote_t));
 
-    remote->buf      = ss_malloc(sizeof(buffer_t));
     remote->recv_ctx = ss_malloc(sizeof(remote_ctx_t));
     remote->send_ctx = ss_malloc(sizeof(remote_ctx_t));
+    remote->buf      = ss_malloc(sizeof(buffer_t));
     balloc(remote->buf, BUF_SIZE);
     memset(remote->recv_ctx, 0, sizeof(remote_ctx_t));
     memset(remote->send_ctx, 0, sizeof(remote_ctx_t));
@@ -527,7 +527,7 @@ free_remote(remote_t *remote)
     if (remote->server != NULL) {
         remote->server->remote = NULL;
     }
-    if (remote->buf) {
+    if (remote->buf != NULL) {
         bfree(remote->buf);
         ss_free(remote->buf);
     }
@@ -554,9 +554,9 @@ new_server(int fd)
     server_t *server = ss_malloc(sizeof(server_t));
     memset(server, 0, sizeof(server_t));
 
-    server->buf      = ss_malloc(sizeof(buffer_t));
     server->recv_ctx = ss_malloc(sizeof(server_ctx_t));
     server->send_ctx = ss_malloc(sizeof(server_ctx_t));
+    server->buf      = ss_malloc(sizeof(buffer_t));
     balloc(server->buf, BUF_SIZE);
     memset(server->recv_ctx, 0, sizeof(server_ctx_t));
     memset(server->send_ctx, 0, sizeof(server_ctx_t));
@@ -591,7 +591,7 @@ free_server(server_t *server)
         crypto->ctx_release(server->d_ctx);
         ss_free(server->d_ctx);
     }
-    if (server->buf) {
+    if (server->buf != NULL) {
         bfree(server->buf);
         ss_free(server->buf);
     }
