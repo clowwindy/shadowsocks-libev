@@ -260,10 +260,6 @@ cipher_ctx_set_nonce(cipher_ctx_t *cipher_ctx, uint8_t *nonce, size_t nonce_len,
         return;
     }
 
-    if (!enc) {
-        memcpy(cipher_ctx->nonce, nonce, cipher->nonce_len);
-    }
-
     if (cipher->method >= SALSA20) {
         return;
     }
@@ -504,7 +500,7 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         if (plaintext->len <= nonce_len)
             return CRYPTO_ERROR;
 
-        uint8_t nonce[MAX_NONCE_LENGTH];
+        uint8_t *nonce  = cipher_ctx->nonce;
         nonce_len       = cipher->nonce_len;
         plaintext->len -= nonce_len;
 
