@@ -727,7 +727,7 @@ aead_key_init(int method, const char *pass, const char *key)
         cipher->key_len = crypto_parse_key(key, cipher->key,
                 supported_aead_ciphers_key_size[method]);
     else
-        cipher->key_len = crypto_derive_key(key, cipher->key,
+        cipher->key_len = crypto_derive_key(pass, cipher->key,
                 supported_aead_ciphers_key_size[method]);
 
     if (cipher->key_len == 0) {
