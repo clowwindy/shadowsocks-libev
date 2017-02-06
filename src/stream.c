@@ -598,7 +598,7 @@ stream_ctx_release(cipher_ctx_t *cipher_ctx)
 }
 
 cipher_t *
-stream_key_init(int method, const char *pass)
+stream_key_init(int method, const char *pass, const char *key)
 {
     if (method <= TABLE || method >= STREAM_CIPHER_NUM) {
         LOGE("cipher->key_init(): Illegal method");
@@ -623,8 +623,10 @@ stream_key_init(int method, const char *pass)
         FATAL("Cannot initialize cipher");
     }
 
-    cipher->key_len = crypto_derive_key(cipher, pass,
-                                        cipher->key, cipher_key_size(cipher), 1);
+    if (key != NULL)
+        cipher->key_len = crypto_parse_key(key, cipher->key, cipher_key_size(cipher));
+    else
+        cipher->key_len = crypto_derive_key(pass, cipher->key, cipher_key_size(cipher));
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and NONCE");
@@ -640,7 +642,7 @@ stream_key_init(int method, const char *pass)
 }
 
 cipher_t *
-stream_init(const char *pass, const char *method)
+stream_init(const char *pass, const char *key, const char *method)
 {
     int m = TABLE;
     if (method != NULL) {
@@ -657,5 +659,6 @@ stream_init(const char *pass, const char *method)
         LOGE("Table is deprecated");
         return NULL;
     }
-    return stream_key_init(m, pass);
+    return stream_key_init(m, pass, key);
 }
+
