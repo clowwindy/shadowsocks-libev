@@ -1,3 +1,11 @@
+shadowsocks-libev (3.0.1-1) unstable; urgency=medium
+
+  * Fix a crashe when using stream ciphers.
+  * Fix a protocol bug in AEAD ciphers. (SIP004)
+  * Allow setting keys directly. (SIP006)
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 07 Feb 2017 13:18:02 +0800
+
 shadowsocks-libev (3.0.0-1) unstable; urgency=medium
 
   * Drop dependencies of OpenSSL and PolarSSL.
