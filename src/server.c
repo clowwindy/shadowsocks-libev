@@ -117,7 +117,7 @@ static int server_conn = 0;
 
 static char *plugin          = NULL;
 static char *bind_address    = NULL;
-static char *server_port     = NULL;
+static char *remote_port     = NULL;
 static char *manager_address = NULL;
 uint64_t tx                  = 0;
 uint64_t rx                  = 0;
@@ -142,7 +142,7 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
         LOGI("update traffic stat: tx: %" PRIu64 " rx: %" PRIu64 "", tx, rx);
     }
 
-    snprintf(resp, BUF_SIZE, "stat: {\"%s\":%" PRIu64 "}", server_port, tx + rx);
+    snprintf(resp, BUF_SIZE, "stat: {\"%s\":%" PRIu64 "}", remote_port, tx + rx);
     msgLen = strlen(resp) + 1;
 
     ss_addr_t ip_addr = { .host = NULL, .port = NULL };
@@ -157,7 +157,7 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
 
         memset(&claddr, 0, sizeof(struct sockaddr_un));
         claddr.sun_family = AF_UNIX;
-        snprintf(claddr.sun_path, sizeof(claddr.sun_path), "/tmp/shadowsocks.%s", server_port);
+        snprintf(claddr.sun_path, sizeof(claddr.sun_path), "/tmp/shadowsocks.%s", remote_port);
 
         unlink(claddr.sun_path);
 
@@ -1345,6 +1345,7 @@ main(int argc, char **argv)
     char *conf_path = NULL;
     char *iface     = NULL;
 
+    char *server_port = NULL;
     char *plugin_opts = NULL;
     char *plugin_port = NULL;
     char tmp_port[8];
@@ -1557,6 +1558,8 @@ main(int argc, char **argv)
         usage();
         exit(EXIT_FAILURE);
     }
+
+    remote_port = server_port;
 
     if (plugin != NULL) {
         uint16_t port = get_local_port();

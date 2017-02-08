@@ -56,7 +56,7 @@
 #endif
 
 #ifndef UPDATE_INTERVAL
-#define UPDATE_INTERVAL 10
+#define UPDATE_INTERVAL 5
 #endif
 
 /** byte size of ip4 address */

@@ -159,10 +159,6 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
     }
-    if (manager->reuse_port) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --reuse-port");
-    }
     if (manager->ipv6first) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -6");
@@ -186,6 +182,11 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
     for (i = 0; i < manager->host_num; i++) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -s %s", manager->hosts[i]);
+    }
+    // Always enable reuse port
+    {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " --reuse-port");
     }
 
     if (verbose) {
@@ -434,7 +435,7 @@ static void
 get_and_release_sock_lock(char *port)
 {
     if (verbose) {
-        LOGI("try to get and release sock lock at port: %s", port);
+        LOGI("try to release sock lock at port: %s", port);
     }
 
     sock_lock_t *sock_lock = NULL;
@@ -635,6 +636,9 @@ remove_server(char *prefix, char *port)
 static void
 update_stat(char *port, uint64_t traffic)
 {
+    if (verbose) {
+        LOGI("update traffic %" PRIu64 " for port %s", traffic, port);
+    }
     void *ret = cork_hash_table_get(server_table, (void *)port);
     if (ret != NULL) {
         struct server *server = (struct server *)ret;
