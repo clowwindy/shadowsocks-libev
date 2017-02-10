@@ -1089,6 +1089,11 @@ main(int argc, char **argv)
         daemonize(pid_path);
     }
 
+    if (manager_address == NULL) {
+        manager_address = "127.0.0.1:8839";
+        LOGI("using the default manager address: %s", manager_address);
+    }
+
     if (server_num == 0 || manager_address == NULL) {
         usage();
         exit(EXIT_FAILURE);
