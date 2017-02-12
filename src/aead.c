@@ -313,6 +313,11 @@ aead_cipher_ctx_set_key(cipher_ctx_t *cipher_ctx, int enc)
 
     memset(cipher_ctx->nonce, 0, cipher_ctx->cipher->nonce_len);
 
+    /* cipher that don't use mbed TLS, just return */
+    if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
+        return;
+    }
+
     if (mbedtls_cipher_setkey(cipher_ctx->evp, cipher_ctx->skey,
                               cipher_ctx->cipher->key_len * 8, enc) != 0) {
         FATAL("Cannot set mbed TLS cipher key");
