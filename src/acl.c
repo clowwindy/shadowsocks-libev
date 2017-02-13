@@ -20,8 +20,17 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include <ipset/ipset.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <ctype.h>
+
+#ifdef USE_SYSTEM_SHARED_LIB
+#include <libcorkipset/ipset.h>
+#else
+#include <ipset/ipset.h>
+#endif
 
 #include "rule.h"
 #include "utils.h"

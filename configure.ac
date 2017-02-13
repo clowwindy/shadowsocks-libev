@@ -83,21 +83,6 @@ dnl Checks for crypto libraries
 ss_MBEDTLS
 ss_SODIUM
 
-dnl Checks for Apple CommonCrypto API
-AC_ARG_ENABLE(applecc,
-  AS_HELP_STRING([--enable-applecc], [enable Apple CommonCrypto API support]),
-  [
-    AC_CHECK_HEADERS(CommonCrypto/CommonCrypto.h,
-      [],
-      [AC_MSG_ERROR([CommonCrypto header files not found.]); break]
-    )
-    AC_CHECK_FUNCS([CCCryptorCreateWithMode], ,
-      [AC_MSG_ERROR([CommonCrypto API needs OS X (>= 10.7) and iOS (>= 5.0).]); break]
-    )
-    AC_DEFINE([USE_CRYPTO_APPLECC], [1], [Use Apple CommonCrypto library])
-  ]
-)
-
 dnl Checks for inet_ntop
 ss_FUNC_INET_NTOP
 
@@ -107,16 +92,6 @@ case $host in
   *-linux*)
     os_support=linux
     AC_MSG_RESULT(Linux)
-    ;;
-  *-mingw*)
-    dnl Add custom macros for libev
-    AC_DEFINE([FD_SETSIZE], [2048], [Reset max file descriptor size.])
-    AC_DEFINE([EV_FD_TO_WIN32_HANDLE(fd)], [(fd)], [Override libev default fd conversion macro.])
-    AC_DEFINE([EV_WIN32_HANDLE_TO_FD(handle)], [(handle)], [Override libev default handle conversion macro.])
-    AC_DEFINE([EV_WIN32_CLOSE_FD(fd)], [closesocket(fd)], [Override libev default fd close macro.])
-
-    os_support=mingw
-    AC_MSG_RESULT(MinGW)
     ;;
   *)
     AC_MSG_RESULT(transparent proxy does not support for $host)
@@ -186,10 +161,6 @@ AC_CHECK_HEADERS([net/if.h], [], [],
 ])
 
 case $host in
-  *-mingw*)
-    AC_DEFINE([CONNECT_IN_PROGRESS], [WSAEWOULDBLOCK], [errno for incomplete non-blocking connect(2)])
-    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
-    ;;
   *-linux*)
     AC_DEFINE([CONNECT_IN_PROGRESS], [EINPROGRESS], [errno for incomplete non-blocking connect(2)])
     dnl Checks for netfilter headers
@@ -243,31 +214,6 @@ AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([memset select setresuid setreuid strerror getpwnam_r setrlimit])
 
-dnl Check for select() into ws2_32 for Msys/Mingw
-if test "$ac_cv_func_select" != "yes"; then
-  AC_MSG_CHECKING([for select in ws2_32])
-  AC_TRY_LINK([
-#ifdef HAVE_WINSOCK2_H
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <winsock2.h>
-#endif
-    ],[
-      select(0,(fd_set *)NULL,(fd_set *)NULL,(fd_set *)NULL,(struct timeval *)NULL);
-    ],[
-      AC_MSG_RESULT([yes])
-      HAVE_SELECT="1"
-      AC_DEFINE_UNQUOTED(HAVE_SELECT, 1,
-        [Define to 1 if you have the 'select' function.])
-      HAVE_SYS_SELECT_H="1"
-      AC_DEFINE_UNQUOTED(HAVE_SYS_SELECT_H, 1,
-        [Define to 1 if you have the <sys/select.h> header file.])
-    ],[
-      AC_MSG_ERROR([no])
-  ])
-fi
-
 AC_CHECK_LIB(socket, connect)
 
 dnl Checks for library functions.
@@ -287,9 +233,8 @@ AC_CONFIG_FILES([shadowsocks-libev.pc
                  src/Makefile])
 
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
-		   [],
-		   [AC_CONFIG_FILES([libcork/Makefile
-							 libipset/Makefile])])
+		   [AC_DEFINE([USE_SYSTEM_SHARED_LIB], [1], [Define if use system shared lib.])],
+		   [AC_CONFIG_FILES([libcork/Makefile libipset/Makefile])])
 
 AM_COND_IF([ENABLE_DOCUMENTATION],
   [AC_CONFIG_FILES([doc/Makefile])
