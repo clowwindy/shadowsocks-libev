@@ -549,17 +549,15 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = NULL;
 
     buffer_t *buf = server->buf;
-    size_t len    = server->buf->len;
 
     if (server->stage == STAGE_STREAM) {
         remote = server->remote;
         buf    = remote->buf;
-        len    = 0;
 
         ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
-    ssize_t r = recv(server->fd, buf->data + len, BUF_SIZE - len, 0);
+    ssize_t r = recv(server->fd, buf->data, BUF_SIZE, 0);
 
     if (r == 0) {
         // connection closed
@@ -583,7 +581,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     tx += r;
-    buf->len += r;
+    buf->len = r;
 
     int err = crypto->decrypt(buf, server->d_ctx, BUF_SIZE);
 
