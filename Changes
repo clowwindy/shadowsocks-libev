@@ -1,3 +1,9 @@
+shadowsocks-libev (3.0.2-1) unstable; urgency=high
+
+  * Add session key for AEAD. (SIP007)
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 13 Feb 2017 09:07:17 +0800
+
 shadowsocks-libev (3.0.1-1) unstable; urgency=medium
 
   * Fix a crashe when using stream ciphers.
