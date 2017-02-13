@@ -133,19 +133,6 @@ crypto_stream_xor_ic(uint8_t *c, const uint8_t *m, uint64_t mlen,
     return 0;
 }
 
-#ifdef DEBUG
-void
-dump(char *tag, char *text, int len)
-{
-    int i;
-    printf("%s: ", tag);
-    for (i = 0; i < len; i++)
-        printf("0x%02x ", (uint8_t)text[i]);
-    printf("\n");
-}
-
-#endif
-
 int
 cipher_nonce_size(const cipher_t *cipher)
 {
@@ -285,7 +272,7 @@ cipher_ctx_set_nonce(cipher_ctx_t *cipher_ctx, uint8_t *nonce, size_t nonce_len,
         FATAL("Cannot finalize mbed TLS cipher context");
     }
 
-#ifdef DEBUG
+#ifdef SS_DEBUG
     dump("NONCE", (char *)nonce, nonce_len);
     dump("KEY", (char *)true_key, 32);
 #endif
@@ -335,7 +322,7 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
         return CRYPTO_ERROR;
     }
 
-#ifdef DEBUG
+#ifdef SS_DEBUG
     dump("PLAIN", plaintext->data, plaintext->len);
     dump("CIPHER", ciphertext->data + nonce_len, ciphertext->len);
     dump("NONCE", ciphertext->data, nonce_len);
@@ -406,7 +393,7 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         }
     }
 
-#ifdef DEBUG
+#ifdef SS_DEBUG
     dump("PLAIN", plaintext->data, plaintext->len);
     dump("CIPHER", ciphertext->data + nonce_len, ciphertext->len);
 #endif
@@ -457,7 +444,7 @@ stream_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
         return CRYPTO_ERROR;
     }
 
-#ifdef DEBUG
+#ifdef SS_DEBUG
     dump("PLAIN", plaintext->data, plaintext->len);
     dump("CIPHER", ciphertext->data + nonce_len, ciphertext->len - nonce_len);
     dump("NONCE", ciphertext->data, nonce_len);
@@ -562,7 +549,7 @@ stream_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
         return CRYPTO_ERROR;
     }
 
-#ifdef DEBUG
+#ifdef SS_DEBUG
     dump("PLAIN", plaintext->data, plaintext->len);
     dump("CIPHER", ciphertext->data, ciphertext->len);
 #endif

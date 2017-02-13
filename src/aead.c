@@ -128,18 +128,6 @@
  *
  */
 
-#ifdef DEBUG
-static void
-dump(char *tag, char *text, int len)
-{
-    int i;
-    printf("%s: ", tag);
-    for (i = 0; i < len; i++)
-        printf("0x%02x ", (uint8_t)text[i]);
-    printf("\n");
-}
-#endif
-
 const char *supported_aead_ciphers[AEAD_CIPHER_NUM] = {
     "aes-128-gcm",
     "aes-192-gcm",
@@ -356,7 +344,7 @@ aead_cipher_ctx_init(cipher_ctx_t *cipher_ctx, int method, int enc)
         FATAL("Cannot initialize mbed TLS cipher context");
     }
 
-#ifdef DEBUG
+#ifdef SS_DEBUG
     dump("KEY", (char *)cipher_ctx->cipher->key, cipher_ctx->cipher->key_len);
 #endif
 }

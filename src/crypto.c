@@ -323,7 +323,7 @@ crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
     out_len = base64_decode(out, base64, out_len);
     if (out_len > 0 && out_len >= key_len) {
         memcpy(key, out, key_len);
-#ifdef DEBUG
+#ifdef SS_DEBUG
         dump("KEY", (char*)key, key_len);
 #endif
         return key_len;
@@ -339,3 +339,15 @@ crypto_parse_key(const char *base64, uint8_t *key, size_t key_len)
     FATAL("Please use the key above or input a valid key");
     return key_len;
 }
+
+#ifdef SS_DEBUG
+void
+dump(char *tag, char *text, int len)
+{
+    int i;
+    printf("%s: ", tag);
+    for (i = 0; i < len; i++)
+        printf("0x%02x ", (uint8_t)text[i]);
+    printf("\n");
+}
+#endif

@@ -127,6 +127,9 @@ int crypto_hkdf_extract(const mbedtls_md_info_t *md, const unsigned char *salt,
 int crypto_hkdf_expand(const mbedtls_md_info_t *md, const unsigned char *prk,
                         int prk_len, const unsigned char *info, int info_len,
                         unsigned char *okm, int okm_len);
+#ifdef SS_DEBUG
+void dump(char *tag, char *text, int len);
+#endif
 
 extern struct cache *nonce_cache;
 extern const char *supported_stream_ciphers[];
