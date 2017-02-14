@@ -75,7 +75,7 @@
 #endif
 
 #ifndef MAX_FRAG
-#define MAX_FRAG 2
+#define MAX_FRAG 1
 #endif
 
 static void signal_cb(EV_P_ ev_signal *w, int revents);
@@ -591,7 +591,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         close_and_free_server(EV_A_ server);
         return;
     } else if (err == CRYPTO_NEED_MORE) {
-        if (server->stage != STAGE_STREAM && server->frag > 1) {
+        if (server->stage != STAGE_STREAM && server->frag > MAX_FRAG) {
             report_addr(server->fd, MALICIOUS, "malicious fragmentation");
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
