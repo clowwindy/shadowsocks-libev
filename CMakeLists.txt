@@ -15,6 +15,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 #set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 #set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# -------------------------------------------------------------
+# Options
+option(BUILD_STATIC "Static link library to executable" ON)
+
+
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif ()
@@ -403,17 +408,45 @@ target_compile_definitions(ss-tunnel PUBLIC -DMODULE_TUNNEL)
 target_compile_definitions(ss-manager PUBLIC -DMODULE_MANAGER)
 target_compile_definitions(ss-local PUBLIC -DMODULE_LOCAL)
 
+
+if (BUILD_STATIC)
+    message("Build static linked executable")
+    set(BUILD_SHARED_LIBS OFF)
+    find_library(LIBSODIUM libsodium.a)
+    find_library(LIBMBEDTLS libmbedtls.a)
+    find_library(LIBMBEDCRYPTO libmbedcrypto.a)
+    find_library(LIBEV libev.a)
+    find_library(LIBUDNS libudns.a)
+    find_library(LIBPCRE libpcre.a)
+
+    # Clang crt0 issues
+    # https://github.com/skaht/Csu-85
+    # https://bugs.llvm.org//show_bug.cgi?id=17801
+    # set(CMAKE_EXE_LINKER_FLAGS "-static")
+else ()
+    message("Build shared linked executable")
+
+    find_library(LIBSODIUM sodium)
+    find_library(LIBMBEDTLS mbedtls)
+    find_library(LIBMBEDCRYPTO mbedcrypto)
+    find_library(LIBEV ev)
+    find_library(LIBUDNS udns)
+    find_library(LIBPCRE pcre)
+endif ()
+
+list(APPEND DEPS ${LIBEV} ${LIBUDNS} ${LIBPCRE} ${LIBSODIUM} ${LIBMBEDTLS} ${LIBMBEDCRYPTO})
+
+target_link_libraries(ss-server libcork libipset ${DEPS})
+target_link_libraries(ss-tunnel libcork ${DEPS})
+target_link_libraries(ss-manager libcork ${LIBEV} ${LIBUDNS})
+target_link_libraries(ss-local libcork libipset ${DEPS})
+
 # redir need linux/* stuff
 if (LINUX)
     add_executable(ss-redir ${SS_REDIR_SOURCE})
     target_compile_definitions(ss-redir PUBLIC -DMODULE_REDIR)
-    target_link_libraries(ss-redir libcork ev sodium mbedtls mbedcrypto libipset udns pcre)
+    target_link_libraries(ss-redir libcork libipset ${DEPS})
 endif (LINUX)
-
-target_link_libraries(ss-server libcork ev sodium mbedtls mbedcrypto libipset udns pcre)
-target_link_libraries(ss-tunnel libcork ev sodium mbedtls mbedcrypto libipset udns pcre)
-target_link_libraries(ss-manager libcork ev udns)
-target_link_libraries(ss-local libcork ev sodium mbedtls mbedcrypto libipset udns pcre)
 
 install(DIRECTORY DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 install(TARGETS ss-server RUNTIME DESTINATION bin)
