@@ -407,7 +407,7 @@ target_compile_definitions(ss-local PUBLIC -DMODULE_LOCAL)
 if (LINUX)
     add_executable(ss-redir ${SS_REDIR_SOURCE})
     target_compile_definitions(ss-redir PUBLIC -DMODULE_REDIR)
-    target_link_libraries(ss-redir cork ev sodium mbedtls mbedcrypto libipset udns pcre)
+    target_link_libraries(ss-redir libcork ev sodium mbedtls mbedcrypto libipset udns pcre)
 endif (LINUX)
 
 target_link_libraries(ss-server libcork ev sodium mbedtls mbedcrypto libipset udns pcre)
