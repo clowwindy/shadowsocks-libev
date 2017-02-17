@@ -453,3 +453,7 @@ install(TARGETS ss-server RUNTIME DESTINATION bin)
 install(TARGETS ss-tunnel RUNTIME DESTINATION bin)
 install(TARGETS ss-manager RUNTIME DESTINATION bin)
 install(TARGETS ss-local RUNTIME DESTINATION bin)
+
+if (LINUX)
+    install(TARGETS ss-redir RUNTIME DESTINATION bin)
+endif (LINUX)
