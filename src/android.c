@@ -1,7 +1,7 @@
 /*
  * android.c - Setup IPC for shadowsocks-android
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -45,9 +45,8 @@
 #include "netutils.h"
 #include "utils.h"
 
-extern char *prefix;
-
-int protect_socket(int fd)
+int
+protect_socket(int fd)
 {
     int sock;
     struct sockaddr_un addr;
@@ -64,16 +63,13 @@ int protect_socket(int fd)
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
-    char path[256];
-    sprintf(path, "%s/protect_path", prefix);
-
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, "protect_path", sizeof(addr.sun_path) - 1);
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOGE("[android] connect() failed: %s (socket fd = %d), path: %s\n",
-             strerror(errno), sock, path);
+        LOGE("[android] connect() failed for protect_path: %s (socket fd = %d)\n",
+             strerror(errno), sock);
         close(sock);
         return -1;
     }
@@ -96,7 +92,8 @@ int protect_socket(int fd)
     return ret;
 }
 
-int send_traffic_stat(uint64_t tx, uint64_t rx)
+int
+send_traffic_stat(uint64_t tx, uint64_t rx)
 {
     int sock;
     struct sockaddr_un addr;
@@ -113,16 +110,13 @@ int send_traffic_stat(uint64_t tx, uint64_t rx)
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
-    char path[256];
-    sprintf(path, "%s/stat_path", prefix);
-
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    strncpy(addr.sun_path, "stat_path", sizeof(addr.sun_path) - 1);
 
     if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOGE("[android] connect() failed: %s (socket fd = %d), path: %s\n",
-             strerror(errno), sock, path);
+        LOGE("[android] connect() failed for stat_path: %s (socket fd = %d)\n",
+             strerror(errno), sock);
         close(sock);
         return -1;
     }

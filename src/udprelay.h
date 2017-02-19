@@ -1,7 +1,7 @@
 /*
  * udprelay.h - Define UDP relay's buffers and callbacks
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -26,7 +26,7 @@
 #include <ev.h>
 #include <time.h>
 
-#include "encrypt.h"
+#include "crypto.h"
 #include "jconf.h"
 
 #ifdef MODULE_REMOTE
@@ -39,13 +39,12 @@
 
 #define MAX_UDP_PACKET_SIZE (65507)
 
-#define MTU 1397 // 1492 - 1 - 28 - 2 - 64 = 1397, the default MTU for UDP relay
+#define DEFAULT_PACKET_SIZE 1397 // 1492 - 1 - 28 - 2 - 64 = 1397, the default MTU for UDP relay
 
 typedef struct server_ctx {
     ev_io io;
     int fd;
-    int method;
-    int auth;
+    crypto_t *crypto;
     int timeout;
     const char *iface;
     struct cache *conn_cache;
@@ -81,6 +80,9 @@ typedef struct remote_ctx {
     int addr_header_len;
     char addr_header[384];
     struct sockaddr_storage src_addr;
+#ifdef MODULE_REMOTE
+    struct sockaddr_storage dst_addr;
+#endif
     struct server_ctx *server_ctx;
 } remote_ctx_t;
 

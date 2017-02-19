@@ -30,34 +30,29 @@
 #define IPV6 0x04
 #define CMD_NOT_SUPPORTED 0x07
 
-#pragma pack(push)
-#pragma pack(1)
-
 struct method_select_request {
     char ver;
     char nmethods;
     char methods[255];
-};
+} __attribute__((packed, aligned(1)));
 
 struct method_select_response {
     char ver;
     char method;
-};
+} __attribute__((packed, aligned(1)));
 
 struct socks5_request {
     char ver;
     char cmd;
     char rsv;
     char atyp;
-};
+} __attribute__((packed, aligned(1)));
 
 struct socks5_response {
     char ver;
     char rep;
     char rsv;
     char atyp;
-};
-
-#pragma pack(pop)
+} __attribute__((packed, aligned(1)));
 
 #endif // _SOCKS5_H

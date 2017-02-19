@@ -18,7 +18,7 @@ $ docker --version
 ## Build docker image
 
 ```bash
-$ curl -sSL https://github.com/shadowsocks/shadowsocks-libev/raw/master/docker/alpine/Dockerfile | docker build -t shadowsocks-libev .
+$ curl -sSL https://github.com/shadowsocks/shadowsocks-libev/raw/master/docker/alpine/Dockerfile | docker build -t shadowsocks-libev -
 $ docker images
 ```
 

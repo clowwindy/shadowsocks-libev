@@ -1,7 +1,7 @@
 /*
- * cache.c - Define the cache manager interface
+ * cache.h - Define the cache manager interface
  *
- * Copyright (C) 2013 - 2015, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -29,6 +29,7 @@
 #define _CACHE_
 
 #include "uthash.h"
+#include "ev.h"
 
 /**
  * A cache entry
@@ -36,6 +37,7 @@
 struct cache_entry {
     char *key;         /**<The key */
     void *data;        /**<Payload */
+    ev_tstamp ts;    /**<Timestamp */
     UT_hash_handle hh; /**<Hash Handle for uthash */
 };
 
@@ -45,15 +47,16 @@ struct cache_entry {
 struct cache {
     size_t max_entries;              /**<Amount of entries this cache object can hold */
     struct cache_entry *entries;     /**<Head pointer for uthash */
-    void (*free_cb) (void *element); /**<Callback function to free cache entries */
+    void (*free_cb) (void *key, void *element); /**<Callback function to free cache entries */
 };
 
-extern int cache_create(struct cache **dst, const size_t capacity,
-                        void (*free_cb)(void *element));
-extern int cache_delete(struct cache *cache, int keep_data);
-extern int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result);
-extern int cache_insert(struct cache *cache, char *key, size_t key_len, void *data);
-extern int cache_remove(struct cache *cache, char *key, size_t key_len);
-extern int cache_key_exist(struct cache *cache, char *key, size_t key_len);
+int cache_create(struct cache **dst, const size_t capacity,
+                        void (*free_cb)(void *key, void *element));
+int cache_delete(struct cache *cache, int keep_data);
+int cache_clear(struct cache *cache, ev_tstamp age);
+int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result);
+int cache_insert(struct cache *cache, char *key, size_t key_len, void *data);
+int cache_remove(struct cache *cache, char *key, size_t key_len);
+int cache_key_exist(struct cache *cache, char *key, size_t key_len);
 
 #endif
