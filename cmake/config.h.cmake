@@ -1,3 +1,6 @@
+#ifndef _SHADOWSOCKS_CONFIG_H
+#define _SHADOWSOCKS_CONFIG_H
+
 /* Define if building universal (internal helper macro) */
 #cmakedefine AC_APPLE_UNIVERSAL_BUILD
 
@@ -160,25 +163,25 @@
 #cmakedefine NDEBUG 1
 
 /* Name of package */
-#define PACKAGE "@PACKAGE@"
+#define PACKAGE "@PROJECT_NAME@"
 
 /* Define to the address where bug reports for this package should be sent. */
 #define PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "@PACKAGE_NAME@"
+#define PACKAGE_NAME "@PROJECT_NAME@"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "@PACKAGE_STRING@"
+#define PACKAGE_STRING "@PROJECT_NAME@ @PROJECT_VERSION@"
 
 /* Define to the one symbol short name of this package. */
-#define PACKAGE_TARNAME "@PACKAGE_TARNAME@"
+#define PACKAGE_TARNAME "@PROJECT_NAME@"
 
 /* Define to the home page for this package. */
 #define PACKAGE_URL "@PACKAGE_URL@"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "@PACKAGE_VERSION@"
+#define PACKAGE_VERSION "@PROJECT_VERSION@"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -231,7 +234,7 @@
 #cmakedefine USE_SYSTEM_SHARED_LIB 1
 
 /* Version number of package */
-#define VERSION "@VERSION@"
+#define VERSION "@PROJECT_VERSION@"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
@@ -302,3 +305,5 @@
 
 /* Define as `fork' if `vfork' does not work. */
 #cmakedefine vfork
+
+#endif
