@@ -66,20 +66,20 @@ typedef mbedtls_md_info_t digest_type_t;
 #define SUBKEY_INFO "ss-subkey"
 #define IV_INFO "ss-iv"
 
-#ifndef NUM_NONCE_ENTRIES_FOR_CLIENT
-#define NUM_NONCE_ENTRIES_FOR_SERVER 1e6
+#ifndef BF_NUM_ENTRIES_FOR_SERVER
+#define BF_NUM_ENTRIES_FOR_SERVER 1e6
 #endif
 
-#ifndef NUM_NONCE_ENTRIES_FOR_CLIENT
-#define NUM_NONCE_ENTRIES_FOR_CLIENT 1e4
+#ifndef BF_NUM_ENTRIES_FOR_CLIENT
+#define BF_NUM_ENTRIES_FOR_CLIENT 1e4
 #endif
 
-#ifndef ERROR_RATE_FOR_SERVER
-#define ERROR_RATE_FOR_SERVER 1e-6
+#ifndef BF_ERROR_RATE_FOR_SERVER
+#define BF_ERROR_RATE_FOR_SERVER 1e-6
 #endif
 
-#ifndef ERROR_RATE_FOR_CLIENT
-#define ERROR_RATE_FOR_CLIENT 1e-15
+#ifndef BF_ERROR_RATE_FOR_CLIENT
+#define BF_ERROR_RATE_FOR_CLIENT 1e-15
 #endif
 
 typedef struct buffer {

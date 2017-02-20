@@ -111,9 +111,9 @@ crypto_init(const char *password, const char *key, const char *method)
 
     // Initialize NONCE bloom filter
 #ifdef MODULE_REMOTE
-    ppbloom_init(NUM_NONCE_ENTRIES_FOR_SERVER, ERROR_RATE_FOR_SERVER);
+    ppbloom_init(BF_NUM_ENTRIES_FOR_SERVER, BF_ERROR_RATE_FOR_SERVER);
 #else
-    ppbloom_init(NUM_NONCE_ENTRIES_FOR_CLIENT, ERROR_RATE_FOR_CLIENT);
+    ppbloom_init(BF_NUM_ENTRIES_FOR_CLIENT, BF_ERROR_RATE_FOR_CLIENT);
 #endif
 
     if (method != NULL) {
