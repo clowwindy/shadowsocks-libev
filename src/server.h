@@ -23,9 +23,14 @@
 #ifndef _SERVER_H
 #define _SERVER_H
 
-#include <ev.h>
 #include <time.h>
 #include <libcork/ds.h>
+
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
 
 #include "crypto.h"
 #include "jconf.h"

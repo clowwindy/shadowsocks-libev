@@ -25,6 +25,10 @@
  * License:  This is licensed under the same terms as uthash itself
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <errno.h>
 #include <stdlib.h>
 

@@ -23,8 +23,13 @@
 #ifndef _LOCAL_H
 #define _LOCAL_H
 
-#include <ev.h>
 #include <libcork/ds.h>
+
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
 
 #include "crypto.h"
 #include "jconf.h"
