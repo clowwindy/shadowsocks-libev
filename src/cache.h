@@ -29,7 +29,12 @@
 #define _CACHE_
 
 #include "uthash.h"
-#include "ev.h"
+
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
 
 /**
  * A cache entry

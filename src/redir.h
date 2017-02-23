@@ -1,5 +1,4 @@
-/*
- * redir.h - Define the redirector's buffers and callbacks
+/* * redir.h - Define the redirector's buffers and callbacks
  *
  * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
@@ -20,10 +19,15 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _LOCAL_H
-#define _LOCAL_H
+#ifndef _REDIR_H
+#define _REDIR_H
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
 #include <ev.h>
+#endif
+
 #include "crypto.h"
 #include "jconf.h"
 
@@ -75,4 +79,4 @@ typedef struct remote {
     uint32_t counter;
 } remote_t;
 
-#endif // _LOCAL_H
+#endif // _REDIR_H
