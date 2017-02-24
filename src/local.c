@@ -447,6 +447,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             // all processed
             return;
         } else if (server->stage == STAGE_INIT) {
+            if (buf->len < 3) {
+                return;
+            }
+            int method_len = (buf->data[1] & 0xff) + 2;
+            if (buf->len < method_len) {
+                return;
+            }
             struct method_select_response response;
             response.ver    = SVERSION;
             response.method = 0;
@@ -454,20 +461,23 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             send(server->fd, send_buf, sizeof(response), 0);
             server->stage = STAGE_HANDSHAKE;
 
-            int off = (buf->data[1] & 0xff) + 2;
-            if (buf->data[0] == 0x05 && off < (int)(buf->len)) {
-                memmove(buf->data, buf->data + off, buf->len - off);
-                buf->len -= off;
+            if (buf->data[0] == 0x05 && method_len < (int)(buf->len)) {
+                memmove(buf->data, buf->data + method_len , buf->len - method_len);
+                buf->len -= method_len;
                 continue;
             }
 
             buf->len = 0;
-
             return;
         } else if (server->stage == STAGE_HANDSHAKE || server->stage == STAGE_PARSE) {
             struct socks5_request *request = (struct socks5_request *)buf->data;
+            size_t request_len = sizeof(struct socks5_request);
             struct sockaddr_in sock_addr;
             memset(&sock_addr, 0, sizeof(sock_addr));
+
+            if (buf->len < request_len) {
+                return;
+            }
 
             int udp_assc = 0;
 
@@ -545,6 +555,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             if (atyp == 1) {
                 // IP V4
                 size_t in_addr_len = sizeof(struct in_addr);
+                if (buf->len < request_len + in_addr_len + 2) {
+                    return;
+                }
                 memcpy(abuf->data + abuf->len, buf->data + 4, in_addr_len + 2);
                 abuf->len += in_addr_len + 2;
 
@@ -557,6 +570,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             } else if (atyp == 3) {
                 // Domain name
                 uint8_t name_len = *(uint8_t *)(buf->data + 4);
+                if (buf->len < request_len + name_len + 2) {
+                    return;
+                }
                 abuf->data[abuf->len++] = name_len;
                 memcpy(abuf->data + abuf->len, buf->data + 4 + 1, name_len + 2);
                 abuf->len += name_len + 2;
@@ -571,6 +587,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             } else if (atyp == 4) {
                 // IP V6
                 size_t in6_addr_len = sizeof(struct in6_addr);
+                if (buf->len < request_len + in6_addr_len + 2) {
+                    return;
+                }
                 memcpy(abuf->data + abuf->len, buf->data + 4, in6_addr_len + 2);
                 abuf->len += in6_addr_len + 2;
 
