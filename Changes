@@ -1,3 +1,9 @@
+shadowsocks-libev (3.0.3-1) unstable; urgency=medium
+
+  * Replace nonce cache with a ping-pong bloom filter.
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 24 Feb 2017 12:08:31 +0800
+
 shadowsocks-libev (3.0.2-1) unstable; urgency=high
 
   * Add session key for AEAD. (SIP007)
