@@ -217,7 +217,7 @@ AC_CHECK_FUNCS([memset select setresuid setreuid strerror get_current_dir_name g
 AC_CHECK_LIB(socket, connect)
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS([malloc memset socket])
+AC_CHECK_FUNCS([malloc memset posix_memalign socket])
 
 dnl Add define for libudns to enable IPv6 support
 dnl This is an option defined in the origin configure script
