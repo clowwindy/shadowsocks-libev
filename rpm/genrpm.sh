@@ -67,7 +67,7 @@ generate_tarball()
     git ls-tree -dr "v${g_version}" | grep commit \
         | while read eat_mod eat_type mod_sha mod_path; do \
         [ "${mod_path}" = "" ] && continue || :; \
-        (pushd ${mod_path=} \
+        (pushd ${mod_path} \
                 && git archive ${mod_sha} \
                        --prefix="${tarball_name}/${mod_path}/" \
                        -o "${tarball_dir}/sub_mod.tar" \
@@ -114,4 +114,5 @@ sed -e "s/^\(Version:	\).*$/\1${g_version}/" \
 
 rpmbuild -bb ${spec_path} \
          --define "%_topdir ${g_rpmbuild_topdir}" \
-         ${g_rpmbuild_conditions} \
+         --define "%use_system_lib 1" \
+         ${g_rpmbuild_conditions}
