@@ -234,7 +234,11 @@ ss_align(size_t size)
 {
     int err;
     void *tmp;
+#ifdef HAVE_POSIX_MEMALIGN
     err = posix_memalign(&tmp, sizeof(void *), size);
+#else
+    err = -1;
+#endif
     if (err) {
         return ss_malloc(size);
     } else {
