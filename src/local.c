@@ -660,7 +660,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     LOGI("connect to [%s]:%s", ip, port);
             }
 
-            if (acl && !(vpn && strcmp(port, "53") == 0)) {
+            if (acl
+#ifdef ANDROID
+                    && !(vpn && strcmp(port, "53") == 0)
+#endif
+                    ) {
                 int host_match = acl_match_host(host);
                 int bypass = 0;
                 if (host_match > 0)
