@@ -156,10 +156,17 @@ create_and_bind(const char *addr, const char *port)
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family   = AF_UNSPEC;   /* Return IPv4 and IPv6 choices */
     hints.ai_socktype = SOCK_STREAM; /* We want a TCP socket */
+    result = NULL;
 
     s = getaddrinfo(addr, port, &hints, &result);
+
     if (s != 0) {
         LOGI("getaddrinfo: %s", gai_strerror(s));
+        return -1;
+    }
+
+    if (result == NULL) {
+        LOGE("Could not bind");
         return -1;
     }
 
@@ -190,11 +197,7 @@ create_and_bind(const char *addr, const char *port)
         }
 
         close(listen_sock);
-    }
-
-    if (rp == NULL) {
-        LOGE("Could not bind");
-        return -1;
+        listen_sock = -1;
     }
 
     freeaddrinfo(result);

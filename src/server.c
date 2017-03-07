@@ -328,6 +328,8 @@ create_and_bind(const char *host, const char *port, int mptcp)
     hints.ai_flags    = AI_PASSIVE | AI_ADDRCONFIG; /* For wildcard IP address */
     hints.ai_protocol = IPPROTO_TCP;
 
+    result = NULL;
+
     for (int i = 1; i < 8; i++) {
         s = getaddrinfo(host, port, &hints, &result);
         if (s == 0) {
@@ -340,6 +342,11 @@ create_and_bind(const char *host, const char *port, int mptcp)
 
     if (s != 0) {
         LOGE("getaddrinfo: %s", gai_strerror(s));
+        return -1;
+    }
+
+    if (result == NULL) {
+        LOGE("Could not bind");
         return -1;
     }
 
@@ -410,11 +417,7 @@ create_and_bind(const char *host, const char *port, int mptcp)
         }
 
         close(listen_sock);
-    }
-
-    if (rp == NULL) {
-        LOGE("Could not bind");
-        return -1;
+        listen_sock = -1;
     }
 
     freeaddrinfo(result);
