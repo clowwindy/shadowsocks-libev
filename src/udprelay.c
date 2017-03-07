@@ -459,12 +459,13 @@ create_server_socket(const char *host, const char *port)
         close(server_sock);
     }
 
+    if (result)
+        freeaddrinfo(result);
+
     if (rp == NULL) {
         LOGE("[udp] cannot bind");
         return -1;
     }
-
-    freeaddrinfo(result);
 
     return server_sock;
 }
