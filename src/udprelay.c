@@ -391,6 +391,11 @@ create_server_socket(const char *host, const char *port)
 
     rp = result;
 
+    if (rp == NULL) {
+        LOGE("[udp] cannot bind");
+        return -1;
+    }
+
     /*
      * On Linux, with net.ipv6.bindv6only = 0 (the default), getaddrinfo(NULL) with
      * AI_PASSIVE returns 0.0.0.0 and :: (in this order). AI_PASSIVE was meant to
@@ -459,13 +464,7 @@ create_server_socket(const char *host, const char *port)
         close(server_sock);
     }
 
-    if (result)
-        freeaddrinfo(result);
-
-    if (rp == NULL) {
-        LOGE("[udp] cannot bind");
-        return -1;
-    }
+    freeaddrinfo(result);
 
     return server_sock;
 }
