@@ -477,7 +477,7 @@ aead_chunk_encrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c,
     size_t nlen = ctx->cipher->nonce_len;
     size_t tlen = ctx->cipher->tag_len;
 
-    assert(plen + tlen < CHUNK_SIZE_MASK);
+    assert(plen <= CHUNK_SIZE_MASK);
 
     int err;
     size_t clen;
