@@ -170,6 +170,17 @@ create_and_bind(const char *addr, const char *port)
 }
 
 static void
+delayed_connect_cb(EV_P_ ev_timer *watcher, int revents)
+{
+    server_t *server = cork_container_of(watcher, server_t,
+                                         delayed_connect_watcher);
+    remote_t *remote = server->remote;
+
+    if (server->abuf != NULL)
+        remote_send_cb(EV_A_ & remote->send_ctx->io, revents);
+}
+
+static void
 server_recv_cb(EV_P_ ev_io *w, int revents)
 {
     server_ctx_t *server_recv_ctx = (server_ctx_t *)w;
@@ -210,6 +221,14 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
+    }
+
+    if (server->abuf != NULL) {
+        ev_timer_stop(EV_A_ & server->delayed_connect_watcher);
+        bprepend(remote->buf, server->abuf, BUF_SIZE);
+        bfree(server->abuf);
+        ss_free(server->abuf);
+        server->abuf = NULL;
     }
 
     int s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
@@ -384,8 +403,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             ev_io_stop(EV_A_ & remote_send_ctx->io);
             ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
-            buffer_t ss_addr_to_send;
-            buffer_t *abuf = &ss_addr_to_send;
+            server->abuf = (buffer_t *)ss_malloc(sizeof(buffer_t));
+            buffer_t *abuf = server->abuf;
             balloc(abuf, BUF_SIZE);
 
             ss_addr_t *sa = &server->destaddr;
@@ -442,17 +461,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 return;
             }
 
-            int s = send(remote->fd, abuf->data, abuf->len, 0);
-
-            bfree(abuf);
-
-            if (s < abuf->len) {
-                LOGE("failed to send addr");
-                close_and_free_remote(EV_A_ remote);
-                close_and_free_server(EV_A_ server);
-                return;
-            }
-
+            ev_timer_start(EV_A_ & server->delayed_connect_watcher);
             ev_io_start(EV_A_ & remote->recv_ctx->io);
             ev_io_start(EV_A_ & server->recv_ctx->io);
 
@@ -465,15 +474,22 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             return;
         }
     } else {
-        if (remote->buf->len == 0) {
+        if (remote->buf->len == 0 && server->abuf->len == 0) {
             // close and free
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
             return;
         } else {
             // has data to send
+            if (server->abuf != NULL) {
+                assert(remote->buf->len == 0);
+                bprepend(remote->buf, server->abuf, BUF_SIZE);
+                bfree(server->abuf);
+                ss_free(server->abuf);
+                server->abuf = NULL;
+            }
             ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
-                             remote->buf->len, 0);
+                         remote->buf->len, 0);
             if (s == -1) {
                 if (errno != EAGAIN && errno != EWOULDBLOCK) {
                     ERROR("send");
@@ -577,6 +593,9 @@ new_server(int fd)
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
 
+    ev_timer_init(&server->delayed_connect_watcher,
+            delayed_connect_cb, 0.05, 0);
+
     return server;
 }
 
@@ -593,6 +612,10 @@ free_server(server_t *server)
     if (server->d_ctx != NULL) {
         crypto->ctx_release(server->d_ctx);
         ss_free(server->d_ctx);
+    }
+    if (server->abuf != NULL) {
+        bfree(server->abuf);
+        ss_free(server->abuf);
     }
     if (server->buf != NULL) {
         bfree(server->buf);
