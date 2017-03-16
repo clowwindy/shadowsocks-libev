@@ -34,9 +34,10 @@ addons:
 script:
     - ./autogen.sh
     - ./configure && make
+    - cd build && cmake ../ && make
     # Test cmake using our builder
-    - cd docker/build && docker build -f builder.Dockerfile -t builder . && cd -
-    - docker run --rm -it -v $PWD:/src -w /src builder sh -c /src/docker/build/dockerbuild.sh
+    # - cd docker/build && docker build -f builder.Dockerfile -t builder . && cd -
+    # - docker run --rm -it -v $PWD:/src -w /src builder sh -c /src/docker/build/dockerbuild.sh
 branches:
     only:
         - master
