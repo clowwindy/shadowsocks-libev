@@ -24,6 +24,7 @@ set(SS_PLUGIN_SOURCE
         )
 
 set(SS_SHARED_SOURCES
+        ppbloom.c
         utils.c
         jconf.c
         json.c
@@ -96,8 +97,11 @@ find_library(LIBEV_SHARED ev)
 find_library(LIBUDNS_SHARED udns)
 find_library(LIBPCRE_SHARED pcre)
 
-list(APPEND DEPS ${LIBEV} ${LIBUDNS} ${LIBPCRE} ${LIBSODIUM} ${LIBMBEDTLS} ${LIBMBEDCRYPTO})
-list(APPEND DEPS_SHARED ${LIBEV_SHARED} ${LIBUDNS_SHARED} ${LIBPCRE_SHARED} ${LIBSODIUM_SHARED} ${LIBMBEDTLS_SHARED} ${LIBMBEDCRYPTO_SHARED})
+list(APPEND DEPS bloom m ${LIBEV} ${LIBUDNS} ${LIBPCRE} ${LIBSODIUM} ${LIBMBEDTLS} ${LIBMBEDCRYPTO})
+list(APPEND DEPS_SHARED bloom-shared m ${LIBEV_SHARED} ${LIBUDNS_SHARED} ${LIBPCRE_SHARED} ${LIBSODIUM_SHARED}
+${LIBMBEDTLS_SHARED} ${LIBMBEDCRYPTO_SHARED})
+
+find_package (Threads)
 
 # Add our targets
 add_executable(ss-server ${SS_SERVER_SOURCE})
@@ -121,7 +125,7 @@ target_compile_definitions(shadowsocks-libev PUBLIC -DMODULE_LOCAL)
 
 target_link_libraries(ss-server cork ipset ${DEPS})
 target_link_libraries(ss-tunnel cork ${DEPS})
-target_link_libraries(ss-manager cork ${LIBEV} ${LIBUDNS})
+target_link_libraries(ss-manager m bloom cork ${LIBEV} ${LIBUDNS})
 target_link_libraries(ss-local cork ipset ${DEPS})
 target_link_libraries(ss-redir cork ipset ${DEPS})
 target_link_libraries(shadowsocks-libev cork ipset ${DEPS})
@@ -148,11 +152,10 @@ target_compile_definitions(shadowsocks-libev-shared PUBLIC -DMODULE_LOCAL)
 
 target_link_libraries(ss-server-shared cork-shared ipset-shared ${DEPS_SHARED})
 target_link_libraries(ss-tunnel-shared cork-shared ${DEPS_SHARED})
-target_link_libraries(ss-manager-shared cork-shared ${LIBEV_SHARED} ${LIBUDNS_SHARED})
+target_link_libraries(ss-manager-shared m bloom-shared cork-shared ${CMAKE_THREAD_LIBS_INIT} ${LIBEV_SHARED} ${LIBUDNS_SHARED})
 target_link_libraries(ss-local-shared cork-shared ipset-shared ${DEPS_SHARED})
 target_link_libraries(ss-redir-shared cork-shared ipset-shared ${DEPS_SHARED})
 target_link_libraries(shadowsocks-libev-shared cork-shared ipset-shared ${DEPS_SHARED})
-
 
 set_target_properties(ss-server-shared PROPERTIES OUTPUT_NAME ss-server)
 set_target_properties(ss-tunnel-shared PROPERTIES OUTPUT_NAME ss-tunnel)
@@ -169,12 +172,6 @@ set_target_properties(shadowsocks-libev-shared PROPERTIES OUTPUT_NAME shadowsock
 target_compile_definitions(shadowsocks-libev-shared PUBLIC -DMODULE_LOCAL)
 target_link_libraries(shadowsocks-libev-shared cork-shared ipset-shared ${DEPS_SHARED})
 
-
-#install(DIRECTORY DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-#install(TARGETS ss-server RUNTIME DESTINATION bin)
-#install(TARGETS ss-tunnel RUNTIME DESTINATION bin)
-#install(TARGETS ss-manager RUNTIME DESTINATION bin)
-#install(TARGETS ss-local RUNTIME DESTINATION bin)
 
 install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
         DESTINATION bin

@@ -149,15 +149,6 @@ set(VERSION ${PACKAGE_VERSION})
 # TODO Assume we got inline support
 # https://cmake.org/Wiki/CMakeTestInline
 
-# Define to the equivalent of the C99 'restrict' keyword, or to
-# nothing if this is not supported.  Do not define if restrict is
-# supported directly.
-#define restrict __restrict
-if (NOT "c_restrict" IN_LIST CMAKE_C_COMPILE_FEATURES)
-    message("No restrict")
-    set(restrict __restrict)
-endif ()
-
 # Define to `int' if <sys/types.h> does not define.
 # undef pid_t
 # Define to the type of an unsigned integer type of width exactly 16 bits if

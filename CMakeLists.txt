@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 2.8)
 
 set(PROJECT_NAME shadowsocks-libev)
 set(RELEASE_DATE 2017-2-17)
@@ -8,9 +8,7 @@ set(PROJECT_URL "https://shadowsocks.org")
 set(PROJECT_ISSUES_URL "https://github.com/shadowsocks/shadowsocks-libev")
 project(${PROJECT_NAME})
 
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c11")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -c")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 
 #set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/out)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -51,6 +49,8 @@ install(FILES
 # We need libcork,libipset headers
 include_directories(libcork/include)
 include_directories(libipset/include)
+include_directories(libbloom/murmur2)
+include_directories(libbloom)
 
 set(LIBCORK_SOURCE
         libcork/src/libcork/cli/commands.c
@@ -111,11 +111,21 @@ set(LIBIPSET_SOURCE
         )
 
 add_library(ipset STATIC ${LIBIPSET_SOURCE})
-target_link_libraries(ipset cork)
 
 add_library(ipset-shared SHARED ${LIBIPSET_SOURCE})
-target_link_libraries(ipset-shared cork-shared)
 set_target_properties(ipset-shared PROPERTIES OUTPUT_NAME ipset)
+
+set(LIBBLOOM_SOURCE
+        libbloom/bloom.c
+        libbloom/murmur2/MurmurHash2.c
+        )
+
+add_library(bloom STATIC ${LIBBLOOM_SOURCE})
+target_link_libraries(ipset cork bloom)
+
+add_library(bloom-shared SHARED ${LIBBLOOM_SOURCE})
+target_link_libraries(ipset-shared cork-shared bloom-shared)
+set_target_properties(bloom-shared PROPERTIES OUTPUT_NAME bloom)
 
 add_subdirectory(src)
 
