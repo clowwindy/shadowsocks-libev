@@ -1,3 +1,12 @@
+shadowsocks-libev (3.0.4-1) unstable; urgency=medium
+
+  * Add CMake by @wenerme.
+  * Support tcp-fast-open in ss-redir by @lqs.
+  * Support TOS/DESCP in ss-redir by @sduponch.
+  * Refine MPTCP by @sduponch.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 16 Mar 2017 14:07:57 +0800
+
 shadowsocks-libev (3.0.3-1) unstable; urgency=medium
 
   * Replace nonce cache with a ping-pong bloom filter.
