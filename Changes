@@ -1,7 +1,7 @@
 shadowsocks-libev (3.0.4-1) unstable; urgency=medium
 
-  * Add CMake by @wenerme.
-  * Support tcp-fast-open in ss-redir by @lqs.
+  * Add CMake files by @wenerme.
+  * Support TCP Fast Open in ss-redir by @lqs.
   * Support TOS/DESCP in ss-redir by @sduponch.
   * Refine MPTCP by @sduponch.
 
