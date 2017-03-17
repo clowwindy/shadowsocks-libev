@@ -248,6 +248,16 @@ free_connections(struct ev_loop *loop)
 }
 
 static void
+delayed_connect_cb(EV_P_ ev_timer *watcher, int revents)
+{
+    server_t *server = cork_container_of(watcher, server_t,
+                                         delayed_connect_watcher);
+
+    server->stage = STAGE_WAIT;
+    server_recv_cb(EV_A_ & server->recv_ctx->io, revents);
+}
+
+static void
 server_recv_cb(EV_P_ ev_io *w, int revents)
 {
     server_ctx_t *server_recv_ctx = (server_ctx_t *)w;
@@ -262,28 +272,31 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         buf = remote->buf;
     }
 
-    r = recv(server->fd, buf->data + buf->len, BUF_SIZE - buf->len, 0);
+    if (server->stage != STAGE_WAIT) {
+        r = recv(server->fd, buf->data + buf->len, BUF_SIZE - buf->len, 0);
 
-    if (r == 0) {
-        // connection closed
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
-        return;
-    } else if (r == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            // no data
-            // continue to wait for recv
-            return;
-        } else {
-            if (verbose)
-                ERROR("server_recv_cb_recv");
+        if (r == 0) {
+            // connection closed
             close_and_free_remote(EV_A_ remote);
             close_and_free_server(EV_A_ server);
             return;
+        } else if (r == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // no data
+                // continue to wait for recv
+                return;
+            } else {
+                if (verbose)
+                    ERROR("server_recv_cb_recv");
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+                return;
+            }
         }
+        buf->len += r;
+    } else {
+        server->stage = STAGE_STREAM;
     }
-
-    buf->len += r;
 
     while (1) {
         // local socks5 server
@@ -293,6 +306,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_server(EV_A_ server);
                 return;
             }
+
+            ev_timer_stop(EV_A_ & server->delayed_connect_watcher);
 
             // insert shadowsocks header
             if (!remote->direct) {
@@ -743,6 +758,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             server->remote = remote;
             remote->server = server;
+
+            ev_timer_start(EV_A_ & server->delayed_connect_watcher);
+
+            return;
         }
     }
 }
@@ -1047,6 +1066,9 @@ new_server(int fd)
 
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
+
+    ev_timer_init(&server->delayed_connect_watcher,
+            delayed_connect_cb, 0.05, 0);
 
     cork_dllist_add(&connections, &server->entries);
 

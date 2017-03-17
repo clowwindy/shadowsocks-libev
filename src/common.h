@@ -55,7 +55,8 @@ int send_traffic_stat(uint64_t tx, uint64_t rx);
 #define STAGE_HANDSHAKE  1  /* Handshake with client            */
 #define STAGE_PARSE      2  /* Parse the header                 */
 #define STAGE_RESOLVE    4  /* Resolve the hostname             */
-#define STAGE_STREAM     5  /* Stream between client and server */
+#define STAGE_WAIT       5  /* Wait for more data               */
+#define STAGE_STREAM     6  /* Stream between client and server */
 
 /* Vals for long options */
 enum {

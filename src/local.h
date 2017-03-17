@@ -67,6 +67,8 @@ typedef struct server {
     buffer_t *buf;
     buffer_t *abuf;
 
+    ev_timer delayed_connect_watcher;
+
     struct cork_dllist_item entries;
 } server_t;
 
