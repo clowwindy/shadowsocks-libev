@@ -453,6 +453,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_send_ctx->remote;
     server_t *server              = remote->server;
 
+    ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
+
     if (!remote_send_ctx->connected) {
         int r = 0;
         if (remote->addr == NULL) {
@@ -465,7 +467,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             remote_send_ctx->connected = 1;
             ev_io_stop(EV_A_ & remote_send_ctx->io);
             ev_io_stop(EV_A_ & server->recv_ctx->io);
-            ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
             ev_timer_start(EV_A_ & remote->recv_ctx->watcher);
 
             // send destaddr
