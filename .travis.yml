@@ -35,9 +35,6 @@ script:
     - ./autogen.sh
     - ./configure && make
     - cd build && cmake ../ && make
-    # Test cmake using our builder
-    # - cd docker/build && docker build -f builder.Dockerfile -t builder . && cd -
-    # - docker run --rm -it -v $PWD:/src -w /src builder sh -c /src/docker/build/dockerbuild.sh
 branches:
     only:
         - master
@@ -47,19 +44,3 @@ notifications:
     email:
         on_success: change
         on_failure: always
-
-# Use cache to speedup next build
-services:
-  - docker
-
-before_cache:
-  # Save tagged docker images
-  - >
-    mkdir -p $HOME/docker && docker images -a --filter='dangling=false' --format '{{.Repository}}:{{.Tag}} {{.ID}}'
-    | xargs -n 2 -t sh -c 'test -e $HOME/docker/$1.tar.gz || docker save $0 | gzip -2 > $HOME/docker/$1.tar.gz'
-
-cache:
-  bundler: true
-  directories:
-    - $HOME/docker
-

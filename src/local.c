@@ -1110,6 +1110,7 @@ close_and_free_server(EV_P_ server_t *server)
     if (server != NULL) {
         ev_io_stop(EV_A_ & server->send_ctx->io);
         ev_io_stop(EV_A_ & server->recv_ctx->io);
+        ev_timer_stop(EV_A_ & server->delayed_connect_watcher);
         close(server->fd);
         free_server(server);
     }
