@@ -230,8 +230,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             dns_ntop(AF_INET, &(sa->sin_addr), ipstr, INET_ADDRSTRLEN);
             port = ntohs(sa->sin_port);
         } else {
-            // TODO: The code below need to be test in IPv6 envirment, which I
-            //       don't have.
             struct sockaddr_in6 *sa = (struct sockaddr_in6 *)&(server->destaddr);
             dns_ntop(AF_INET6, &(sa->sin6_addr), ipstr, INET6_ADDRSTRLEN);
             port = ntohs(sa->sin6_port);
@@ -465,8 +463,10 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         }
         if (r == 0) {
             remote_send_ctx->connected = 1;
+
             ev_io_stop(EV_A_ & remote_send_ctx->io);
             ev_io_stop(EV_A_ & server->recv_ctx->io);
+            ev_io_start(EV_A_ & remote->recv_ctx->io);
             ev_timer_start(EV_A_ & remote->recv_ctx->watcher);
 
             // send destaddr
@@ -530,8 +530,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 
             bprepend(remote->buf, abuf, BUF_SIZE);
             bfree(abuf);
-
-            ev_io_start(EV_A_ & remote->recv_ctx->io);
         } else {
             ERROR("getpeername");
             // not connected
@@ -553,13 +551,16 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
                        remote->buf->len, MSG_FASTOPEN, remote->addr,
                        get_sockaddr_len(remote->addr));
+
             if (s == -1 && (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
                 errno == ENOPROTOOPT)) {
                 fast_open = 0;
                 LOGE("fast open is not supported on this platform");
-                s = connect(remote->fd, remote->addr,
-                            get_sockaddr_len(remote->addr));
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+                return;
             }
+
             remote->addr = NULL;
 
             if (s == -1) {
