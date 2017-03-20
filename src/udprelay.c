@@ -140,7 +140,19 @@ set_nosigpipe(int socket_fd)
 #endif
 
 #ifndef IP_RECVORIGDSTADDR
+#ifdef  IP_ORIGDSTADDR
+#define IP_RECVORIGDSTADDR   IP_ORIGDSTADDR
+#else
 #define IP_RECVORIGDSTADDR   20
+#endif
+#endif
+
+#ifndef IPV6_RECVORIGDSTADDR
+#ifdef  IPV6_ORIGDSTADDR
+#define IPV6_RECVORIGDSTADDR   IPV6_ORIGDSTADDR
+#else
+#define IPV6_RECVORIGDSTADDR   74
+#endif
 #endif
 
 static int
@@ -153,7 +165,7 @@ get_dstaddr(struct msghdr *msg, struct sockaddr_storage *dstaddr)
             memcpy(dstaddr, CMSG_DATA(cmsg), sizeof(struct sockaddr_in));
             dstaddr->ss_family = AF_INET;
             return 0;
-        } else if (cmsg->cmsg_level == SOL_IPV6 && cmsg->cmsg_type == IP_RECVORIGDSTADDR) {
+        } else if (cmsg->cmsg_level == SOL_IPV6 && cmsg->cmsg_type == IPV6_RECVORIGDSTADDR) {
             memcpy(dstaddr, CMSG_DATA(cmsg), sizeof(struct sockaddr_in6));
             dstaddr->ss_family = AF_INET6;
             return 0;
