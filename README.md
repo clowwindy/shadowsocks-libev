@@ -331,8 +331,7 @@ you may refer to the man pages of the applications, respectively.
        [-i <interface>]           network interface to bind,
                                   not available in redir mode
 
-       [-b <local_address>]       local address to bind,
-                                  not available in server mode
+       [-b <local_address>]       local address to bind
 
        [-u]                       enable udprelay mode,
                                   TPROXY is required in redir mode
