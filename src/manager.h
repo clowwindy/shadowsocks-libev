@@ -67,6 +67,11 @@ struct manager_ctx {
 struct server {
     char port[8];
     char password[128];
+    char fast_open[8];
+    char *mode;
+    char *method;
+    char *plugin;
+    char *plugin_opts;
     uint64_t traffic;
 };
 
