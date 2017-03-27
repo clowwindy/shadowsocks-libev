@@ -1,8 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
-
-# Prevent warning, atleast we need 2.8 anyway.
-cmake_policy(VERSION 2.8)
-cmake_policy(SET CMP0048 OLD)
+cmake_minimum_required(VERSION 3.2)
 
 set(PROJECT_NAME shadowsocks-libev)
 set(RELEASE_DATE 2017-3-21)
