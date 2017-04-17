@@ -1,8 +1,7 @@
-sudo: true
+sudo: required
 language: c
-compiler:
-    - gcc
-    - clang
+dist : trusty
+compiler: clang
 env:
     global:
         - LIBSODIUM_VER=1.0.12
@@ -27,14 +26,10 @@ addons:
         sources:
             - george-edison55-precise-backports # cmake 3.2.3 / doxygen 1.8.3
         packages:
-            - autoconf
-            - autotools-dev
             - libudns-dev
             - libev-dev
             - asciidoc
             - xmlto
-            - cmake
-            - cmake-data
 script:
     - ./autogen.sh
     - ./configure && make
