@@ -1041,8 +1041,7 @@ server_resolve_cb(struct sockaddr *addr, void *data)
 
             // XXX: should handle buffer carefully
             if (server->buf->len > 0) {
-                memcpy(remote->buf->data, server->buf->data + server->buf->idx,
-                       server->buf->len);
+                memcpy(remote->buf->data, server->buf->data, server->buf->len);
                 remote->buf->len = server->buf->len;
                 remote->buf->idx = 0;
                 server->buf->len = 0;
