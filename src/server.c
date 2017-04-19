@@ -516,7 +516,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         endpoints.sae_dstaddrlen = res->ai_addrlen;
 
         struct iovec iov;
-        iov.iov_base = server->buf->data + server->buf->idx;
+        iov.iov_base = server->buf->data;
         iov.iov_len  = server->buf->len;
         size_t len;
         int s = connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, CONNECT_DATA_IDEMPOTENT,
@@ -525,9 +525,8 @@ connect_to_remote(EV_P_ struct addrinfo *res,
             s = len;
         }
 #else
-        ssize_t s = sendto(sockfd, server->buf->data + server->buf->idx,
-                           server->buf->len, MSG_FASTOPEN, res->ai_addr,
-                           res->ai_addrlen);
+        ssize_t s = sendto(sockfd, server->buf->data, server->buf->len,
+                MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #endif
         if (s == -1) {
             if (errno == CONNECT_IN_PROGRESS || errno == EAGAIN
@@ -542,12 +541,9 @@ connect_to_remote(EV_P_ struct addrinfo *res,
             } else {
                 ERROR("sendto");
             }
-        } else if (s <= server->buf->len) {
+        } else {
             server->buf->idx += s;
             server->buf->len -= s;
-        } else {
-            server->buf->idx = 0;
-            server->buf->len = 0;
         }
     }
 #endif
@@ -885,7 +881,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 // XXX: should handle buffer carefully
                 if (server->buf->len > 0) {
-                    memcpy(remote->buf->data, server->buf->data, server->buf->len);
+                    brealloc(remote->buf, server->buf->len, BUF_SIZE);
+                    memcpy(remote->buf->data, server->buf->data + server->buf->idx,
+                            server->buf->len);
                     remote->buf->len = server->buf->len;
                     remote->buf->idx = 0;
                     server->buf->len = 0;
@@ -1041,7 +1039,9 @@ server_resolve_cb(struct sockaddr *addr, void *data)
 
             // XXX: should handle buffer carefully
             if (server->buf->len > 0) {
-                memcpy(remote->buf->data, server->buf->data, server->buf->len);
+                brealloc(remote->buf, server->buf->len, BUF_SIZE);
+                memcpy(remote->buf->data, server->buf->data + server->buf->idx,
+                        server->buf->len);
                 remote->buf->len = server->buf->len;
                 remote->buf->idx = 0;
                 server->buf->len = 0;
