@@ -35,7 +35,7 @@ git submodule update --init --recursive
 
 ### Build and install with recent libsodium
 
-You have to install libsodium 1.0.8 or later before building. See [Directly build and install on UNIX-like system](#Linux).
+You have to install libsodium 1.0.8 or later before building. See [Directly build and install on UNIX-like system](#linux).
 
 ## Installation
 
