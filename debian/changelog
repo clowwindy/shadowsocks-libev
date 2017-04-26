@@ -1,3 +1,10 @@
+shadowsocks-libev (3.0.6-1) unstable; urgency=medium
+
+  * Fix a bug with AEAD ciphers.
+  * Refine ACL support by @blackgear.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 26 Apr 2017 13:48:11 +0800
+
 shadowsocks-libev (3.0.5-1) unstable; urgency=medium
 
   * Fix a bug of TCP Fast Open in ss-redir.
