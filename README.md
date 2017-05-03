@@ -90,6 +90,14 @@ sudo apt update
 sudo apt -t jessie-backports install shadowsocks-libev
 ```
 
+For **Ubuntu 14.04 and 16.04** users, please install from PPA:
+
+```bash
+sudo add-apt-repository ppa:max-c-lv/shadowsocks-libev
+sudo apt-get update
+sudo apt install shadowsocks-libev
+```
+
 #### Build deb package from source
 
 Supported distributions:
