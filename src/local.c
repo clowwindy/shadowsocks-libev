@@ -102,6 +102,7 @@ static int acl       = 0;
 static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 static int fast_open = 0;
+static int udp_fd    = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
@@ -503,7 +504,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             if (request->cmd == 3) {
                 udp_assc = 1;
                 socklen_t addr_len = sizeof(sock_addr);
-                getsockname(server->fd, (struct sockaddr *)&sock_addr,
+                getsockname(udp_fd, (struct sockaddr *)&sock_addr,
                             &addr_len);
                 if (verbose) {
                     LOGI("udp assc request accepted");
@@ -700,7 +701,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifndef ANDROID
                     if (atyp == 3) {            // resolve domain so we can bypass domain with geoip
                         err = get_sockaddr(host, port, &storage, 0, ipv6first);
-                        if ( err != -1) {
+                        if (err != -1) {
                             resolved = 1;
                             switch(((struct sockaddr*)&storage)->sa_family) {
                                 case AF_INET: {
@@ -1637,7 +1638,7 @@ main(int argc, char **argv)
             FATAL("failed to resolve the provided hostname");
         }
         struct sockaddr *addr = (struct sockaddr *)storage;
-        init_udprelay(local_addr, local_port, addr,
+        udp_fd = init_udprelay(local_addr, local_port, addr,
                       get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
     }
 
@@ -1646,6 +1647,7 @@ main(int argc, char **argv)
         LOGI("listening through launchd");
     else
 #endif
+
     if (strcmp(local_addr, ":") > 0)
         LOGI("listening at [%s]:%s", local_addr, local_port);
     else
@@ -1791,7 +1793,7 @@ start_ss_local_server(profile_t profile)
     if (mode != TCP_ONLY) {
         LOGI("udprelay enabled");
         struct sockaddr *addr = (struct sockaddr *)(&storage);
-        init_udprelay(local_addr, local_port_str, addr,
+        udp_fd = init_udprelay(local_addr, local_port_str, addr,
                       get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
     }
 

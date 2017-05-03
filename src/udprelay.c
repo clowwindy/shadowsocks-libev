@@ -1373,7 +1373,7 @@ init_udprelay(const char *server_host, const char *server_port,
 
     server_ctx_list[server_num++] = server_ctx;
 
-    return 0;
+    return serverfd;
 }
 
 void
