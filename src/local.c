@@ -835,7 +835,6 @@ server_send_cb(EV_P_ ev_io *w, int revents)
 void
 stat_update_cb()
 {
-    LOGI("stat: %" PRId64 ", %" PRId64 "", tx, rx);
     ev_tstamp now = ev_time();
     if (now - last > 0.5) {
         send_traffic_stat(tx, rx);
