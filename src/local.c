@@ -832,11 +832,12 @@ server_send_cb(EV_P_ ev_io *w, int revents)
 }
 
 #ifdef ANDROID
-static void
+void
 stat_update_cb()
 {
+    LOGI("stat: %" PRId64 ", %" PRId64 "", tx, rx);
     ev_tstamp now = ev_time();
-    if (now - last > 1.0) {
+    if (now - last > 0.5) {
         send_traffic_stat(tx, rx);
         last = now;
     }
@@ -870,10 +871,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     ev_timer_again(EV_A_ & remote->recv_ctx->watcher);
 
-#ifdef ANDROID
-    stat_update_cb();
-#endif
-
     ssize_t r = recv(remote->fd, server->buf->data, BUF_SIZE, 0);
 
     if (r == 0) {
@@ -899,6 +896,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     if (!remote->direct) {
 #ifdef ANDROID
         rx += server->buf->len;
+        stat_update_cb();
 #endif
         int err = crypto->decrypt(server->buf, server->d_ctx, BUF_SIZE);
         if (err == CRYPTO_ERROR) {
