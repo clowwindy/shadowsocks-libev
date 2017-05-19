@@ -556,8 +556,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     return;
                 }
                 if (udp_assc) {
-                    close_and_free_remote(EV_A_ remote);
-                    close_and_free_server(EV_A_ server);
+                    // Wait until client closes the connection
                     return;
                 }
             }
