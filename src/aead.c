@@ -56,75 +56,48 @@
 #define CHUNK_SIZE_MASK         0x3FFF
 
 /*
- * This is SIP004 proposed by @Mygod, the design of TCP chunk is from @breakwa11 and
- * @Noisyfox. This first version of this file is written by @wongsyrone.
+ * Spec: http://shadowsocks.org/en/spec/AEAD-Ciphers.html
  *
- * The first nonce is either from client or server side, it is generated randomly, and
- * the sequent nonces are increased by 1.
+ * The way Shadowsocks using AEAD ciphers is specified in SIP004 and amended in SIP007. SIP004 was proposed by @Mygod
+ * with design inspirations from @wongsyrone, @Noisyfox and @breakwa11. SIP007 was proposed by @riobard with input from
+ * @madeye, @Mygod, @wongsyrone, and many others.
  *
- * Data.Len is used to separate general ciphertext and Auth tag. We can start decryption
- * if and only if the verification is passed.
- * Firstly, we do length check, then decrypt it, separate ciphertext and attached data tag
- * based on the verified length, verify data tag and decrypt the corresponding data.
- * Finally, do what you supposed to do, e.g. forward user data.
+ * Key Derivation
  *
- * For UDP, nonces are generated randomly without the incrementation.
+ * HKDF_SHA1 is a function that takes a secret key, a non-secret salt, an info string, and produces a subkey that is
+ * cryptographically strong even if the input secret key is weak.
  *
- * TCP request (before encryption)
- * +------+---------------------+------------------+
- * | ATYP | Destination Address | Destination Port |
- * +------+---------------------+------------------+
- * |  1   |       Variable      |         2        |
- * +------+---------------------+------------------+
+ *      HKDF_SHA1(key, salt, info) => subkey
  *
- * TCP request (after encryption, *ciphertext*)
- * +--------+--------------+------------------+--------------+---------------+
- * | NONCE  |  *HeaderLen* |   HeaderLen_TAG  |   *Header*   |  Header_TAG   |
- * +--------+--------------+------------------+--------------+---------------+
- * | Fixed  |       2      |       Fixed      |   Variable   |     Fixed     |
- * +--------+--------------+------------------+--------------+---------------+
+ * The info string binds the generated subkey to a specific application context. In our case, it must be the string
+ * "ss-subkey" without quotes.
  *
- * Header input: atyp + dst.addr + dst.port
- * HeaderLen is length(atyp + dst.addr + dst.port)
- * HeaderLen_TAG and Header_TAG are in plaintext
+ * We derive a per-session subkey from a pre-shared master key using HKDF_SHA1. Salt must be unique through the entire
+ * life of the pre-shared master key.
  *
- * TCP Chunk (before encryption)
- * +----------+
- * |  DATA    |
- * +----------+
- * | Variable |
- * +----------+
+ * TCP
  *
- * Data.Len is a 16-bit big-endian integer indicating the length of DATA.
+ * An AEAD encrypted TCP stream starts with a randomly generated salt to derive the per-session subkey, followed by any
+ * number of encrypted chunks. Each chunk has the following structure:
  *
- * TCP Chunk (after encryption, *ciphertext*)
- * +--------------+---------------+--------------+------------+
- * |  *DataLen*   |  DataLen_TAG  |    *Data*    |  Data_TAG  |
- * +--------------+---------------+--------------+------------+
- * |      2       |     Fixed     |   Variable   |   Fixed    |
- * +--------------+---------------+--------------+------------+
+ *      [encrypted payload length][length tag][encrypted payload][payload tag]
  *
- * Len_TAG and DATA_TAG have the same length, they are in plaintext.
- * After encryption, DATA -> DATA*
+ * Payload length is a 2-byte big-endian unsigned integer capped at 0x3FFF. The higher two bits are reserved and must be
+ * set to zero. Payload is therefore limited to 16*1024 - 1 bytes.
  *
- * UDP (before encryption)
- * +------+---------------------+------------------+----------+
- * | ATYP | Destination Address | Destination Port |   DATA   |
- * +------+---------------------+------------------+----------+
- * |  1   |       Variable      |         2        | Variable |
- * +------+---------------------+------------------+----------+
+ * The first AEAD encrypt/decrypt operation uses a counting nonce starting from 0. After each encrypt/decrypt operation,
+ * the nonce is incremented by one as if it were an unsigned little-endian integer. Note that each TCP chunk involves
+ * two AEAD encrypt/decrypt operation: one for the payload length, and one for the payload. Therefore each chunk
+ * increases the nonce twice.
  *
- * UDP (after encryption, *ciphertext*)
- * +--------+-----------+-----------+
- * | NONCE  |  *Data*   |  Data_TAG |
- * +--------+-----------+-----------+
- * | Fixed  | Variable  |   Fixed   |
- * +--------+-----------+-----------+
+ * UDP
  *
- * *Data* is Encrypt(atyp + dst.addr + dst.port + payload)
- * RSV and FRAG are dropped
- * Since UDP packet is either received completely or missed,
- * we don't have to keep a field to track its length.
+ * An AEAD encrypted UDP packet has the following structure:
+ *
+ *      [salt][encrypted payload][tag]
+ *
+ * The salt is used to derive the per-session subkey and must be generated randomly to ensure uniqueness. Each UDP
+ * packet is encrypted/decrypted independently, using the derived subkey and a nonce with all zero bytes.
  *
  */
 
