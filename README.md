@@ -55,7 +55,6 @@ You have to install libsodium 1.0.8 or later before building. See [Directly buil
 - [FreeBSD](#freebsd)
 - [OpenWRT](#openwrt)
 - [OS X](#os-x)
-- [Windows](#windows)
 
 * * *
 
