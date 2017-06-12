@@ -1210,7 +1210,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (buf->len - addr_header_len > packet_size) {
         if (verbose) {
-            LOGE("[udp] server_recv_sendto fragmentation");
+            LOGI("[udp] server_recv_sendto fragmentation");
         }
     }
 
