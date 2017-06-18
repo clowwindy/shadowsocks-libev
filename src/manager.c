@@ -1213,11 +1213,6 @@ main(int argc, char **argv)
     // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
-    // setuid
-    if (user != NULL && !run_as(user)) {
-        FATAL("failed to switch user");
-    }
-
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
