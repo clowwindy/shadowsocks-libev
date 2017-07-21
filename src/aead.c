@@ -622,9 +622,6 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
         cipher_ctx->init = 1;
 
-    } else if (cipher_ctx->init == 1) {
-        ppbloom_add((void *)cipher_ctx->salt, salt_len);
-        cipher_ctx->init = 2;
     }
 
     size_t plen = 0;
@@ -651,6 +648,12 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
     brealloc(ciphertext, plaintext->len, capacity);
     memcpy(ciphertext->data, plaintext->data, plaintext->len);
     ciphertext->len = plaintext->len;
+
+    // Add the salt to bloom filter
+    if (cipher_ctx->init == 1) {
+        ppbloom_add((void *)cipher_ctx->salt, salt_len);
+        cipher_ctx->init = 2;
+    }
 
     return CRYPTO_OK;
 }
