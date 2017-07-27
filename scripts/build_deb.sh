@@ -49,17 +49,20 @@ exit
 apt_init() {
 	DEPS="$1"
 	DEPS_BPO="$2"
+	DEPS_EXTRA="$3"
 	if [ -n "$DEPS_BPO" ]; then
 		BPO=${OSVER}-backports
 		case "$OSID" in
 		debian)
-			REPO=http://httpredir.debian.org/debian
+			REPO=http://deb.debian.org/debian
 			;;
 		ubuntu)
 			REPO=http://archive.ubuntu.com/ubuntu
 			;;
 		esac
 		sudo sh -c "printf \"deb $REPO ${OSVER}-backports main\" > /etc/apt/sources.list.d/${OSVER}-backports.list"
+		[ -n "$DEPS_EXTRA" -a "$DEPS_EXTRA" = "sloppy" ] &&
+			sudo sh -c "printf \"\\ndeb $REPO ${OSVER}-backports-sloppy main\" >> /etc/apt/sources.list.d/${OSVER}-backports.list"
 		sudo apt-get update
 		sudo apt-get install --no-install-recommends -y -t $BPO $DEPS_BPO
 	else
@@ -73,9 +76,12 @@ apt_clean() {
 	sudo apt-get purge -y $DEPS $DEPS_BPO debhelper \
 		libbloom-dev libcork-dev libcorkipset-dev libmbedtls-dev libsodium-dev
 	sudo apt-get purge -y libcork-build-deps libcorkipset-build-deps \
-		libbloom-build-deps libsodium-build-deps mbedtls-build-deps
-	sudo apt-get purge -y simple-obfs-build-deps shadowsocks-libev-build-deps
+		libsodium-build-deps mbedtls-build-deps
+	sudo apt-get purge -y libbloom-build-deps
+	sudo apt-get purge -y simple-obfs-build-deps
+	sudo apt-get purge -y shadowsocks-libev-build-deps
 
+if [ $BUILD_KCP -eq 1 ]; then
 	sudo apt-get purge -y golang-github-klauspost-reedsolomon-build-deps \
 		golang-github-xtaci-kcp-build-deps golang-github-xtaci-smux-build-deps \
 		kcptun-build-deps
@@ -88,6 +94,8 @@ apt_clean() {
 	sudo apt-get purge -y golang-github-urfave-cli-dev
 	sudo apt-get purge -y golang-github-pkg-errors-dev \
 		golang-github-golang-snappy-dev dh-golang
+fi
+
 	sudo apt-get autoremove -y
 }
 
@@ -98,6 +106,8 @@ gbp_build() {
 	gbp clone --pristine-tar $REPO
 	cd $PROJECT_NAME
 	[ -n "$BRANCH" ] && git checkout $BRANCH
+	[ -n "$BRANCH" -a "$BRANCH" = "trusty" ] && # try to rebase the trusty patch
+		if ! git rebase master; then git rebase --abort; git rebase debian; fi
 	[ -n "$DEPS_BPO" ] && BPO_REPO="-t ${OSVER}-backports"
 	mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y $BPO_REPO"
 	rm -f ${PROJECT_NAME}-build-deps_*.deb
@@ -181,7 +191,21 @@ fi
 build_install_libsodium() {
 if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	if [ $BUILD_LIB -eq 1 ]; then
-		dsc_build http://httpredir.debian.org/debian/pool/main/libs/libsodium/libsodium_1.0.11-2.dsc
+		git clone https://github.com/gcsideal/debian-libsodium.git $BRANCH
+		cd debian-libsodium; LIBSODIUM=$(dpkg-parsechangelog --show-field Version); cd -
+		dget -ud http://deb.debian.org/debian/pool/main/libs/libsodium/libsodium_${LIBSODIUM}.dsc
+		DHVER=$(dpkg -l|grep debhelper|grep -v dh-|awk '{print $3}'|head -n1)
+		cd debian-libsodium;
+		if dpkg --compare-versions $DHVER lt 10; then
+			sed -i 's/debhelper ( >= 10)/debhelper (>= 9), dh-autoreconf/' debian/control;
+			echo 9 > debian/compat;
+			git add -u;
+			git commit -m "Patch to work with ubuntu trusty (14.04)"
+		fi
+		mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -y"
+		rm libsodium-build-deps_*.deb
+		gbp buildpackage -us -uc --git-ignore-branch --git-tarball-dir=.. --git-export-dir=.. --git-overlay
+		cd -
 	else
 		ls libsodium*.deb 2>&1 > /dev/null ||
 			help_lib libsodium
@@ -370,12 +394,13 @@ esac
 case "$OSVER" in
 jessie)
 	BPO="debhelper libsodium-dev"
+	BPOEXTRA=sloppy
 	;;
 xenial)
 	BPO=debhelper
 	;;
 esac
-apt_init "git-buildpackage pristine-tar equivs" "$BPO"
+apt_init "git-buildpackage pristine-tar equivs" "$BPO" $BPOEXTRA
 
 [ $BUILD_KCP -eq 1 ] && case "$OSVER" in
 wheezy|precise|trusty)
@@ -411,7 +436,24 @@ esac
 wheezy|precise)
 	echo Sorry, your system $OSID/$OSVER is not supported.
 	;;
-jessie|stretch|unstable|sid|zesty)
+buster|testing|unstable|sid)
+	build_install_sslibev
+	;;
+jessie|stretch)
+	build_install_libsodium
+	build_install_sslibev
+	build_install_simpleobfs
+	;;
+zesty)
+	build_install_libsodium
+	build_install_libbloom
+	build_install_sslibev
+	build_install_simpleobfs
+	;;
+xenial|yakkety)
+	build_install_libcork debian
+	build_install_libcorkipset debian
+	build_install_libsodium
 	build_install_libbloom
 	build_install_sslibev
 	build_install_simpleobfs
@@ -425,13 +467,6 @@ trusty)
 	patch_sslibev_dh9
 	build_install_sslibev
 	build_install_simpleobfs trusty
-	;;
-xenial|yakkety)
-	build_install_libcork debian
-	build_install_libcorkipset debian
-	build_install_libbloom
-	build_install_sslibev
-	build_install_simpleobfs
 	;;
 *)
 	echo Your system $OSID/$OSVER is not supported yet.
