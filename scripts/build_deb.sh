@@ -191,11 +191,11 @@ fi
 build_install_libsodium() {
 if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 	if [ $BUILD_LIB -eq 1 ]; then
-		git clone https://github.com/gcsideal/debian-libsodium.git $BRANCH
-		cd debian-libsodium; LIBSODIUM=$(dpkg-parsechangelog --show-field Version); cd -
+		git clone https://github.com/gcsideal/debian-libsodium.git libsodium
+		cd libsodium; LIBSODIUM=$(dpkg-parsechangelog --show-field Version); cd -
 		dget -ud http://deb.debian.org/debian/pool/main/libs/libsodium/libsodium_${LIBSODIUM}.dsc
-		DHVER=$(dpkg -l|grep debhelper|grep -v dh-|awk '{print $3}'|head -n1)
-		cd debian-libsodium;
+		DHVER=$(dpkg -l debhelper|grep debhelper|awk '{print $3}'|head -n1)
+		cd libsodium
 		if dpkg --compare-versions $DHVER lt 10; then
 			sed -i 's/debhelper ( >= 10)/debhelper (>= 9), dh-autoreconf/' debian/control;
 			echo 9 > debian/compat;
@@ -393,8 +393,11 @@ esac
 
 case "$OSVER" in
 jessie)
-	BPO="debhelper libsodium-dev"
+	BPO="debhelper libbloom-dev"
 	BPOEXTRA=sloppy
+	;;
+stretch)
+	BPO=libbloom-dev
 	;;
 xenial)
 	BPO=debhelper
@@ -442,7 +445,6 @@ buster|testing|unstable|sid)
 jessie|stretch)
 	build_install_libsodium
 	build_install_sslibev
-	build_install_simpleobfs
 	;;
 zesty)
 	build_install_libsodium
