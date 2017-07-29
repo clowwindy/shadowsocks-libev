@@ -150,7 +150,7 @@ sudo systemctl start shadowsocks-libev      # for systemd
 
 Supported distributions:
 
-* Fedora 22, 23, 24
+* Recent Fedora versions (until EOL)
 * RHEL 6, 7 and derivatives (including CentOS, Scientific Linux)
 
 #### Build from source with centos
@@ -185,6 +185,8 @@ or `yum`:
 su -c 'yum update'
 su -c 'yum install shadowsocks-libev'
 ```
+The repository is maintained by [@librehat](https://github.com/librehat), any issues, please report [here](https://github.com/librehat/shadowsocks-libev/issues)
+
 ### Archlinux
 
 ```bash
