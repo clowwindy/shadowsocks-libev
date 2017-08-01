@@ -1,7 +1,7 @@
 /*
- * cache.c - Define the cache manager interface
+ * cache.h - Define the cache manager interface
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
@@ -30,34 +30,38 @@
 
 #include "uthash.h"
 
-#define KEY_MAX_LENGTH		32
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
+#include <ev.h>
+#endif
 
 /**
  * A cache entry
  */
-struct cache_entry
-{
-    char *key; /**<The key */
-    void *data; /**<Payload */
+struct cache_entry {
+    char *key;         /**<The key */
+    void *data;        /**<Payload */
+    ev_tstamp ts;    /**<Timestamp */
     UT_hash_handle hh; /**<Hash Handle for uthash */
 };
 
 /**
  * A cache object
  */
-struct cache
-{
-    size_t max_entries; /**<Amount of entries this cache object can hold */
-    struct cache_entry *entries; /**<Head pointer for uthash */
-    void (*free_cb) (void *element);/**<Callback function to free cache entries */
+struct cache {
+    size_t max_entries;              /**<Amount of entries this cache object can hold */
+    struct cache_entry *entries;     /**<Head pointer for uthash */
+    void (*free_cb) (void *key, void *element); /**<Callback function to free cache entries */
 };
 
-
-extern int cache_create(struct cache **dst, const size_t capacity,
-                        void (*free_cb) (void *element));
-extern int cache_delete(struct cache *cache, int keep_data);
-extern int cache_lookup(struct cache *cache, char *key, void *result);
-extern int cache_insert(struct cache *cache, char *key, void *data);
-extern int cache_remove(struct cache *cache, char *key);
+int cache_create(struct cache **dst, const size_t capacity,
+                        void (*free_cb)(void *key, void *element));
+int cache_delete(struct cache *cache, int keep_data);
+int cache_clear(struct cache *cache, ev_tstamp age);
+int cache_lookup(struct cache *cache, char *key, size_t key_len, void *result);
+int cache_insert(struct cache *cache, char *key, size_t key_len, void *data);
+int cache_remove(struct cache *cache, char *key, size_t key_len);
+int cache_key_exist(struct cache *cache, char *key, size_t key_len);
 
 #endif
