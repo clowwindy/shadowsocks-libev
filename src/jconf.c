@@ -163,6 +163,10 @@ read_jconf(const char *file)
     long pos = ftell(f);
     fseek(f, 0, SEEK_SET);
 
+    if (pos < 0) {
+        FATAL("Invalid config path.");
+    }
+
     if (pos >= MAX_CONF_SIZE) {
         FATAL("Too large config file.");
     }
