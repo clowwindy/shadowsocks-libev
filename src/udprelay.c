@@ -192,7 +192,7 @@ hash_key(const int af, const struct sockaddr_storage *addr)
     return key;
 }
 
-#if defined(MODULE_REDIR) || defined(MODULE_REMOTE)
+#if defined(MODULE_REDIR)
 static int
 construct_udprelay_header(const struct sockaddr_storage *in_addr,
                           char *addr_header)
@@ -497,6 +497,7 @@ new_remote(int fd, server_ctx_t *server_ctx)
 
     ctx->fd         = fd;
     ctx->server_ctx = server_ctx;
+    ctx->af         = AF_UNSPEC;
 
     ev_io_init(&ctx->io, remote_recv_cb, fd, EV_READ);
     ev_timer_init(&ctx->watcher, remote_timeout_cb, server_ctx->timeout,
@@ -755,14 +756,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     rx += buf->len;
 
-    char addr_header_buf[512];
     char *addr_header   = remote_ctx->addr_header;
     int addr_header_len = remote_ctx->addr_header_len;
-
-    if (remote_ctx->af == AF_INET || remote_ctx->af == AF_INET6) {
-        addr_header_len = construct_udprelay_header(&src_addr, addr_header_buf);
-        addr_header     = addr_header_buf;
-    }
 
     // Construct packet
     brealloc(buf, buf->len + addr_header_len, buf_size);
@@ -1215,6 +1210,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         // detect destination mismatch
         if (remote_ctx->addr_header_len != addr_header_len
             || memcmp(addr_header, remote_ctx->addr_header, addr_header_len) != 0) {
+            remote_ctx->addr_header_len = addr_header_len;
+            memcpy(remote_ctx->addr_header, addr_header, addr_header_len);
             if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
                 need_query = 1;
             }
