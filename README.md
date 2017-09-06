@@ -415,7 +415,6 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     # Create new chain
     root@Wrt:~# iptables -t nat -N SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -N SHADOWSOCKS
-    root@Wrt:~# iptables -t mangle -N SHADOWSOCKS_MARK
 
     # Ignore your shadowsocks server's addresses
     # It's very IMPORTANT, just be careful.
@@ -440,12 +439,10 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     root@Wrt:~# ip route add local default dev lo table 100
     root@Wrt:~# ip rule add fwmark 1 lookup 100
     root@Wrt:~# iptables -t mangle -A SHADOWSOCKS -p udp --dport 53 -j TPROXY --on-port 12345 --tproxy-mark 0x01/0x01
-    root@Wrt:~# iptables -t mangle -A SHADOWSOCKS_MARK -p udp --dport 53 -j MARK --set-mark 1
 
     # Apply the rules
-    root@Wrt:~# iptables -t nat -A OUTPUT -p tcp -j SHADOWSOCKS
+    root@Wrt:~# iptables -t nat -A PREROUTING -p tcp -j SHADOWSOCKS
     root@Wrt:~# iptables -t mangle -A PREROUTING -j SHADOWSOCKS
-    root@Wrt:~# iptables -t mangle -A OUTPUT -j SHADOWSOCKS_MARK
 
     # Start the shadowsocks-redir
     root@Wrt:~# ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
