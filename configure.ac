@@ -81,6 +81,7 @@ AX_TLS([:], [:])
 dnl Checks for crypto libraries
 ss_MBEDTLS
 ss_SODIUM
+ss_CARES
 
 dnl Checks for inet_ntop
 ss_FUNC_INET_NTOP
@@ -217,10 +218,6 @@ AC_CHECK_LIB(socket, connect)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS([malloc memset posix_memalign socket])
-
-AC_CHECK_HEADERS([ares.h], [], [AC_MSG_ERROR([Couldn't find libcares. Try installing libc-ares-dev or c-ares-devel.])])
-
-AC_CHECK_LIB([cares], [ares_library_init], [LIBS="-lcares $LIBS"], [AC_MSG_ERROR([Couldn't find libc-ares. Try installing libc-ares-dev or c-ares-devel.])])
 
 AC_CHECK_HEADERS([ev.h libev/ev.h], [], [])
 AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn't find libev. Try installing libev-dev@<:@el@:>@.])])
