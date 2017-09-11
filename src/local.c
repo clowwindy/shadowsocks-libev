@@ -1589,7 +1589,7 @@ main(int argc, char **argv)
 
     // Setup proxy context
     listen_ctx_t listen_ctx;
-    listen_ctx.remote_num  = remote_num;
+    listen_ctx.remote_num  = 0;
     listen_ctx.remote_addr = ss_malloc(sizeof(struct sockaddr *) * remote_num);
     memset(listen_ctx.remote_addr, 0, sizeof(struct sockaddr *) * remote_num);
     for (i = 0; i < remote_num; i++) {
@@ -1606,6 +1606,7 @@ main(int argc, char **argv)
             FATAL("failed to resolve the provided hostname");
         }
         listen_ctx.remote_addr[i] = (struct sockaddr *)storage;
+        ++listen_ctx.remote_num;
 
         if (plugin != NULL) break;
     }
@@ -1699,7 +1700,7 @@ main(int argc, char **argv)
         ev_io_stop(loop, &listen_ctx.io);
         free_connections(loop);
 
-        for (i = 0; i < remote_num; i++)
+        for (i = 0; i < listen_ctx.remote_num; i++)
             ss_free(listen_ctx.remote_addr[i]);
         ss_free(listen_ctx.remote_addr);
     }
