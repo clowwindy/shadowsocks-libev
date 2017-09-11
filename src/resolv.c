@@ -85,11 +85,14 @@ extern int verbose;
 struct resolv_ctx default_ctx;
 static struct ev_loop* default_loop;
 
-static const int MODE_IPV4_ONLY  = 0;
-static const int MODE_IPV6_ONLY  = 1;
-static const int MODE_IPV4_FIRST = 2;
-static const int MODE_IPV6_FIRST = 3;
-static int resolv_mode           = 0;
+enum {
+
+    MODE_IPV4_FIRST = 0,
+    MODE_IPV6_FIRST = 1
+
+} RESOLV_MODE;
+
+static int resolv_mode           = MODE_IPV4_FIRST;
 
 static void resolv_sock_cb(struct ev_loop *, struct ev_io *, int);
 static void resolv_timeout_cb(struct ev_loop *, struct ev_timer *, int);
@@ -172,7 +175,6 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     ev_init(&default_ctx.io, resolv_sock_cb);
     ev_timer_init(&default_ctx.tw, resolv_timeout_cb, 0.0, 0.0);
 
-
     return 0;
 }
 
@@ -210,16 +212,11 @@ resolv_start(const char *hostname, uint16_t port,
     query->data           = data;
     query->free_cb        = free_cb;
 
-    /* Submit A and AAAA requests */
-    if (resolv_mode != MODE_IPV6_ONLY) {
-        ares_gethostbyname(default_ctx.channel, hostname, AF_INET,  dns_query_v4_cb, query);
-        query->requests[0] = AF_INET;
-    }
+    query->requests[0]   = AF_INET;
+    query->requests[1]   = AF_INET6;
 
-    if (resolv_mode != MODE_IPV4_ONLY) {
-        ares_gethostbyname(default_ctx.channel, hostname, AF_INET6, dns_query_v6_cb, query);
-        query->requests[1] = AF_INET6;
-    }
+    ares_gethostbyname(default_ctx.channel, hostname, AF_INET,  dns_query_v4_cb, query);
+    ares_gethostbyname(default_ctx.channel, hostname, AF_INET6, dns_query_v6_cb, query);
 
     reset_timer();
 
