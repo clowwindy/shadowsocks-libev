@@ -154,7 +154,7 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     default_ctx.options.tries = 2;
 
     status = ares_init_options(&default_ctx.channel, &default_ctx.options,
-            ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB);
+            ARES_OPT_NOROTATE | ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB);
 
     if (status != ARES_SUCCESS) {
         FATAL("failed to initialize c-ares");
