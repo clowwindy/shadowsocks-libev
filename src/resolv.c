@@ -154,7 +154,7 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     default_ctx.options.tries = 2;
 
     status = ares_init_options(&default_ctx.channel, &default_ctx.options,
-#if ARES_VERSION_MINOR >= 12
+#if ARES_VERSION_MAJOR >= 1 && ARES_VERSION_MINOR >= 12
             ARES_OPT_NOROTATE |
 #endif
             ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_SOCK_STATE_CB);
@@ -164,7 +164,7 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     }
 
     if (nameservers != NULL) {
-#if ARES_VERSION_MINOR >= 11
+#if ARES_VERSION_MAJOR >= 1 && ARES_VERSION_MINOR >= 11
         status = ares_set_servers_ports_csv(default_ctx.channel, nameservers);
 #else
         status = ares_set_servers_csv(default_ctx.channel, nameservers);
