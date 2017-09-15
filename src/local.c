@@ -481,7 +481,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             if (buf->len < method_len) {
                 return;
             }
-            
+
             struct method_select_response response;
             response.ver    = SVERSION;
             response.method = METHOD_UNACCEPTABLE;
@@ -498,7 +498,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 close_and_free_server(EV_A_ server);
                 return;
             }
-            
+
             server->stage = STAGE_HANDSHAKE;
 
             if (method_len < (int)(buf->len)) {
@@ -665,6 +665,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 } else if (ret > 0) {
                     sni_detected = 1;
 
+#ifndef __ANDROID__
                     // Reconstruct address buffer
                     abuf->len               = 0;
                     abuf->data[abuf->len++] = 3;
@@ -674,6 +675,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     p          = htons(p);
                     memcpy(abuf->data + abuf->len, &p, 2);
                     abuf->len += 2;
+#endif
 
                     if (acl || verbose) {
                         memcpy(host, hostname, ret);
