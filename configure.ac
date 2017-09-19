@@ -224,15 +224,12 @@ AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn
 
 AC_CONFIG_FILES([shadowsocks-libev.pc
                  Makefile
+                 doc/Makefile
                  src/Makefile])
 
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
 		   [AC_DEFINE([USE_SYSTEM_SHARED_LIB], [1], [Define if use system shared lib.])],
 		   [AC_CONFIG_FILES([libbloom/Makefile libcork/Makefile libipset/Makefile])])
-
-AM_COND_IF([ENABLE_DOCUMENTATION],
-  [AC_CONFIG_FILES([doc/Makefile])
-])
 
 AC_ARG_ENABLE(connmarktos,
 [AS_HELP_STRING(--enable-connmarktos, Enable saved connmark to IP TOS QoS feature)],
