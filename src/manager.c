@@ -92,7 +92,7 @@ destroy_server(struct server *server) {
 }
 
 static void
-build_config(char *prefix, struct server *server)
+build_config(char *prefix, struct manager_ctx *manager, struct server *server)
 {
     char *path    = NULL;
     int path_size = strlen(prefix) + strlen(server->port) + 20;
@@ -110,11 +110,18 @@ build_config(char *prefix, struct server *server)
     fprintf(f, "{\n");
     fprintf(f, "\"server_port\":%d,\n", atoi(server->port));
     fprintf(f, "\"password\":\"%s\"", server->password);
-    if (server->fast_open[0]) fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
-    if (server->mode)   fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
-    if (server->method) fprintf(f, ",\n\"method\":\"%s\"", server->method);
-    if (server->plugin) fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
-    if (server->plugin_opts) fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
+    if (server->method)
+        fprintf(f, ",\n\"method\":\"%s\"", server->method);
+    else if (manager->method)
+        fprintf(f, ",\n\"method\":\"%s\"", manager->method);
+    if (server->fast_open[0])
+        fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
+    if (server->mode)
+        fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
+    if (server->plugin)
+        fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
+    if (server->plugin_opts)
+        fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
     fprintf(f, "\n}\n");
     fclose(f);
     ss_free(path);
@@ -124,17 +131,17 @@ static char *
 construct_command_line(struct manager_ctx *manager, struct server *server)
 {
     static char cmd[BUF_SIZE];
-    char *method = manager->method;
     int i;
+    int port;
 
-    build_config(working_dir, server);
+    port = atoi(server->port);
 
-    if (server->method) method = server->method;
+    build_config(working_dir, manager, server);
+
     memset(cmd, 0, BUF_SIZE);
     snprintf(cmd, BUF_SIZE,
-             "%s -m %s --manager-address %s -f %s/.shadowsocks_%s.pid -c %s/.shadowsocks_%s.conf",
-             executable, method, manager->manager_address,
-             working_dir, server->port, working_dir, server->port);
+             "%s --manager-address %s -f %s/.shadowsocks_%d.pid -c %s/.shadowsocks_%d.conf",
+             executable, manager->manager_address, working_dir, port, working_dir, port);
 
     if (manager->acl != NULL) {
         int len = strlen(cmd);
