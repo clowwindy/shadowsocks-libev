@@ -247,7 +247,7 @@ read_jconf(const char *file)
                 conf.user = to_string(value);
             } else if (strcmp(name, "plugin") == 0) {
                 conf.plugin = to_string(value);
-                if (strlen(conf.plugin) == 0) {
+                if (conf.plugin && strlen(conf.plugin) == 0) {
                     ss_free(conf.plugin);
                     conf.plugin = NULL;
                 }
