@@ -115,10 +115,10 @@ entropy_check(void)
 
     if ((fd = open("/dev/random", O_RDONLY)) != -1) {
         if (ioctl(fd, RNDGETENTCNT, &c) == 0 && c < 160) {
-            LOGI("This system doesn't provide enough entropy to quickly generate high-quality random numbers\n"
-                 "Installing the rng-utils/rng-tools or haveged packages may help.\n"
+            LOGI("This system doesn't provide enough entropy to quickly generate high-quality random numbers.\n"
+                 "Installing the rng-utils/rng-tools, jitterentropy or haveged packages may help.\n"
                  "On virtualized Linux environments, also consider using virtio-rng.\n"
-                 "The service will not start until enough entropy has been collected.");
+                 "The service will not start until enough entropy has been collected.\n");
         }
         close(fd);
     }
