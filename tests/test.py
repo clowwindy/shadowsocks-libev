@@ -35,7 +35,7 @@ parser.add_argument('-a', '--client-args', type=str, default=None)
 parser.add_argument('-b', '--server-args', type=str, default=None)
 parser.add_argument('--should-fail', action='store_true', default=None)
 parser.add_argument('--url', type=str, default=default_url)
-parser.add_argument('--dns', type=str, default='10.19.185.252')
+parser.add_argument('--dns', type=str, default='8.8.8.8')
 
 config = parser.parse_args()
 
