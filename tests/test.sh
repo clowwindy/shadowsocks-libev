@@ -24,13 +24,16 @@ function run_test {
     return 0
 }
 
-run_test python tests/test.py  -c tests/aes.json
-run_test python tests/test.py  -c tests/aes-gcm.json
-run_test python tests/test.py  -c tests/aes-ctr.json
-run_test python tests/test.py  -c tests/rc4-md5.json
-run_test python tests/test.py  -c tests/salsa20.json
-run_test python tests/test.py  -c tests/chacha20.json
-run_test python tests/test.py  -c tests/chacha20-ietf.json
-run_test python tests/test.py  -c tests/chacha20-ietf-poly1305.json
+[ -d src -a -x src/ss-local ] &&
+    BIN="--bin src/"
+
+run_test python tests/test.py $BIN -c tests/aes.json
+run_test python tests/test.py $BIN -c tests/aes-gcm.json
+run_test python tests/test.py $BIN -c tests/aes-ctr.json
+run_test python tests/test.py $BIN -c tests/rc4-md5.json
+run_test python tests/test.py $BIN -c tests/salsa20.json
+run_test python tests/test.py $BIN -c tests/chacha20.json
+run_test python tests/test.py $BIN -c tests/chacha20-ietf.json
+run_test python tests/test.py $BIN -c tests/chacha20-ietf-poly1305.json
 
 exit $result
