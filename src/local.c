@@ -371,8 +371,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
-#ifdef TCP_FASTOPEN
-#ifdef __APPLE__
+#if defined(MSG_FASTOPEN)
+                    int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
+                                   (struct sockaddr *)&(remote->addr), remote->addr_len);
+#else
+#if defined(CONNECT_DATA_IDEMPOTENT)
                     ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
                     sa_endpoints_t endpoints;
                     memset((char *)&endpoints, 0, sizeof(endpoints));
@@ -382,12 +385,17 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     int s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
                                      CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
                                      NULL, 0, NULL, NULL);
-                    if (s == 0) {
-                        s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
-                    }
+#elif defined(TCP_FASTOPEN_CONNECT)
+                    int optval = 1;
+                    if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                                (void *)&optval, sizeof(optval)) < 0)
+                        FATAL("failed to set TCP_FASTOPEN_CONNECT");
+                    int s = connect(remote->fd, (struct sockaddr *)&(remote->addr), remote->addr_len);
 #else
-                    int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
-                                   (struct sockaddr *)&(remote->addr), remote->addr_len);
+                    FATAL("fast open is not enabled in this build");
+#endif
+                    if (s == 0)
+                        s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
 #endif
                     if (s == -1) {
                         if (errno == CONNECT_IN_PROGRESS) {
@@ -407,7 +415,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             close_and_free_server(EV_A_ server);
                             return;
                         }
-                    } else if (s < (int)(remote->buf->len)) {
+                    } else if (s <= (int)(remote->buf->len)) {
                         remote->buf->len -= s;
                         remote->buf->idx  = s;
 
@@ -416,26 +424,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                         return;
                     } else {
-                        // Just connected
-                        remote->buf->idx = 0;
-                        remote->buf->len = 0;
-#ifdef __APPLE__
-                        ev_io_stop(EV_A_ & server_recv_ctx->io);
-                        ev_io_start(EV_A_ & remote->send_ctx->io);
-                        ev_timer_start(EV_A_ & remote->send_ctx->watcher);
-#else
-                        remote->send_ctx->connected = 1;
-                        ev_timer_stop(EV_A_ & remote->send_ctx->watcher);
-                        ev_timer_start(EV_A_ & remote->recv_ctx->watcher);
-                        ev_io_start(EV_A_ & remote->recv_ctx->io);
-                        return;
-#endif
+                        FATAL("buffer corruption for fast open");
                     }
-#else
-                    // if TCP_FASTOPEN is not defined, fast_open will always be 0
-                    LOGE("can't come here");
-                    exit(1);
-#endif
                 }
             } else {
                 int s = send(remote->fd, remote->buf->data, remote->buf->len, 0);

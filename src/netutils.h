@@ -27,25 +27,9 @@
 
 #if defined(__linux__)
 #include <netdb.h>
+#include <linux/tcp.h>
 #else
 #include <netinet/tcp.h>
-#endif
-
-// only enable TCP_FASTOPEN on linux
-#if defined(__linux__)
-#include <linux/tcp.h>
-/*  conditional define for TCP_FASTOPEN */
-#ifndef TCP_FASTOPEN
-#define TCP_FASTOPEN   23
-#endif
-/*  conditional define for MSG_FASTOPEN */
-#ifndef MSG_FASTOPEN
-#define MSG_FASTOPEN   0x20000000
-#endif
-#elif !defined(__APPLE__)
-#ifdef TCP_FASTOPEN
-#undef TCP_FASTOPEN
-#endif
 #endif
 
 /* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
