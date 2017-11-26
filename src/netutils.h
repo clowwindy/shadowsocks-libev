@@ -35,6 +35,16 @@
 #include <netdb.h>
 #endif
 
+/* Hard coded defines for TCP fast open on Android */
+#ifdef __ANDROID__
+#ifndef TCP_FASTOPEN
+#define TCP_FASTOPEN   23
+#endif
+#ifndef MSG_FASTOPEN
+#define MSG_FASTOPEN   0x20000000
+#endif
+#endif
+
 /* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
 #ifndef MPTCP_ENABLED
 static const char mptcp_enabled_values[] = { 42, 26, 0 };
