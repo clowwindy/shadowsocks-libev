@@ -348,6 +348,8 @@ delayed_connect_cb(EV_P_ ev_timer *watcher, int revents)
     int r = connect(remote->fd, remote->addr,
                     get_sockaddr_len(remote->addr));
 
+    remote->addr = NULL;
+
     if (r == -1 && errno != CONNECT_IN_PROGRESS) {
         ERROR("connect");
         close_and_free_remote(EV_A_ remote);
