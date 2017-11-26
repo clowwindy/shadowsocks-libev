@@ -508,8 +508,10 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
     if (fast_open) {
 
-#if !defined(MSG_FASTOPEN)
-
+#if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
+        ssize_t s = sendto(sockfd, server->buf->data, server->buf->len,
+                MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
+#else
 #if defined(TCP_FASTOPEN_CONNECT)
         int optval = 1;
         if(setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
@@ -530,9 +532,6 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 #endif
         if (s == 0)
             s = send(sockfd, server->buf->data, server->buf->len, 0);
-#else
-        ssize_t s = sendto(sockfd, server->buf->data, server->buf->len,
-                MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #endif
         if (s == -1) {
             if (errno == CONNECT_IN_PROGRESS) {

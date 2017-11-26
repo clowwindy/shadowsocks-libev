@@ -371,7 +371,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
-#if !defined(MSG_FASTOPEN)
+#if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
+                    int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
+                                   (struct sockaddr *)&(remote->addr), remote->addr_len);
+#else
 #if defined(CONNECT_DATA_IDEMPOTENT)
                     ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
                     sa_endpoints_t endpoints;
@@ -393,9 +396,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #endif
                     if (s == 0)
                         s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
-#else
-                    int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
-                                   (struct sockaddr *)&(remote->addr), remote->addr_len);
 #endif
                     if (s == -1) {
                         if (errno == CONNECT_IN_PROGRESS) {
