@@ -25,11 +25,14 @@
 
 #include <sys/socket.h>
 
-#if defined(__linux__)
-#include <netdb.h>
+#if HAVE_LINUX_TCP_H
 #include <linux/tcp.h>
-#else
+#elif defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
+#endif
+
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
 #endif
 
 /* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
