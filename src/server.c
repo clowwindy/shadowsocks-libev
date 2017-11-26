@@ -507,17 +507,15 @@ connect_to_remote(EV_P_ struct addrinfo *res,
     remote_t *remote = new_remote(sockfd);
 
     if (fast_open) {
+
+#if !defined(MSG_FASTOPEN)
+
 #if defined(TCP_FASTOPEN_CONNECT)
         int optval = 1;
         if(setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
                     (void *)&optval, sizeof(optval)) < 0)
             FATAL("failed to set TCP_FASTOPEN_CONNECT");
         int s = connect(sockfd, res->ai_addr, res->ai_addrlen);
-        if (s == 0)
-            s = send(sockfd, server->buf->data, server->buf->len, 0);
-#elif defined(MSG_FASTOPEN)
-        ssize_t s = sendto(sockfd, server->buf->data, server->buf->len,
-                MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #elif defined(CONNECT_DATA_IDEMPOTENT)
         ((struct sockaddr_in *)(res->ai_addr))->sin_len = sizeof(struct sockaddr_in);
         sa_endpoints_t endpoints;
@@ -525,16 +523,16 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         endpoints.sae_dstaddr    = res->ai_addr;
         endpoints.sae_dstaddrlen = res->ai_addrlen;
 
-        struct iovec iov;
-        iov.iov_base = server->buf->data;
-        iov.iov_len  = server->buf->len;
-        size_t len;
         int s = connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, CONNECT_DATA_IDEMPOTENT,
-                         &iov, 1, &len, NULL);
-        if (s == 0)
-            s = len;
+                         NULL, 0, NULL, NULL);
 #else
         FATAL("fast open is not enabled in this build");
+#endif
+        if (s == 0)
+            s = send(sockfd, server->buf->data, server->buf->len, 0);
+#else
+        ssize_t s = sendto(sockfd, server->buf->data, server->buf->len,
+                MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #endif
         if (s == -1) {
             if (errno == CONNECT_IN_PROGRESS) {

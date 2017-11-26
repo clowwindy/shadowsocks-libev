@@ -371,10 +371,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
-#if defined(MSG_FASTOPEN)
-                    int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
-                                   (struct sockaddr *)&(remote->addr), remote->addr_len);
-#else
+#if !defined(MSG_FASTOPEN)
 #if defined(CONNECT_DATA_IDEMPOTENT)
                     ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
                     sa_endpoints_t endpoints;
@@ -396,6 +393,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #endif
                     if (s == 0)
                         s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
+#else
+                    int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
+                                   (struct sockaddr *)&(remote->addr), remote->addr_len);
 #endif
                     if (s == -1) {
                         if (errno == CONNECT_IN_PROGRESS) {
@@ -405,7 +405,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             ev_io_start(EV_A_ & remote->send_ctx->io);
                             return;
                         } else {
-                            ERROR("sendto");
                             if (errno == ENOTCONN) {
                                 LOGE("fast open is not supported on this platform");
                                 // just turn it off
@@ -415,7 +414,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             close_and_free_server(EV_A_ server);
                             return;
                         }
-                    } else if (s <= (int)(remote->buf->len)) {
+                    } else {
                         remote->buf->len -= s;
                         remote->buf->idx  = s;
 
@@ -423,8 +422,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         ev_io_start(EV_A_ & remote->send_ctx->io);
                         ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                         return;
-                    } else {
-                        FATAL("buffer corruption for fast open");
                     }
                 }
             } else {
