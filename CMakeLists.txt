@@ -36,7 +36,8 @@ option(WITH_STATIC "build with static libraries." ON)
 
 # Run platform tests
 include(${CMAKE_SOURCE_DIR}/cmake/configure.cmake)
-configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.cmake ${CMAKE_SOURCE_DIR}/src/config.h)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.cmake ${CMAKE_BINARY_DIR}/src/config.h)
+add_definitions(-I$(CMAKE_BINARY_DIR)/src)
 add_definitions(-DHAVE_CONFIG_H)
 
 # pkg-config

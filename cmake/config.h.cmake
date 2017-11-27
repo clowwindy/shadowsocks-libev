@@ -53,6 +53,12 @@
 /* Define to 1 if you have the <linux/if.h> header file. */
 #cmakedefine HAVE_LINUX_IF_H 1
 
+/* Define to 1 if you have the <linux/tcp.h> header file. */
+#cmakedefine HAVE_LINUX_TCP_H
+
+/* Define to 1 if you have the <netinet/tcp.h> header file. */
+#cmakedefine HAVE_NETINET_TCP_H
+
 /* Define to 1 if you have the <linux/netfilter_ipv4.h> header file. */
 #cmakedefine HAVE_LINUX_NETFILTER_IPV4_H 1
 

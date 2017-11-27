@@ -25,7 +25,7 @@
 
 #include <sys/socket.h>
 
-#if HAVE_LINUX_TCP_H
+#ifdef HAVE_LINUX_TCP_H
 #include <linux/tcp.h>
 #elif defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
