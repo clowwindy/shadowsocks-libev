@@ -508,8 +508,9 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 
     if (fast_open) {
 
+        int s;
 #if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
-        ssize_t s = sendto(sockfd, server->buf->data, server->buf->len,
+        s = sendto(sockfd, server->buf->data, server->buf->len,
                 MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #else
 #if defined(TCP_FASTOPEN_CONNECT)
@@ -517,7 +518,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         if(setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
                     (void *)&optval, sizeof(optval)) < 0)
             FATAL("failed to set TCP_FASTOPEN_CONNECT");
-        int s = connect(sockfd, res->ai_addr, res->ai_addrlen);
+        s = connect(sockfd, res->ai_addr, res->ai_addrlen);
 #elif defined(CONNECT_DATA_IDEMPOTENT)
         ((struct sockaddr_in *)(res->ai_addr))->sin_len = sizeof(struct sockaddr_in);
         sa_endpoints_t endpoints;
@@ -525,7 +526,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         endpoints.sae_dstaddr    = res->ai_addr;
         endpoints.sae_dstaddrlen = res->ai_addrlen;
 
-        int s = connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, CONNECT_DATA_IDEMPOTENT,
+        s = connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, CONNECT_DATA_IDEMPOTENT,
                          NULL, 0, NULL, NULL);
 #else
         FATAL("fast open is not enabled in this build");

@@ -369,8 +369,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
+                    int s;
 #if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
-                    int s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
+                    s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
                                    (struct sockaddr *)&(remote->addr), remote->addr_len);
 #else
 #if defined(CONNECT_DATA_IDEMPOTENT)
@@ -380,7 +381,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     endpoints.sae_dstaddr    = (struct sockaddr *)&(remote->addr);
                     endpoints.sae_dstaddrlen = remote->addr_len;
 
-                    int s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
+                    s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
                                      CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
                                      NULL, 0, NULL, NULL);
 #elif defined(TCP_FASTOPEN_CONNECT)
@@ -388,7 +389,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
                                 (void *)&optval, sizeof(optval)) < 0)
                         FATAL("failed to set TCP_FASTOPEN_CONNECT");
-                    int s = connect(remote->fd, (struct sockaddr *)&(remote->addr), remote->addr_len);
+                    s = connect(remote->fd, (struct sockaddr *)&(remote->addr), remote->addr_len);
 #else
                     FATAL("fast open is not enabled in this build");
 #endif

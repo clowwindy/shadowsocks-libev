@@ -552,7 +552,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        ssize_t s;
+        int s;
+
         if (remote->addr != NULL) {
 
 #if defined(TCP_FASTOPEN_CONNECT)
