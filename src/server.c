@@ -507,8 +507,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
     remote_t *remote = new_remote(sockfd);
 
     if (fast_open) {
-
-        int s;
+        int s = -1;
 #if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
         s = sendto(sockfd, server->buf->data, server->buf->len,
                 MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);

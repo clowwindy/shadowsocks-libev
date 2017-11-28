@@ -369,7 +369,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote->send_ctx->io);
                     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
                 } else {
-                    int s;
+                    int s = -1;
 #if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
                     s = sendto(remote->fd, remote->buf->data, remote->buf->len, MSG_FASTOPEN,
                                    (struct sockaddr *)&(remote->addr), remote->addr_len);
