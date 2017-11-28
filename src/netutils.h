@@ -43,6 +43,9 @@
 #ifndef MSG_FASTOPEN
 #define MSG_FASTOPEN   0x20000000
 #endif
+#ifdef TCP_FASTOPEN_CONNECT
+#undef TCP_FASTOPEN_CONNECT
+#endif
 #endif
 
 /* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
