@@ -578,8 +578,13 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     ev_io_start(EV_A_ & remote_send_ctx->io);
                     ev_timer_start(EV_A_ & remote_send_ctx->watcher);
                 } else {
-                    fast_open = 0;
-                    LOGE("fast open is not supported on this platform");
+                    if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
+                            errno == ENOPROTOOPT) {
+                        fast_open = 0;
+                        LOGE("fast open is not supported on this platform");
+                    } else {
+                        ERROR("fast_open_connect");
+                    }
                     close_and_free_remote(EV_A_ remote);
                     close_and_free_server(EV_A_ server);
                 }

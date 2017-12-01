@@ -543,7 +543,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
                 fast_open = 0;
                 LOGE("fast open is not supported on this platform");
             } else {
-                ERROR("sendto");
+                ERROR("fast_open_connect");
             }
         } else {
             server->buf->idx += s;

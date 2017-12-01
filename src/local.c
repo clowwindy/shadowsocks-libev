@@ -404,10 +404,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                             ev_io_start(EV_A_ & remote->send_ctx->io);
                             return;
                         } else {
-                            if (errno == ENOTCONN) {
+                            if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
+                                    errno == ENOPROTOOPT) {
                                 LOGE("fast open is not supported on this platform");
                                 // just turn it off
                                 fast_open = 0;
+                            } else {
+                                ERROR("fast_open_connect");
                             }
                             close_and_free_remote(EV_A_ remote);
                             close_and_free_server(EV_A_ server);
