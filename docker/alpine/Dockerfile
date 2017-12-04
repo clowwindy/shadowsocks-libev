@@ -23,7 +23,6 @@ RUN set -ex && \
                                 build-base \
                                 curl \
                                 libev-dev \
-                                libtool \
                                 linux-headers \
                                 libsodium-dev \
                                 mbedtls-dev \
