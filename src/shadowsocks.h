@@ -64,6 +64,8 @@ typedef struct {
 extern "C" {
 #endif
 
+typedef void (*ss_local_callback) (int socks_fd, int udp_fd, void *data);
+
 /*
  * Create and start a shadowsocks local server.
  *
@@ -76,6 +78,16 @@ extern "C" {
  * If failed, -1 is returned. Errors will output to the log file.
  */
 int start_ss_local_server(profile_t profile);
+
+/*
+ * Create and start a shadowsocks local server, specifying a callback.
+ *
+ * The callback is invoked when the local server has started successfully. It passes the SOCKS
+ * server and UDP relay file descriptors, along with any supplied user data.
+ *
+ * Returns -1 on failure.
+ */
+int start_ss_local_server_with_callback(profile_t profile, ss_local_callback callback, void *udata);
 
 #ifdef __cplusplus
 }
