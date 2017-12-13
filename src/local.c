@@ -1722,7 +1722,7 @@ main(int argc, char **argv)
 #else
 
 int
-start_ss_local_server(profile_t profile)
+_start_ss_local_server(profile_t profile, ss_local_callback callback, void *udata)
 {
     srand(time(NULL));
 
@@ -1831,6 +1831,10 @@ start_ss_local_server(profile_t profile)
     // Init connections
     cork_dllist_init(&connections);
 
+    if (callback) {
+        callback(listen_ctx.fd, udp_fd, udata);
+    }
+
     // Enter the loop
     ev_run(loop, 0);
 
@@ -1850,6 +1854,18 @@ start_ss_local_server(profile_t profile)
     }
 
     return 0;
+}
+
+int
+start_ss_local_server(profile_t profile)
+{
+    return _start_ss_local_server(profile, NULL, NULL);
+}
+
+int
+start_ss_local_server_with_callback(profile_t profile, ss_local_callback callback, void *udata)
+{
+    return _start_ss_local_server(profile, callback, udata);
 }
 
 #endif
