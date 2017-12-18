@@ -206,11 +206,6 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -s %s", manager->hosts[i]);
     }
-    // Always enable reuse port
-    {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --reuse-port");
-    }
 
     if (verbose) {
         LOGI("cmd: %s", cmd);
