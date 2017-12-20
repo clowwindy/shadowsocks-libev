@@ -1236,6 +1236,13 @@ main(int argc, char **argv)
 
     listen_ctx_t *listen_ctx_current = &listen_ctx;
     do {
+
+        if (listen_ctx_current->tos) {
+            LOGI("listening at %s:%s (TOS 0x%x)", local_addr, local_port, listen_ctx_current->tos);
+        } else {
+            LOGI("listening at %s:%s", local_addr, local_port);
+        }
+
         if (mode != UDP_ONLY) {
             // Setup socket
             int listenfd;
@@ -1271,12 +1278,6 @@ main(int argc, char **argv)
 
         if (mode == UDP_ONLY) {
             LOGI("TCP relay disabled");
-        }
-
-        if (listen_ctx_current->tos) {
-            LOGI("listening at %s:%s (TOS 0x%x)", local_addr, local_port, listen_ctx_current->tos);
-        } else {
-            LOGI("listening at %s:%s", local_addr, local_port);
         }
 
         // Handle additionals TOS/DSCP listening ports
