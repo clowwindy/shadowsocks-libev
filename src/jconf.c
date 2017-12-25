@@ -298,7 +298,7 @@ read_jconf(const char *file)
 
                 if (mode_str == NULL)
                     conf.mode = TCP_ONLY;
-                if (strcmp(mode_str, "tcp_only") == 0)
+                else if (strcmp(mode_str, "tcp_only") == 0)
                     conf.mode = TCP_ONLY;
                 else if (strcmp(mode_str, "tcp_and_udp") == 0)
                     conf.mode = TCP_AND_UDP;
