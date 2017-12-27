@@ -638,40 +638,26 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             size_t abuf_len  = abuf->len;
             int sni_detected = 0;
+            int ret          = 0;
+
+            char *hostname;
+            uint16_t dst_port = ntohs(*(uint16_t *)(abuf->data + abuf->len - 2));
 
             if (atyp == 1 || atyp == 4) {
-                char *hostname;
-                uint16_t p = ntohs(*(uint16_t *)(abuf->data + abuf->len - 2));
-                int ret    = 0;
-                if (p == http_protocol->default_port)
+                if (dst_port == http_protocol->default_port)
                     ret = http_protocol->parse_packet(buf->data + 3 + abuf->len,
                                                       buf->len - 3 - abuf->len, &hostname);
-                else if (p == tls_protocol->default_port)
+                else if (dst_port == tls_protocol->default_port)
                     ret = tls_protocol->parse_packet(buf->data + 3 + abuf->len,
                                                      buf->len - 3 - abuf->len, &hostname);
                 if (ret == -1 && buf->len < BUF_SIZE) {
                     return;
                 } else if (ret > 0) {
                     sni_detected = 1;
-
-#ifndef __ANDROID__
-                    // Reconstruct address buffer
-                    abuf->len               = 0;
-                    abuf->data[abuf->len++] = 3;
-                    abuf->data[abuf->len++] = ret;
-                    memcpy(abuf->data + abuf->len, hostname, ret);
-                    abuf->len += ret;
-                    p          = htons(p);
-                    memcpy(abuf->data + abuf->len, &p, 2);
-                    abuf->len += 2;
-#endif
-
                     if (acl || verbose) {
                         memcpy(host, hostname, ret);
                         host[ret] = '\0';
                     }
-
-                    ss_free(hostname);
                 }
             }
 
@@ -769,9 +755,23 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
             }
 
-            // Not match ACL
+            // Not bypass
             if (remote == NULL) {
                 remote = create_remote(server->listener, NULL);
+
+                if (sni_detected) {
+                    // Reconstruct address buffer
+                    abuf->len               = 0;
+                    abuf->data[abuf->len++] = 3;
+                    abuf->data[abuf->len++] = ret;
+                    memcpy(abuf->data + abuf->len, hostname, ret);
+                    abuf->len += ret;
+                    dst_port  = htons(dst_port);
+                    memcpy(abuf->data + abuf->len, &dst_port, 2);
+                    abuf->len += 2;
+
+                    ss_free(hostname);
+                }
             }
 
             if (remote == NULL) {
