@@ -914,14 +914,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             server->stage = STAGE_RESOLVE;
             struct resolv_query *q = resolv_start(host, port,
                                                   resolv_cb, resolv_free_cb, query);
-
-            if (q == NULL) {
-                if (query != NULL)
-                    ss_free(query);
-                server->query = NULL;
-                close_and_free_server(EV_A_ server);
-                return;
-            }
         }
 
         return;

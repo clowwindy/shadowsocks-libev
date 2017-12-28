@@ -196,13 +196,7 @@ resolv_start(const char *hostname, uint16_t port,
     /*
      * Wrap c-ares's call back in our own
      */
-
     struct resolv_query *query = ss_malloc(sizeof(struct resolv_query));
-
-    if (query == NULL) {
-        LOGE("failed to allocate memory for DNS query callback data.");
-        return NULL;
-    }
 
     memset(query, 0, sizeof(struct resolv_query));
 
