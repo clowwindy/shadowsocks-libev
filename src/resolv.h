@@ -36,9 +36,9 @@
 struct resolv_query;
 
 int resolv_init(struct ev_loop *, char *, int);
-struct resolv_query *resolv_start(const char *hostname, uint16_t port,
-                                  void (*client_cb)(struct sockaddr *, void *),
-                                  void (*free_cb)(void *), void *data);
+void resolv_start(const char *hostname, uint16_t port,
+                  void (*client_cb)(struct sockaddr *, void *),
+                  void (*free_cb)(void *), void *data);
 void resolv_shutdown(struct ev_loop *);
 
 #endif

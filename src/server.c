@@ -912,8 +912,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             snprintf(query->hostname, 256, "%s", host);
 
             server->stage = STAGE_RESOLVE;
-            struct resolv_query *q = resolv_start(host, port,
-                                                  resolv_cb, resolv_free_cb, query);
+            resolv_start(host, port, resolv_cb, resolv_free_cb, query);
         }
 
         return;
