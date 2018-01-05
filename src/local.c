@@ -800,7 +800,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             server->remote = remote;
             remote->server = server;
 
-            ev_timer_start(EV_A_ & server->delayed_connect_watcher);
+            if (buf->len > 0 || sni_detected) {
+                server->stage = STAGE_STREAM;
+                continue;
+            } else {
+                ev_timer_start(EV_A_ & server->delayed_connect_watcher);
+            }
 
             return;
         }
