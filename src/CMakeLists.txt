@@ -9,6 +9,10 @@ endif ()
 set(SS_SNI_SOURCE
         http.c
         tls.c
+        )
+
+set(SS_ACL_SOURCE
+        acl.c
         rule.c
         )
 
@@ -35,11 +39,12 @@ set(LIBSHADOWSOCKS_LIBEV_SOURCE
         ${SS_SHARED_SOURCES}
         udprelay.c
         cache.c
-        acl.c
         local.c
         ${SS_CRYPTO_SOURCE}
         ${SS_PLUGIN_SOURCE}
-        ${SS_SNI_SOURCE})
+        ${SS_SNI_SOURCE}
+        ${SS_ACL_SOURCE}
+        )
 
 set(SS_LOCAL_SOURCE
         ${LIBSHADOWSOCKS_LIBEV_SOURCE}
@@ -59,12 +64,12 @@ set(SS_SERVER_SOURCE
         ${SS_SHARED_SOURCES}
         udprelay.c
         cache.c
-        acl.c
         resolv.c
         server.c
         ${SS_CRYPTO_SOURCE}
         ${SS_PLUGIN_SOURCE}
         ${SS_SNI_SOURCE}
+        ${SS_ACL_SOURCE}
         )
 
 set(SS_MANAGER_SOURCE
@@ -79,7 +84,6 @@ set(SS_REDIR_SOURCE
         redir.c
         ${SS_CRYPTO_SOURCE}
         ${SS_PLUGIN_SOURCE}
-        ${SS_SNI_SOURCE}
         )
 
 

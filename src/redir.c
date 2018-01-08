@@ -47,8 +47,6 @@
 #include "config.h"
 #endif
 
-#include "http.h"
-#include "tls.h"
 #include "plugin.h"
 #include "netutils.h"
 #include "utils.h"
