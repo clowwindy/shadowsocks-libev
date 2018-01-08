@@ -658,6 +658,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         memcpy(host, hostname, ret);
                         host[ret] = '\0';
                     }
+                    ss_free(hostname);
                 }
             }
 
@@ -758,22 +759,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             // Not bypass
             if (remote == NULL) {
                 remote = create_remote(server->listener, NULL);
-
-                if (sni_detected) {
-#ifndef __ANDROID__
-                    // Reconstruct address buffer
-                    abuf->len               = 0;
-                    abuf->data[abuf->len++] = 3;
-                    abuf->data[abuf->len++] = ret;
-                    memcpy(abuf->data + abuf->len, hostname, ret);
-                    abuf->len += ret;
-                    dst_port  = htons(dst_port);
-                    memcpy(abuf->data + abuf->len, &dst_port, 2);
-                    abuf->len += 2;
-#endif
-
-                    ss_free(hostname);
-                }
             }
 
             if (remote == NULL) {

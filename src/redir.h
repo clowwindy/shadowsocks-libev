@@ -58,9 +58,6 @@ typedef struct server {
     struct server_ctx *send_ctx;
     struct remote *remote;
 
-    char *hostname;
-    size_t hostname_len;
-
     struct sockaddr_storage destaddr;
     ev_timer delayed_connect_watcher;
 } server_t;
