@@ -56,9 +56,9 @@ protect_socket(int fd)
         return -1;
     }
 
-    // Set timeout to 1s
+    // Set timeout to 3s
     struct timeval tv;
-    tv.tv_sec  = 1;
+    tv.tv_sec  = 3;
     tv.tv_usec = 0;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
     setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
