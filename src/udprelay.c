@@ -732,6 +732,12 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
 
+    if (remote_ctx->addr_header_len != len
+        || memcmp(buf->data, remote_ctx->addr_header, len) != 0) {
+        LOGI("[udp] mismatched header");
+        goto CLEAN_UP;
+    }
+
     // server may return using a different address type other than the type we
     // have used during sending
 #if defined(MODULE_TUNNEL) || defined(MODULE_REDIR)
