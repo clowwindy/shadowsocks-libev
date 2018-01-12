@@ -730,15 +730,14 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (len == 0) {
         // error when parsing header
-        if (verbose)
-            LOGI("[udp] error in parse header");
+        LOGE("[udp] error in parse header");
         goto CLEAN_UP;
     }
 
-    if (verbose && (remote_ctx->addr_header_len != len
-        || memcmp(buf->data, remote_ctx->addr_header, len) != 0)) {
+    if (remote_ctx->addr_header_len != len
+        || memcmp(buf->data, remote_ctx->addr_header, len) != 0) {
         // mismatched header
-        LOGI("[udp] mismatched header from %s:%s", host, port);
+        LOGE("[udp] mismatched header from %s:%s", host, port);
     }
 
     // server may return using a different address type other than the type we
