@@ -713,17 +713,19 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
 
+    char host[257] = { 0 };
+    char port[64]  = { 0 };
 #ifdef MODULE_REDIR
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
-    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, &dst_addr);
+    int len = parse_udprelay_header(buf->data, buf->len, host, port, &dst_addr);
 
     if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
         LOGI("[udp] ss-redir does not support domain name");
         goto CLEAN_UP;
     }
 #else
-    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, NULL);
+    int len = parse_udprelay_header(buf->data, buf->len, host, port, NULL);
 #endif
 
     if (len == 0) {
@@ -733,12 +735,10 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
 
-    if (remote_ctx->addr_header_len != len
-        || memcmp(buf->data, remote_ctx->addr_header, len) != 0) {
+    if (verbose && (remote_ctx->addr_header_len != len
+        || memcmp(buf->data, remote_ctx->addr_header, len) != 0)) {
         // mismatched header
-        if (verbose)
-            LOGI("[udp] mismatched header");
-        goto CLEAN_UP;
+        LOGI("[udp] mismatched header from %s:%s", host, port);
     }
 
     // server may return using a different address type other than the type we
@@ -1168,8 +1168,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         remote_ctx                  = new_remote(remotefd, server_ctx);
         remote_ctx->src_addr        = src_addr;
         remote_ctx->af              = remote_addr->sa_family;
-        remote_ctx->addr_header_len = addr_header_len;
-        memcpy(remote_ctx->addr_header, addr_header, addr_header_len);
 
         // Add to conn cache
         cache_insert(conn_cache, key, HASH_KEY_LEN, (void *)remote_ctx);
@@ -1178,6 +1176,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         ev_io_start(EV_A_ & remote_ctx->io);
         ev_timer_start(EV_A_ & remote_ctx->watcher);
     }
+
+    remote_ctx->addr_header_len = addr_header_len;
+    memcpy(remote_ctx->addr_header, addr_header, addr_header_len);
 
     if (offset > 0) {
         buf->len -= offset;
