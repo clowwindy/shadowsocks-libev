@@ -727,14 +727,17 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #endif
 
     if (len == 0) {
-        LOGI("[udp] error in parse header");
-        // error in parse header
+        // error when parsing header
+        if (verbose)
+            LOGI("[udp] error in parse header");
         goto CLEAN_UP;
     }
 
     if (remote_ctx->addr_header_len != len
         || memcmp(buf->data, remote_ctx->addr_header, len) != 0) {
-        LOGI("[udp] mismatched header");
+        // mismatched header
+        if (verbose)
+            LOGI("[udp] mismatched header");
         goto CLEAN_UP;
     }
 
