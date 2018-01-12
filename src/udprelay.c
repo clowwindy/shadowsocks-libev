@@ -713,19 +713,17 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
 
-    char host[257] = { 0 };
-    char port[64]  = { 0 };
 #ifdef MODULE_REDIR
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
-    int len = parse_udprelay_header(buf->data, buf->len, host, port, &dst_addr);
+    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, &dst_addr);
 
     if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
         LOGI("[udp] ss-redir does not support domain name");
         goto CLEAN_UP;
     }
 #else
-    int len = parse_udprelay_header(buf->data, buf->len, host, port, NULL);
+    int len = parse_udprelay_header(buf->data, buf->len, NULL, NULL, NULL);
 #endif
 
     if (len == 0) {
@@ -734,8 +732,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
 
-    // server may return using a different address type other than the type we
-    // have used during sending
 #if defined(MODULE_TUNNEL) || defined(MODULE_REDIR)
     // Construct packet
     buf->len -= len;
