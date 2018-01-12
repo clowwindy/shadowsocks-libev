@@ -734,12 +734,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
 
-    if (remote_ctx->addr_header_len != len
-        || memcmp(buf->data, remote_ctx->addr_header, len) != 0) {
-        // mismatched header
-        LOGE("[udp] mismatched header from %s:%s", host, port);
-    }
-
     // server may return using a different address type other than the type we
     // have used during sending
 #if defined(MODULE_TUNNEL) || defined(MODULE_REDIR)
@@ -764,14 +758,10 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     rx += buf->len;
 
-    char *addr_header   = remote_ctx->addr_header;
-    int addr_header_len = remote_ctx->addr_header_len;
-
+    // Reconstruct UDP response header
     char addr_header_buf[512];
-    if (remote_ctx->af == AF_INET || remote_ctx->af == AF_INET6) {
-        addr_header_len = construct_udprelay_header(&src_addr, addr_header_buf);
-        addr_header     = addr_header_buf;
-    }
+    int addr_header_len = construct_udprelay_header(&src_addr, addr_header_buf);
+    char *addr_header   = addr_header_buf;
 
     // Construct packet
     brealloc(buf, buf->len + addr_header_len, buf_size);
@@ -1222,14 +1212,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (remote_ctx != NULL) {
         cache_hit = 1;
-        // detect destination mismatch
-        if (remote_ctx->addr_header_len != addr_header_len
-            || memcmp(addr_header, remote_ctx->addr_header, addr_header_len) != 0) {
-            remote_ctx->addr_header_len = addr_header_len;
-            memcpy(remote_ctx->addr_header, addr_header, addr_header_len);
-            if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
-                need_query = 1;
-            }
+        if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
+            need_query = 1;
         } else {
             memcpy(&dst_addr, &remote_ctx->dst_addr, sizeof(struct sockaddr_storage));
         }
