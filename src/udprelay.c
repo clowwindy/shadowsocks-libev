@@ -755,9 +755,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     rx += buf->len;
 
     // Reconstruct UDP response header
-    char addr_header_buf[512];
-    int addr_header_len = construct_udprelay_header(&src_addr, addr_header_buf);
-    char *addr_header   = addr_header_buf;
+    char addr_header[512];
+    int addr_header_len = construct_udprelay_header(&src_addr, addr_header);
 
     // Construct packet
     brealloc(buf, buf->len + addr_header_len, buf_size);
@@ -1210,8 +1209,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         cache_hit = 1;
         if (dst_addr.ss_family != AF_INET && dst_addr.ss_family != AF_INET6) {
             need_query = 1;
-        } else {
-            memcpy(&dst_addr, &remote_ctx->dst_addr, sizeof(struct sockaddr_storage));
         }
     } else {
         if (dst_addr.ss_family == AF_INET || dst_addr.ss_family == AF_INET6) {
