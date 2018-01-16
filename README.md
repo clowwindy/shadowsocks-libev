@@ -9,7 +9,7 @@ It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
 created by [@clowwindy](https://github.com/clowwindy), and maintained by
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 3.1.2 | [Changelog](debian/changelog)
+Current version: 3.1.3 | [Changelog](debian/changelog)
 
 Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg?branch=master)](https://travis-ci.org/shadowsocks/shadowsocks-libev)
 
@@ -491,7 +491,7 @@ setting up your server's firewall rules to limit connections from each user:
 
 ```
 Copyright: 2013-2015, Clow Windy <clowwindy42@gmail.com>
-           2013-2017, Max Lv <max.c.lv@gmail.com>
+           2013-2018, Max Lv <max.c.lv@gmail.com>
            2014, Linus Yang <linusyang@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
