@@ -40,6 +40,7 @@ struct manager_ctx {
     ev_io io;
     int fd;
     int fast_open;
+    int no_delay;
     int reuse_port;
     int verbose;
     int mode;
@@ -68,6 +69,7 @@ struct server {
     char port[8];
     char password[128];
     char fast_open[8];
+    char no_delay[8];
     char *mode;
     char *method;
     char *plugin;
