@@ -121,6 +121,8 @@ build_config(char *prefix, struct manager_ctx *manager, struct server *server)
         fprintf(f, ",\n\"method\":\"%s\"", manager->method);
     if (server->fast_open[0])
         fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
+    else if (manager->fast_open)
+        fprintf(f, ",\n\"fast_open\": true");
     if (server->mode)
         fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
     if (server->plugin)
