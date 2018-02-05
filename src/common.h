@@ -47,7 +47,7 @@ void free_udprelay(void);
 
 #ifdef __ANDROID__
 int protect_socket(int fd);
-int send_traffic_stat(uint64_t tx, uint64_t rx);
+void send_traffic_stat(uint64_t tx, uint64_t rx);
 #endif
 
 #define STAGE_ERROR     -1  /* Error detected                   */

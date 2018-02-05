@@ -92,7 +92,7 @@ protect_socket(int fd)
     return ret;
 }
 
-int
+void
 send_traffic_stat(uint64_t tx, uint64_t rx)
 {
     int sock;
@@ -129,8 +129,6 @@ send_traffic_stat(uint64_t tx, uint64_t rx)
         return -1;
     }
 
-    char ret = 0;
-
     if (recv(sock, &ret, 1, 0) == -1) {
         ERROR("[android] recv");
         close(sock);
@@ -138,5 +136,4 @@ send_traffic_stat(uint64_t tx, uint64_t rx)
     }
 
     close(sock);
-    return ret;
 }
