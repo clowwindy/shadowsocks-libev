@@ -127,12 +127,13 @@ static int nofile = 0;
 static int remote_conn = 0;
 static int server_conn = 0;
 
-static char *plugin          = NULL;
-static char *bind_address    = NULL;
-static char *remote_port     = NULL;
-static char *manager_address = NULL;
-uint64_t tx                  = 0;
-uint64_t rx                  = 0;
+static char *plugin       = NULL;
+static char *local_addr   = NULL;
+static char *remote_port  = NULL;
+static char *manager_addr = NULL;
+uint64_t tx               = 0;
+uint64_t rx               = 0;
+
 ev_timer stat_update_watcher;
 ev_timer block_list_watcher;
 
@@ -158,7 +159,7 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
     msgLen = strlen(resp) + 1;
 
     ss_addr_t ip_addr = { .host = NULL, .port = NULL };
-    parse_addr(manager_address, &ip_addr);
+    parse_addr(manager_addr, &ip_addr);
 
     if (ip_addr.host == NULL || ip_addr.port == NULL) {
         sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
@@ -181,7 +182,7 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
 
         memset(&svaddr, 0, sizeof(struct sockaddr_un));
         svaddr.sun_family = AF_UNIX;
-        strncpy(svaddr.sun_path, manager_address, sizeof(svaddr.sun_path) - 1);
+        strncpy(svaddr.sun_path, manager_addr, sizeof(svaddr.sun_path) - 1);
 
         if (sendto(sfd, resp, strlen(resp) + 1, 0, (struct sockaddr *)&svaddr,
                    sizeof(struct sockaddr_un)) != msgLen) {
@@ -487,8 +488,8 @@ connect_to_remote(EV_P_ struct addrinfo *res,
     if (setnonblocking(sockfd) == -1)
         ERROR("setnonblocking");
 
-    if (bind_address != NULL)
-        if (bind_to_address(sockfd, bind_address) == -1) {
+    if (local_addr != NULL)
+        if (bind_to_address(sockfd, local_addr) == -1) {
             ERROR("bind_to_address");
             close(sockfd);
             return NULL;
@@ -1537,7 +1538,7 @@ main(int argc, char **argv)
             acl = !init_acl(optarg);
             break;
         case GETOPT_VAL_MANAGER_ADDRESS:
-            manager_address = optarg;
+            manager_addr = optarg;
             break;
         case GETOPT_VAL_MTU:
             mtu = atoi(optarg);
@@ -1565,7 +1566,7 @@ main(int argc, char **argv)
             }
             break;
         case 'b':
-            bind_address = optarg;
+            local_addr = optarg;
             break;
         case 'p':
             server_port = optarg;
@@ -1687,6 +1688,9 @@ main(int argc, char **argv)
         }
         if (fast_open == 0) {
             fast_open = conf->fast_open;
+        }
+        if (local_addr == NULL) {
+            local_addr = conf->local_addr;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
@@ -1884,7 +1888,7 @@ main(int argc, char **argv)
         }
     }
 
-    if (manager_address != NULL) {
+    if (manager_addr != NULL) {
         ev_timer_init(&stat_update_watcher, stat_update_cb, UPDATE_INTERVAL, UPDATE_INTERVAL);
         ev_timer_start(EV_DEFAULT, &stat_update_watcher);
     }
@@ -1917,7 +1921,7 @@ main(int argc, char **argv)
     // Free block list
     free_block_list();
 
-    if (manager_address != NULL) {
+    if (manager_addr != NULL) {
         ev_timer_stop(EV_DEFAULT, &stat_update_watcher);
     }
 
