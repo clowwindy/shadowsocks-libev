@@ -6,7 +6,6 @@ FROM alpine
 MAINTAINER kev <noreply@datageek.info>
 
 ENV SERVER_ADDR 0.0.0.0
-ENV SERVER_PORT 8388
 ENV PASSWORD=
 ENV METHOD      aes-256-cfb
 ENV TIMEOUT     300
@@ -30,7 +29,6 @@ RUN set -ex && \
                                 pcre-dev \
                                 c-ares-dev && \
     cd /tmp && \
-    git submodule update --init --recursive && \
     ./autogen.sh && \
     ./configure --prefix=/usr --disable-documentation && \
     make install && \
@@ -41,16 +39,18 @@ RUN set -ex && \
             | xargs -r apk info --installed \
             | sort -u \
     )" && \
-    apk add --no-cache --virtual .run-deps $runDeps && \
+    apk add --no-cache --virtual .run-deps \
+                                rng-tools \
+                                $runDeps && \
     apk del .build-deps && \
     rm -rf /tmp/*
 
 USER nobody
 
-EXPOSE $SERVER_PORT/tcp $SERVER_PORT/udp
+EXPOSE 8388/tcp 8388/udp
 
 CMD ss-server -s $SERVER_ADDR \
-              -p $SERVER_PORT \
+              -p 8388 \
               -k ${PASSWORD:-$(hostname)} \
               -m $METHOD \
               -t $TIMEOUT \
