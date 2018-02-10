@@ -497,6 +497,5 @@ get_default_conf(void)
         return userconf;
 
     // If not, fall back to the system-wide config.
-    userconf[0] = '\0';
     return sysconf;
 }
