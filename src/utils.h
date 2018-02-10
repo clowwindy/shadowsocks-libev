@@ -173,4 +173,6 @@ void *ss_realloc(void *ptr, size_t new_size);
         ptr = NULL;      \
     } while (0)
 
+char *get_default_conf(void);
+
 #endif // _UTILS_H
