@@ -482,9 +482,6 @@ get_default_conf(void)
     static char userconf[PATH_MAX] = { 0 };
     char *conf_home;
 
-    if (userconf[0] != '\0')
-        return userconf;
-
     conf_home = getenv("XDG_CONFIG_HOME");
 
     if (!conf_home) {
@@ -500,5 +497,6 @@ get_default_conf(void)
         return userconf;
 
     // If not, fall back to the system-wide config.
+    userconf[0] = '\0';
     return sysconf;
 }
