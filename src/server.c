@@ -110,8 +110,9 @@ static void close_and_free_server(EV_P_ server_t *server);
 static void resolv_cb(struct sockaddr *addr, void *data);
 static void resolv_free_cb(void *data);
 
-int verbose    = 0;
-int reuse_port = 0;
+int verbose      = 0;
+int reuse_port   = 0;
+char *local_addr = NULL;
 
 static crypto_t *crypto;
 
@@ -128,7 +129,6 @@ static int remote_conn = 0;
 static int server_conn = 0;
 
 static char *plugin       = NULL;
-static char *local_addr   = NULL;
 static char *remote_port  = NULL;
 static char *manager_addr = NULL;
 uint64_t tx               = 0;

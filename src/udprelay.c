@@ -97,6 +97,7 @@ extern int reuse_port;
 #ifdef MODULE_REMOTE
 extern uint64_t tx;
 extern uint64_t rx;
+extern char *local_addr;
 #endif
 
 static int packet_size                               = DEFAULT_PACKET_SIZE;
@@ -358,10 +359,22 @@ create_remote_socket(int ipv6)
             ERROR("[udp] cannot create socket");
             return -1;
         }
-        if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-            FATAL("[udp] cannot bind remote");
-            return -1;
+#ifdef MODULE_REMOTE
+        if (local_addr != NULL) {
+            if (bind_to_address(remote_sock, local_addr) == -1) {
+                ERROR("bind_to_address");
+                FATAL("[udp] cannot bind remote");
+                return -1;
+            }
+        } else {
+#endif
+            if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+                FATAL("[udp] cannot bind remote");
+                return -1;
+            }
+#ifdef MODULE_REMOTE
         }
+#endif
     } else {
         // Or else bind to IPv4
         struct sockaddr_in addr;
@@ -374,11 +387,22 @@ create_remote_socket(int ipv6)
             ERROR("[udp] cannot create socket");
             return -1;
         }
-
-        if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-            FATAL("[udp] cannot bind remote");
-            return -1;
+#ifdef MODULE_REMOTE
+        if (local_addr != NULL) {
+            if (bind_to_address(remote_sock, local_addr) == -1) {
+                ERROR("bind_to_address");
+                FATAL("[udp] cannot bind remote");
+                return -1;
+            }
+        } else {
+#endif
+            if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+                FATAL("[udp] cannot bind remote");
+                return -1;
+            }
+#ifdef MODULE_REMOTE
         }
+#endif
     }
     return remote_sock;
 }
