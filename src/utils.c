@@ -474,3 +474,28 @@ set_nofile(int nofile)
 }
 
 #endif
+
+char *
+get_default_conf(void)
+{
+    static char sysconf[] = "/etc/shadowsocks-libev/config.json";
+    static char userconf[PATH_MAX] = { 0 };
+    char *conf_home;
+
+    conf_home = getenv("XDG_CONFIG_HOME");
+
+    if (!conf_home) {
+        strcpy(userconf, getenv("HOME"));
+        strcat(userconf, "/.config/shadowsocks-libev/config.json");
+    } else {
+        strcpy(userconf, conf_home);
+        strcat(userconf, "/shadowsocks-libev/config.json");
+    }
+
+    // Check if the user-specific config exists.
+    if (access(userconf, F_OK) != -1)
+        return userconf;
+
+    // If not, fall back to the system-wide config.
+    return sysconf;
+}

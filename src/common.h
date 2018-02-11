@@ -22,8 +22,6 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
-#define DEFAULT_CONF_PATH "/etc/shadowsocks-libev/config.json"
-
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
 #endif
