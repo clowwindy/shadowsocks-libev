@@ -90,10 +90,14 @@ setinterface(int socket_fd, const char *interface_name)
 int
 bind_to_address(int socket_fd, const char *host)
 {
-    if (host != NULL) {
+    static struct sockaddr_storage storage = {0};
+    if (storage.ss_family == AF_INET) {
+        return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in));
+    }
+    else if (storage.ss_family == AF_INET6) {
+        return bind(socket_fd, (struct sockaddr *)&storage, sizeof(struct sockaddr_in6));
+    } else if (host != NULL) {
         struct cork_ip ip;
-        struct sockaddr_storage storage;
-        memset(&storage, 0, sizeof(struct sockaddr_storage));
         if (cork_ip_init(&ip, host) != -1) {
             if (ip.version == 4) {
                 struct sockaddr_in *addr = (struct sockaddr_in *)&storage;
