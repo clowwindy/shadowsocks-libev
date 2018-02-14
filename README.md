@@ -55,6 +55,7 @@ You have to install libsodium at least 1.0.8, but recommended 1.0.12 or later ve
 - [FreeBSD](#freebsd)
 - [OpenWRT](#openwrt)
 - [OS X](#os-x)
+- [Docker](#docker)
 
 * * *
 
@@ -334,6 +335,16 @@ Install shadowsocks-libev:
 ```bash
 brew install shadowsocks-libev
 ```
+
+### Docker
+
+As you expect, simply pull the image and run.
+```
+docker pull shadowsocks/shadowsocks-libev
+docker run -e PASSWORD=<password> -p<server-port>:8388 -p<server-port>:8388/udp -d shadowsocks/shadowsocks-libev
+```
+
+More information about the image can be found [here](docker/alpine/README.md).
 
 ## Usage
 
