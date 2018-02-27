@@ -104,15 +104,8 @@ crypto_md5(const unsigned char *d, size_t n, unsigned char *md)
         md = m;
     }
 #if MBEDTLS_VERSION_NUMBER >= 0x02070000
-    mbedtls_md5_context md5;
-    mbedtls_md5_init(&md5);
-    if (mbedtls_md5_starts_ret(&md5) != 0)
-        FATAL("Failed to initialize MD5 context");
-    if (mbedtls_md5_update_ret(&md5, d, n) != 0)
-        FATAL("Failed to update MD5 sum");
-    if (mbedtls_md5_finish_ret(&md5, md) != 0)
-        FATAL("Failed to generate MD5 hash");
-    mbedtls_md5_free(&md5);
+    if (mbedtls_md5_ret(d, n, md) != 0)
+        FATAL("Failed to calculate MD5");
 #else
     mbedtls_md5(d, n, md);
 #endif
