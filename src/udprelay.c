@@ -724,7 +724,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     } else if (r > packet_size) {
         if (verbose) {
-            LOGI("[udp] remote_recv_recvfrom fragmentation");
+            LOGI("[udp] remote_recv_recvfrom fragmentation, MTU at least be: %zd", r + PACKET_HEADER_SIZE);
         }
     }
 
@@ -798,7 +798,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (buf->len > packet_size) {
         if (verbose) {
-            LOGI("[udp] remote_recv_sendto fragmentation");
+            LOGI("[udp] remote_recv_sendto fragmentation, MTU at least be: %zd", buf->len + PACKET_HEADER_SIZE);
         }
     }
 
@@ -902,7 +902,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     } else if (buf->len > packet_size) {
         if (verbose) {
-            LOGI("[udp] UDP server_recv_recvmsg fragmentation");
+            LOGI("[udp] UDP server_recv_recvmsg fragmentation, MTU at least be: %zd", buf->len + PACKET_HEADER_SIZE);
         }
     }
 
@@ -924,7 +924,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     } else if (r > packet_size) {
         if (verbose) {
-            LOGI("[udp] server_recv_recvfrom fragmentation");
+            LOGI("[udp] server_recv_recvfrom fragmentation, MTU at least be: %zd", r + PACKET_HEADER_SIZE);
         }
     }
 
@@ -1208,7 +1208,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (buf->len > packet_size) {
         if (verbose) {
-            LOGI("[udp] server_recv_sendto fragmentation");
+            LOGI("[udp] server_recv_sendto fragmentation, MTU at least be: %zd", buf->len + PACKET_HEADER_SIZE);
         }
     }
 
@@ -1225,7 +1225,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (buf->len - addr_header_len > packet_size) {
         if (verbose) {
-            LOGI("[udp] server_recv_sendto fragmentation");
+            LOGI("[udp] server_recv_sendto fragmentation, MTU at least be: %zd", buf->len - addr_header_len + PACKET_HEADER_SIZE);
         }
     }
 
@@ -1345,7 +1345,7 @@ init_udprelay(const char *server_host, const char *server_port,
 
     // Initialize MTU
     if (mtu > 0) {
-        packet_size = mtu - 1 - 28 - 2 - 64;
+        packet_size = mtu - PACKET_HEADER_SIZE;
         buf_size    = packet_size * 2;
     }
 
