@@ -24,6 +24,8 @@
 #include "config.h"
 #endif
 
+#ifndef __MINGW32__
+
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -299,3 +301,5 @@ is_plugin_running()
     }
     return 0;
 }
+
+#endif

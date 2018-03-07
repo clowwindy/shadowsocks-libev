@@ -87,6 +87,35 @@ extern FILE *logfile;
 
 #else // not LIB_ONLY
 
+#ifdef __MINGW32__
+
+#define USE_TTY()
+#define USE_SYSLOG(ident, _cond)
+#define USE_LOGFILE(ident)
+#define TIME_FORMAT "%Y-%m-%d %H:%M:%S"
+#define LOGI(format, ...)                                    \
+    do {                                                     \
+        time_t now = time(NULL);                             \
+        char timestr[20];                                    \
+        strftime(timestr, 20, TIME_FORMAT, localtime(&now)); \
+        fprintf(stdout, " %s INFO: " format "\n", timestr,   \
+                ## __VA_ARGS__);                             \
+    }                                                        \
+    while (0)
+
+#define LOGE(format, ...)                                     \
+    do {                                                      \
+        time_t now = time(NULL);                              \
+        char timestr[20];                                     \
+        strftime(timestr, 20, TIME_FORMAT, localtime(&now));  \
+        fprintf(stdout, " %s ERROR: " format "\n", timestr,   \
+                ## __VA_ARGS__);                              \
+    }                                                         \
+    while (0)
+
+
+#else // not __MINGW32__
+
 #include <syslog.h>
 extern int use_tty;
 extern int use_syslog;
@@ -146,11 +175,30 @@ extern int use_syslog;
         } }                                                                       \
     while (0)
 
+#endif // if __MINGW32__
+
 #endif // if LIB_ONLY
 
 #endif // if __ANDROID__
 
+// Workaround for "%z" in Windows printf
+#ifdef __MINGW32__
+#define SSIZE_FMT "%Id"
+#define SIZE_FMT "%Iu"
+#else
+#define SSIZE_FMT "%zd"
+#define SIZE_FMT "%zu"
+#endif
+
+#ifdef __MINGW32__
+#ifdef ERROR
+#undef ERROR
+#endif
+#define ERROR(s) ss_error(s)
+void ss_error(const char *s); // Implemented in winsock.c
+#else
 void ERROR(const char *s);
+#endif
 
 char *ss_itoa(int i);
 int ss_isnumeric(const char *s);
