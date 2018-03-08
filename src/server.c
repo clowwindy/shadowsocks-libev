@@ -35,14 +35,14 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <math.h>
-
+#ifndef __MINGW32__
 #include <netdb.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <sys/un.h>
-
+#endif
 #include <libcork/core.h>
 
 #if defined(HAVE_SYS_IOCTL_H) && defined(HAVE_NET_IF_H) && defined(__linux__)
@@ -56,6 +56,7 @@
 #include "acl.h"
 #include "plugin.h"
 #include "server.h"
+#include "winsock.h"
 
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
@@ -134,15 +135,20 @@ static char *manager_addr = NULL;
 uint64_t tx               = 0;
 uint64_t rx               = 0;
 
+#ifndef __MINGW32__
 ev_timer stat_update_watcher;
+#endif
 ev_timer block_list_watcher;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
+#ifndef __MINGW32__
 static struct ev_signal sigchld_watcher;
+#endif
 
 static struct cork_dllist connections;
 
+#ifndef __MINGW32__
 static void
 stat_update_cb(EV_P_ ev_timer *watcher, int revents)
 {
@@ -218,6 +224,7 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
 
     close(sfd);
 }
+#endif
 
 static void
 free_connections(struct ev_loop *loop)
@@ -320,6 +327,7 @@ setfastopen(int fd)
     return s;
 }
 
+#ifndef __MINGW32__
 int
 setnonblocking(int fd)
 {
@@ -329,6 +337,7 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+#endif
 
 int
 create_and_bind(const char *host, const char *port, int mptcp)
@@ -1409,16 +1418,20 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 {
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
+#ifndef __MINGW32__
         case SIGCHLD:
             if (!is_plugin_running())
                 LOGE("plugin service exit unexpectedly");
             else
                 return;
+#endif
         case SIGINT:
         case SIGTERM:
             ev_signal_stop(EV_DEFAULT, &sigint_watcher);
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
             ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
+#endif
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
@@ -1493,7 +1506,9 @@ main(int argc, char **argv)
     char *server_port = NULL;
     char *plugin_opts = NULL;
     char *plugin_port = NULL;
+#ifndef __MINGW32__
     char tmp_port[8];
+#endif
 
     int server_num = 0;
     const char *server_host[MAX_REMOTE_NUM];
@@ -1717,7 +1732,12 @@ main(int argc, char **argv)
 
     remote_port = server_port;
 
+#ifdef __MINGW32__
+    winsock_init();
+#endif
+
     if (plugin != NULL) {
+#ifndef __MINGW32__
         uint16_t port = get_local_port();
         if (port == 0) {
             FATAL("failed to find a free port");
@@ -1725,6 +1745,9 @@ main(int argc, char **argv)
         snprintf(tmp_port, 8, "%d", port);
         plugin_port = server_port;
         server_port = tmp_port;
+#else
+        FATAL("plugins not implemented in MinGW port");
+#endif
     }
 
     if (method == NULL) {
@@ -1782,16 +1805,20 @@ main(int argc, char **argv)
         LOGI("enable TCP no-delay");
     }
 
+#ifndef __MINGW32__
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
+#endif
 
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
+#endif
 
     // setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1808,6 +1835,7 @@ main(int argc, char **argv)
     if (nameservers != NULL)
         LOGI("using nameserver: %s", nameservers);
 
+#ifndef __MINGW32__
     // Start plugin server
     if (plugin != NULL) {
         int len          = 0;
@@ -1827,6 +1855,7 @@ main(int argc, char **argv)
             FATAL("failed to start the plugin");
         }
     }
+#endif
 
     // initialize listen context
     listen_ctx_t listen_ctx_list[server_num];
@@ -1888,14 +1917,17 @@ main(int argc, char **argv)
         }
     }
 
+#ifndef __MINGW32__
     if (manager_addr != NULL) {
         ev_timer_init(&stat_update_watcher, stat_update_cb, UPDATE_INTERVAL, UPDATE_INTERVAL);
         ev_timer_start(EV_DEFAULT, &stat_update_watcher);
     }
+#endif
 
     ev_timer_init(&block_list_watcher, block_list_clear_cb, UPDATE_INTERVAL, UPDATE_INTERVAL);
     ev_timer_start(EV_DEFAULT, &block_list_watcher);
 
+#ifndef __MINGW32__
     // setuid
     if (user != NULL && !run_as(user)) {
         FATAL("failed to switch user");
@@ -1904,6 +1936,7 @@ main(int argc, char **argv)
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
+#endif
 
     // init block list
     init_block_list();
@@ -1921,15 +1954,19 @@ main(int argc, char **argv)
     // Free block list
     free_block_list();
 
+#ifndef __MINGW32__
     if (manager_addr != NULL) {
         ev_timer_stop(EV_DEFAULT, &stat_update_watcher);
     }
+#endif
 
     ev_timer_stop(EV_DEFAULT, &block_list_watcher);
 
+#ifndef __MINGW32__
     if (plugin != NULL) {
         stop_plugin();
     }
+#endif
 
     // Clean up
 
@@ -1952,6 +1989,10 @@ main(int argc, char **argv)
     if (mode != TCP_ONLY) {
         free_udprelay();
     }
+
+#ifdef __MINGW32__
+    winsock_cleanup();
+#endif
 
     return 0;
 }

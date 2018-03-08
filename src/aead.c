@@ -31,11 +31,14 @@
 #include <assert.h>
 
 #include <sodium.h>
+#ifndef __MINGW32__
 #include <arpa/inet.h>
+#endif
 
 #include "ppbloom.h"
 #include "aead.h"
 #include "utils.h"
+#include "winsock.h"
 
 #define NONE                    (-1)
 #define AES128GCM               0

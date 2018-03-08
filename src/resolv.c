@@ -32,13 +32,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-
+#ifndef __MINGW32__
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <errno.h>
 #include <unistd.h>
-
+#endif
 #include <ares.h>
 
 #ifdef HAVE_LIBEV_EV_H
@@ -52,6 +52,13 @@
 #include "resolv.h"
 #include "utils.h"
 #include "netutils.h"
+#include "winsock.h"
+
+#ifdef __MINGW32__
+#define CONV_STATE_CB (ares_sock_state_cb)
+#else
+#define CONV_STATE_CB
+#endif
 
 /*
  * Implement DNS resolution interface using libc-ares
@@ -147,7 +154,7 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     memset(&default_ctx, 0, sizeof(struct resolv_ctx));
 
     default_ctx.options.sock_state_cb_data = &default_ctx;
-    default_ctx.options.sock_state_cb      = resolv_sock_state_cb;
+    default_ctx.options.sock_state_cb      = CONV_STATE_CB resolv_sock_state_cb;
     default_ctx.options.timeout            = 3000;
     default_ctx.options.tries              = 2;
 
