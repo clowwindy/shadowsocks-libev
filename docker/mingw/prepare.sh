@@ -40,12 +40,12 @@ LIBEV_VER=mingw
 LIBEV_SRC=libev-${LIBEV_VER}
 LIBEV_URL=https://github.com/${PROJ_SITE}/libev/archive/${LIBEV_VER}.tar.gz
 
-## mbedTLS for MinGW
-MBEDTLS_VER=mingw
-MBEDTLS_SRC=mbedtls-${MBEDTLS_VER}
-MBEDTLS_URL=https://github.com/${PROJ_SITE}/mbedtls/archive/${MBEDTLS_VER}.tar.gz
-
 # Public libraries
+
+## mbedTLS
+MBEDTLS_VER=2.7.0
+MBEDTLS_SRC=mbedtls-${MBEDTLS_VER}
+MBEDTLS_URL=https://tls.mbed.org/download/mbedtls-${MBEDTLS_VER}-apache.tgz
 
 ## Sodium
 SODIUM_VER=1.0.16
