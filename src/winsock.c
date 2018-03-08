@@ -72,4 +72,61 @@ ss_error(const char *s)
     }
 }
 
+#ifdef TCP_FASTOPEN_WINSOCK
+LPFN_CONNECTEX
+winsock_getconnectex(void)
+{
+    static LPFN_CONNECTEX pConnectEx = NULL;
+    if (pConnectEx != NULL) {
+        return pConnectEx;
+    }
+
+    // Dummy socket for WSAIoctl
+    SOCKET s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s == INVALID_SOCKET) {
+        ERROR("socket");
+        return NULL;
+    }
+
+    // Load ConnectEx function
+    GUID guid = WSAID_CONNECTEX;
+    DWORD numBytes;
+    int ret = -1;
+    ret = WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER,
+                   (void *)&guid, sizeof(guid),
+                   (void *)&pConnectEx, sizeof(pConnectEx),
+                   &numBytes, NULL, NULL);
+    if (ret != 0) {
+        ERROR("WSAIoctl");
+        closesocket(s);
+        return NULL;
+    }
+    closesocket(s);
+    return pConnectEx;
+}
+
+int
+winsock_dummybind(SOCKET fd, struct sockaddr *sa)
+{
+    struct sockaddr_storage ss;
+    memset(&ss, 0, sizeof(ss));
+    if (sa->sa_family == AF_INET) {
+        struct sockaddr_in *sin = (struct sockaddr_in *)&ss;
+        sin->sin_family = AF_INET;
+        sin->sin_addr.s_addr = INADDR_ANY;
+    } else if (sa->sa_family == AF_INET6) {
+        struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&ss;
+        sin6->sin6_family = AF_INET6;
+        sin6->sin6_addr = in6addr_any;
+    } else {
+        return -1;
+    }
+    if (bind(fd, (struct sockaddr *)&ss, sizeof(ss)) < 0 &&
+        WSAGetLastError() != WSAEINVAL) {
+        return -1;
+    }
+    return 0;
+}
+#endif
+
 #endif // __MINGW32__

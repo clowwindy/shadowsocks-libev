@@ -38,6 +38,8 @@
 #include <netinet/in.h>
 #include <errno.h>
 #include <unistd.h>
+#else
+#include "winsock.h" // Should be before <ares.h>
 #endif
 #include <ares.h>
 
@@ -52,7 +54,6 @@
 #include "resolv.h"
 #include "utils.h"
 #include "netutils.h"
-#include "winsock.h"
 
 #ifdef __MINGW32__
 #define CONV_STATE_CB (ares_sock_state_cb)
