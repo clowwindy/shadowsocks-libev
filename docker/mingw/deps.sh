@@ -40,7 +40,15 @@ build_deps() {
     cd "$SRC/$MBEDTLS_SRC"
     make clean
     make lib WINDOWS=1 CC="${host}-gcc" AR="${host}-ar"
-    make install DESTDIR="${prefix}"
+    ## "make install" command from mbedtls
+    DESTDIR="${prefix}"
+    mkdir -p "${DESTDIR}"/include/mbedtls
+    cp -r include/mbedtls "${DESTDIR}"/include
+    mkdir -p "${DESTDIR}"/lib
+    cp -RP library/libmbedtls.*    "${DESTDIR}"/lib
+    cp -RP library/libmbedx509.*   "${DESTDIR}"/lib
+    cp -RP library/libmbedcrypto.* "${DESTDIR}"/lib
+    unset DESTDIR
 
     # sodium
     cd "$SRC/$SODIUM_SRC"
