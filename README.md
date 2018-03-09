@@ -55,6 +55,7 @@ You have to install libsodium at least 1.0.8, but recommended 1.0.12 or later ve
 - [FreeBSD](#freebsd)
 - [OpenWRT](#openwrt)
 - [OS X](#os-x)
+- [Windows (MinGW)](#windows-mingw)
 - [Docker](#docker)
 
 * * *
@@ -335,6 +336,28 @@ Install shadowsocks-libev:
 ```bash
 brew install shadowsocks-libev
 ```
+
+### Windows (MinGW)
+To build Windows native binaries, the recommended method is to use Docker:
+
+* On Unix-like system:
+
+        cd shadowsocks-libev/docker/mingw
+        make
+
+* On Windows (Command Prompt):
+
+        cd shadowsocks-libev\docker\mingw
+        docker build --force-rm -t ss --build-arg REBUILD=%RANDOM% .
+        docker run --rm --entrypoint cat ss /bin.tgz > ss-win.tgz
+
+A tarball with 32-bit and 64-bit binaries will be generated in the same directory.
+
+You could also manually use MinGW-w64 compilers to build in Unix-like shell (MSYS2/Cygwin), or cross-compile on Unix-like systems (Linux/MacOS). Please refer to build scripts in `docker/mingw`.
+
+Notice that currently you need to use a patched libev library for MinGW:
+
+* https://github.com/shadowsocks/libev/archive/mingw.zip
 
 ### Docker
 
