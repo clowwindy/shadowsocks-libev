@@ -340,16 +340,11 @@ brew install shadowsocks-libev
 ### Windows (MinGW)
 To build Windows native binaries, the recommended method is to use Docker:
 
+* On Windows: double-click `make.bat` in `docker\mingw`
 * On Unix-like system:
 
         cd shadowsocks-libev/docker/mingw
         make
-
-* On Windows (Command Prompt):
-
-        cd shadowsocks-libev\docker\mingw
-        docker build --force-rm -t ss --build-arg REBUILD=%RANDOM% .
-        docker run --rm --entrypoint cat ss /bin.tgz > ss-win.tgz
 
 A tarball with 32-bit and 64-bit binaries will be generated in the same directory.
 
