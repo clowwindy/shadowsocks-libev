@@ -307,7 +307,7 @@ setfastopen(int fd)
     int s = 0;
 #ifdef TCP_FASTOPEN
     if (fast_open) {
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__MINGW32__)
         int opt = 1;
 #else
         int opt = 5;
