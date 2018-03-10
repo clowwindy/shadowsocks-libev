@@ -32,7 +32,7 @@
 #include <ev.h>
 #endif
 
-#ifdef TCP_FASTOPEN_WINSOCK
+#ifdef __MINGW32__
 #include "winsock.h"
 #endif
 
