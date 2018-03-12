@@ -527,8 +527,8 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         do {
             int optval = 1;
             // Set fast open option
-            if(setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN,
-                          &optval, sizeof(optval)) != 0) {
+            if (setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN,
+                           &optval, sizeof(optval)) != 0) {
                 ERROR("setsockopt");
                 break;
             }

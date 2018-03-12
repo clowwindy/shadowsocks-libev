@@ -381,8 +381,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     do {
                         int optval = 1;
                         // Set fast open option
-                        if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN,
-                                      &optval, sizeof(optval)) != 0) {
+                        if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN,
+                                       &optval, sizeof(optval)) != 0) {
                             ERROR("setsockopt");
                             break;
                         }
