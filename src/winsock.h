@@ -78,10 +78,9 @@
 // Check if ConnectEx supported in header
 #ifdef WSAID_CONNECTEX
 // Hardcode TCP fast open option
-#ifdef TCP_FASTOPEN
-#undef TCP_FASTOPEN
-#endif
+#ifndef TCP_FASTOPEN
 #define TCP_FASTOPEN 15
+#endif
 // Enable TFO support
 #define TCP_FASTOPEN_WINSOCK 1
 #endif
