@@ -122,6 +122,7 @@ static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 static int fast_open = 0;
 static int no_delay  = 0;
+static int ret_val   = 0;
 
 #ifdef HAVE_SETRLIMIT
 static int nofile = 0;
@@ -1495,8 +1496,10 @@ signal_cb(EV_P_ ev_signal *w, int revents)
         switch (w->signum) {
 #ifndef __MINGW32__
         case SIGCHLD:
-            if (!is_plugin_running())
+            if (!is_plugin_running()) {
                 LOGE("plugin service exit unexpectedly");
+                ret_val = -1;
+            }
             else
                 return;
 #endif
@@ -2069,5 +2072,5 @@ main(int argc, char **argv)
     winsock_cleanup();
 #endif
 
-    return 0;
+    return ret_val;
 }
