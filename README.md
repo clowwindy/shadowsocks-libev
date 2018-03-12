@@ -350,9 +350,16 @@ A tarball with 32-bit and 64-bit binaries will be generated in the same director
 
 You could also manually use MinGW-w64 compilers to build in Unix-like shell (MSYS2/Cygwin), or cross-compile on Unix-like systems (Linux/MacOS). Please refer to build scripts in `docker/mingw`.
 
-Notice that currently you need to use a patched libev library for MinGW:
+Currently you need to use a patched libev library for MinGW:
 
 * https://github.com/shadowsocks/libev/archive/mingw.zip
+
+Notice that Windows (MinGW) version has some differences from other platforms:
+
+1. No support of plugins at the moment.
+2. TCP Fast Open (TFO) is only available on **Windows 10**, **1607** or later version (precisely, build >= 14393). If you are using **1709** (build 16299) or later version, you also need to run the following command in PowerShell/Command Prompt **as Administrator** and **reboot** to use TFO properly:
+
+        netsh int tcp set global fastopenfallback=disabled
 
 ### Docker
 
