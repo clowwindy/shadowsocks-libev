@@ -167,7 +167,7 @@ AC_CHECK_HEADERS([net/if.h], [], [],
 case $host in
   *-mingw*)
     AC_DEFINE([CONNECT_IN_PROGRESS], [WSAEWOULDBLOCK], [errno for incomplete non-blocking connect(2)])
-    AC_CHECK_HEADERS([winsock2.h ws2tcpip.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
+    AC_CHECK_HEADERS([winsock2.h ws2tcpip.h mswsock.h], [], [AC_MSG_ERROR([Missing MinGW headers])], [])
     ;;
   *-linux*)
     AC_DEFINE([CONNECT_IN_PROGRESS], [EINPROGRESS], [errno for incomplete non-blocking connect(2)])

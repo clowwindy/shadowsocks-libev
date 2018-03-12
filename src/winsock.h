@@ -25,6 +25,7 @@
 
 #ifdef __MINGW32__
 
+// Target NT6
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -37,11 +38,13 @@
 #define _WIN32_WINNT 0x0600
 #endif
 
+// Winsock headers
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <mswsock.h>
 
-// Override error number
+// Override POSIX error number
 #ifdef errno
 #undef errno
 #endif
@@ -56,6 +59,31 @@
 #undef CONNECT_IN_PROGRESS
 #endif
 #define CONNECT_IN_PROGRESS WSAEWOULDBLOCK
+
+#ifdef EOPNOTSUPP
+#undef EOPNOTSUPP
+#endif
+#define EOPNOTSUPP WSAEOPNOTSUPP
+
+#ifdef EPROTONOSUPPORT
+#undef EPROTONOSUPPORT
+#endif
+#define EPROTONOSUPPORT WSAEPROTONOSUPPORT
+
+#ifdef ENOPROTOOPT
+#undef ENOPROTOOPT
+#endif
+#define ENOPROTOOPT WSAENOPROTOOPT
+
+// Check if ConnectEx supported in header
+#ifdef WSAID_CONNECTEX
+// Hardcode TCP fast open option
+#ifndef TCP_FASTOPEN
+#define TCP_FASTOPEN 15
+#endif
+// Enable TFO support
+#define TCP_FASTOPEN_WINSOCK 1
+#endif
 
 // Override close function
 #define close(fd) closesocket(fd)
@@ -80,6 +108,10 @@ void ss_error(const char *s);
 int setnonblocking(SOCKET socket);
 void winsock_init(void);
 void winsock_cleanup(void);
+#ifdef TCP_FASTOPEN_WINSOCK
+LPFN_CONNECTEX winsock_getconnectex(void);
+int winsock_dummybind(SOCKET fd, struct sockaddr *sa);
+#endif
 
 #endif // __MINGW32__
 
