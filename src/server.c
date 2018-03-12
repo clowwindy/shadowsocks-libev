@@ -530,14 +530,13 @@ connect_to_remote(EV_P_ struct addrinfo *res,
             if(setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN,
                           &optval, sizeof(optval)) != 0) {
                 ERROR("setsockopt");
-                err = WSAEOPNOTSUPP;
                 break;
             }
             // Load ConnectEx function
             LPFN_CONNECTEX ConnectEx = winsock_getconnectex();
             if (ConnectEx == NULL) {
                 LOGE("Cannot load ConnectEx() function");
-                err = WSAEOPNOTSUPP;
+                err = WSAENOPROTOOPT;
                 break;
             }
             // ConnectEx requires a bound socket
