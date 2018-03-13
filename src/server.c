@@ -145,6 +145,13 @@ static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
 #ifndef __MINGW32__
 static struct ev_signal sigchld_watcher;
+#else
+static struct plugin_watcher_t {
+    ev_io io;
+    SOCKET fd;
+    uint16_t port;
+    int valid;
+} plugin_watcher;
 #endif
 
 static struct cork_dllist connections;
@@ -1509,11 +1516,33 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
 #ifndef __MINGW32__
             ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
+#else
+            ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
 #endif
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
 }
+
+#ifdef __MINGW32__
+static void
+plugin_watcher_cb(EV_P_ ev_io *w, int revents)
+{
+    char buf[1];
+    SOCKET fd = accept(plugin_watcher.fd, NULL, NULL);
+    if (fd == INVALID_SOCKET) {
+        return;
+    }
+    recv(fd, buf, 1, 0);
+    closesocket(fd);
+    LOGE("plugin service exit unexpectedly");
+    ret_val = -1;
+    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
+    ev_unloop(EV_A_ EVUNLOOP_ALL);
+}
+#endif
 
 static void
 accept_cb(EV_P_ ev_io *w, int revents)
@@ -1584,9 +1613,7 @@ main(int argc, char **argv)
     char *server_port = NULL;
     char *plugin_opts = NULL;
     char *plugin_port = NULL;
-#ifndef __MINGW32__
     char tmp_port[8];
-#endif
 
     int server_num = 0;
     const char *server_host[MAX_REMOTE_NUM];
@@ -1815,7 +1842,6 @@ main(int argc, char **argv)
 #endif
 
     if (plugin != NULL) {
-#ifndef __MINGW32__
         uint16_t port = get_local_port();
         if (port == 0) {
             FATAL("failed to find a free port");
@@ -1823,8 +1849,13 @@ main(int argc, char **argv)
         snprintf(tmp_port, 8, "%d", port);
         plugin_port = server_port;
         server_port = tmp_port;
-#else
-        FATAL("plugins not implemented in MinGW port");
+
+#ifdef __MINGW32__
+        memset(&plugin_watcher, 0, sizeof(plugin_watcher));
+        plugin_watcher.port = get_local_port();
+        if (plugin_watcher.port == 0) {
+            LOGE("failed to assign a control port for plugin");
+        }
 #endif
     }
 
@@ -1913,7 +1944,40 @@ main(int argc, char **argv)
     if (nameservers != NULL)
         LOGI("using nameserver: %s", nameservers);
 
-#ifndef __MINGW32__
+#ifdef __MINGW32__
+    // Listen on plugin control port
+    if (plugin != NULL && plugin_watcher.port != 0) {
+        SOCKET fd;
+        fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (fd != INVALID_SOCKET) {
+            plugin_watcher.valid = 0;
+            do {
+                struct sockaddr_in addr;
+                memset(&addr, 0, sizeof(addr));
+                addr.sin_family = AF_INET;
+                addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+                addr.sin_port = htons(plugin_watcher.port);
+                if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))) {
+                    LOGE("failed to bind plugin control port");
+                    break;
+                }
+                if (listen(fd, 1)) {
+                    LOGE("failed to listen on plugin control port");
+                    break;
+                }
+                plugin_watcher.fd = fd;
+                ev_io_init(&plugin_watcher.io, plugin_watcher_cb, fd, EV_READ);
+                ev_io_start(EV_DEFAULT, &plugin_watcher.io);
+                plugin_watcher.valid = 1;
+            } while (0);
+            if (!plugin_watcher.valid) {
+                closesocket(fd);
+                plugin_watcher.port = 0;
+            }
+        }
+    }
+#endif
+
     // Start plugin server
     if (plugin != NULL) {
         int len          = 0;
@@ -1928,12 +1992,16 @@ main(int argc, char **argv)
         }
 
         int err = start_plugin(plugin, plugin_opts, server_str,
-                               plugin_port, "127.0.0.1", server_port, MODE_SERVER);
+                               plugin_port, "127.0.0.1", server_port,
+#ifdef __MINGW32__
+                               plugin_watcher.port,
+#endif
+                               MODE_SERVER);
         if (err) {
+            ERROR("start_plugin");
             FATAL("failed to start the plugin");
         }
     }
-#endif
 
     // initialize listen context
     listen_ctx_t listen_ctx_list[server_num];
@@ -2040,11 +2108,9 @@ main(int argc, char **argv)
 
     ev_timer_stop(EV_DEFAULT, &block_list_watcher);
 
-#ifndef __MINGW32__
     if (plugin != NULL) {
         stop_plugin();
     }
-#endif
 
     // Clean up
 
@@ -2069,6 +2135,10 @@ main(int argc, char **argv)
     }
 
 #ifdef __MINGW32__
+    if (plugin_watcher.valid) {
+        closesocket(plugin_watcher.fd);
+    }
+
     winsock_cleanup();
 #endif
 

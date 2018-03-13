@@ -191,6 +191,7 @@ extern int use_syslog;
 #endif
 
 #ifdef __MINGW32__
+// Override Windows built-in functions
 #ifdef ERROR
 #undef ERROR
 #endif

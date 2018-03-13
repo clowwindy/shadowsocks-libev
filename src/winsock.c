@@ -25,6 +25,31 @@
 #include "winsock.h"
 #include "utils.h"
 
+#ifndef ENABLE_QUICK_EDIT
+#define ENABLE_QUICK_EDIT 0x0040
+#endif
+
+#ifndef STD_INPUT_HANDLE
+#define STD_INPUT_HANDLE ((DWORD)-10)
+#endif
+
+static void
+disable_quick_edit(void)
+{
+    DWORD mode = 0;
+    HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
+
+    // Get current console mode
+    if (console == NULL || !GetConsoleMode(console, &mode)) {
+        return;
+    }
+
+    // Clear the quick edit bit in the mode flags
+    mode &= ~ENABLE_QUICK_EDIT;
+    mode |= ENABLE_EXTENDED_FLAGS;
+    SetConsoleMode(console, mode);
+}
+
 void
 winsock_init(void)
 {
@@ -34,6 +59,8 @@ winsock_init(void)
     if (ret != 0) {
         FATAL("Failed to initialize winsock");
     }
+    // Disable quick edit mode to prevent stuck
+    disable_quick_edit();
 }
 
 void
