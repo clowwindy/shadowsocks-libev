@@ -38,5 +38,6 @@ RUN /bin/bash -c "source /deps.sh && dk_deps"
 ADD build.sh /
 
 ARG REBUILD=0
+ARG PLUGIN=true
 
 RUN /bin/bash -c "source /build.sh && dk_build && dk_package"

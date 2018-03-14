@@ -85,8 +85,8 @@ dk_package() {
         cp ${DIST}/x86_64/bin/ss-${bin}.exe ss-${bin}-x64.exe
     done
     for bin in local server; do
-        cp ${DIST}/i686/bin/obfs-${bin}.exe obfs-${bin}-x86.exe
-        cp ${DIST}/x86_64/bin/obfs-${bin}.exe obfs-${bin}-x64.exe
+        cp ${DIST}/i686/bin/obfs-${bin}.exe obfs-${bin}-x86.exe || true
+        cp ${DIST}/x86_64/bin/obfs-${bin}.exe obfs-${bin}-x64.exe || true
     done
     pushd "$SRC/proj"
     GIT_REV="$(git rev-parse --short HEAD)"
