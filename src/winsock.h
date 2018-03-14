@@ -97,12 +97,11 @@
 #undef ERROR
 #endif
 #define ERROR(s) ss_error(s)
-#ifndef _UTILS_H
-void ss_error(const char *s);
-#endif
 
-// Missing unistd.h functions
+// Missing Unix functions
 #define sleep(x) Sleep((x) * 1000)
+#define bzero(s,n) memset(s,0,n)
+#define strndup(s,n) ss_strndup(s,n)
 
 // Winsock compatibility functions
 int setnonblocking(SOCKET socket);
