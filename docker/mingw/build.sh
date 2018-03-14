@@ -47,6 +47,25 @@ build_proj() {
     make clean
     make LDFLAGS="-all-static -L${dep}/lib"
     make install-strip
+
+    # Reference SIP003 plugin (Experimental)
+    [[ "${PLUGIN}" != "true" ]] && return 0
+
+    PLUGIN_URL=https://github.com/${PROJ_SITE}/simple-obfs.git
+    PLUGIN_REV=master
+
+    cd "$SRC"
+    git clone ${PLUGIN_URL} plugin
+    cd plugin
+    git checkout ${PLUGIN_REV}
+    git submodule update --init
+    ./autogen.sh
+    ./configure --host=${host} --prefix=${prefix} \
+      --disable-documentation \
+      --with-ev="$dep"
+    make clean
+    make LDFLAGS="-all-static -L${dep}/lib"
+    make install-strip
 }
 
 dk_build() {
@@ -64,6 +83,10 @@ dk_package() {
     for bin in local server tunnel; do
         cp ${DIST}/i686/bin/ss-${bin}.exe ss-${bin}-x86.exe
         cp ${DIST}/x86_64/bin/ss-${bin}.exe ss-${bin}-x64.exe
+    done
+    for bin in local server; do
+        cp ${DIST}/i686/bin/obfs-${bin}.exe obfs-${bin}-x86.exe
+        cp ${DIST}/x86_64/bin/obfs-${bin}.exe obfs-${bin}-x64.exe
     done
     pushd "$SRC/proj"
     GIT_REV="$(git rev-parse --short HEAD)"
