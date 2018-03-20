@@ -110,7 +110,7 @@ start_ss_plugin(const char *plugin,
     if (plugin_opts != NULL)
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
-    exec = cork_exec_new(plugin);
+    exec = cork_exec_new_with_params(plugin, NULL);
 
     cork_exec_set_env(exec, env);
 
