@@ -60,8 +60,7 @@ build_deps() {
     cd "$SRC/$PCRE_SRC"
     ./configure $args \
       --enable-jit --disable-cpp \
-      --enable-unicode-properties \
-      --enable-pcre16 --enable-pcre32
+      --enable-unicode-properties
     make clean
     make install
 

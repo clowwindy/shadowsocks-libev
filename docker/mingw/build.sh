@@ -31,11 +31,15 @@ build_proj() {
     dep=${PREFIX}/$arch
 
     cd "$SRC"
-    git clone ${PROJ_URL} proj
-    cd proj
-    git checkout ${PROJ_REV}
-    git submodule update --init
-    ./autogen.sh
+    if ! [ -d proj ]; then
+        git clone ${PROJ_URL} proj
+        cd proj
+        git checkout ${PROJ_REV}
+        git submodule update --init
+        ./autogen.sh
+    else
+        cd proj
+    fi
     ./configure --host=${host} --prefix=${prefix} \
       --disable-documentation \
       --with-ev="$dep" \
@@ -55,11 +59,15 @@ build_proj() {
     PLUGIN_REV=master
 
     cd "$SRC"
-    git clone ${PLUGIN_URL} plugin
-    cd plugin
-    git checkout ${PLUGIN_REV}
-    git submodule update --init
-    ./autogen.sh
+    if ! [ -d plugin ]; then
+        git clone ${PLUGIN_URL} plugin
+        cd plugin
+        git checkout ${PLUGIN_REV}
+        git submodule update --init
+        ./autogen.sh
+    else
+        cd plugin
+    fi
     ./configure --host=${host} --prefix=${prefix} \
       --disable-documentation \
       --with-ev="$dep"
