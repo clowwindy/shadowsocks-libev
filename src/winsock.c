@@ -33,6 +33,14 @@
 #define STD_INPUT_HANDLE ((DWORD)-10)
 #endif
 
+#ifndef ENABLE_EXTENDED_FLAGS
+#define ENABLE_EXTENDED_FLAGS 0x0080
+#endif
+
+#ifndef STD_OUTPUT_HANDLE
+#define STD_OUTPUT_HANDLE ((DWORD)-11)
+#endif
+
 static void
 disable_quick_edit(void)
 {
@@ -40,7 +48,9 @@ disable_quick_edit(void)
     HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
 
     // Get current console mode
-    if (console == NULL || !GetConsoleMode(console, &mode)) {
+    if (console == NULL ||
+        console == INVALID_HANDLE_VALUE ||
+        !GetConsoleMode(console, &mode)) {
         return;
     }
 
@@ -97,6 +107,67 @@ ss_error(const char *s)
         LOGE("%s: [%ld] %s", s, err, msg);
         LocalFree(msg);
     }
+}
+
+static BOOL
+get_conattr(HANDLE console, WORD *out_attr)
+{
+    static BOOL done = FALSE;
+    static WORD saved_attr = 0;
+    if (!done) {
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        if (GetConsoleScreenBufferInfo(console, &info)) {
+            saved_attr = info.wAttributes;
+            done = TRUE;
+        }
+    }
+    if (out_attr != NULL) {
+        *out_attr = saved_attr;
+    }
+    return done;
+}
+
+static BOOL
+set_concolor(WORD color, BOOL reset)
+{
+    static HANDLE console = NULL;
+    if (console == NULL) {
+        console = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (console == NULL ||
+            console == INVALID_HANDLE_VALUE) {
+            console = NULL;
+            return FALSE;
+        }
+    }
+    WORD attr;
+    if (!get_conattr(console, &attr)) {
+        return FALSE;
+    }
+    if (!reset) {
+        // Only override foreground color without changing background
+        attr &= ~(FOREGROUND_RED | FOREGROUND_GREEN |
+                  FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+        attr |= (color | FOREGROUND_INTENSITY);
+    }
+    return SetConsoleTextAttribute(console, attr);
+}
+
+void
+ss_color_info(void)
+{
+    set_concolor(FOREGROUND_GREEN, FALSE);
+}
+
+void
+ss_color_error(void)
+{
+    set_concolor(FOREGROUND_RED | FOREGROUND_BLUE, FALSE);
+}
+
+void
+ss_color_reset(void)
+{
+    set_concolor(0, TRUE);
 }
 
 #ifdef TCP_FASTOPEN_WINSOCK
