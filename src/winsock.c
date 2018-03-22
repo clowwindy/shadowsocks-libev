@@ -109,6 +109,20 @@ ss_error(const char *s)
     }
 }
 
+char *
+ss_gai_strerror(int ecode)
+{
+    static TCHAR buff[GAI_STRERROR_BUFFER_SIZE + 1];
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM |
+        FORMAT_MESSAGE_IGNORE_INSERTS |
+        FORMAT_MESSAGE_MAX_WIDTH_MASK,
+        NULL, ecode,
+        MAKELANGID(LANG_NEUTRAL,SUBLANG_DEFAULT),
+        (LPTSTR)buff, GAI_STRERROR_BUFFER_SIZE, NULL);
+    return (char *)buff;
+}
+
 static BOOL
 get_conattr(HANDLE console, WORD *out_attr)
 {
