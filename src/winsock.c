@@ -133,11 +133,12 @@ set_concolor(WORD color, BOOL reset)
     static HANDLE console = NULL;
     if (console == NULL) {
         console = GetStdHandle(STD_OUTPUT_HANDLE);
-        if (console == NULL ||
-            console == INVALID_HANDLE_VALUE) {
-            console = NULL;
-            return FALSE;
-        }
+    }
+    if (console == NULL ||
+        console == INVALID_HANDLE_VALUE) {
+        // If no console is available, we will not try again
+        console = INVALID_HANDLE_VALUE;
+        return FALSE;
     }
     WORD attr;
     if (!get_conattr(console, &attr)) {
