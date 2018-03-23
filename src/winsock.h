@@ -98,6 +98,12 @@
 #endif
 #define ERROR(s) ss_error(s)
 
+#ifdef gai_strerror
+#undef gai_strerror
+#endif
+#define gai_strerror(e) ss_gai_strerror(e)
+char *ss_gai_strerror(int ecode);
+
 // Missing Unix functions
 #define sleep(x) Sleep((x) * 1000)
 #define bzero(s,n) memset(s,0,n)
