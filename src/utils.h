@@ -102,6 +102,7 @@ extern FILE *logfile;
         fprintf(stdout, " %s INFO: ", timestr);              \
         ss_color_reset();                                    \
         fprintf(stdout, format "\n", ## __VA_ARGS__);        \
+        fflush(stdout);                                      \
     }                                                        \
     while (0)
 
@@ -111,9 +112,10 @@ extern FILE *logfile;
         char timestr[20];                                     \
         strftime(timestr, 20, TIME_FORMAT, localtime(&now));  \
         ss_color_error();                                     \
-        fprintf(stdout, " %s ERROR: ", timestr);              \
+        fprintf(stderr, " %s ERROR: ", timestr);              \
         ss_color_reset();                                     \
-        fprintf(stdout, format "\n", ## __VA_ARGS__);         \
+        fprintf(stderr, format "\n", ## __VA_ARGS__);         \
+        fflush(stderr);                                       \
     }                                                         \
     while (0)
 
@@ -153,9 +155,11 @@ extern int use_syslog;
             if (use_tty) {                                                       \
                 fprintf(stdout, "\e[01;32m %s INFO: \e[0m" format "\n", timestr, \
                         ## __VA_ARGS__);                                         \
+                fflush(stdout);                                                  \
             } else {                                                             \
                 fprintf(stdout, " %s INFO: " format "\n", timestr,               \
                         ## __VA_ARGS__);                                         \
+                fflush(stdout);                                                  \
             }                                                                    \
         }                                                                        \
     }                                                                            \
@@ -172,9 +176,11 @@ extern int use_syslog;
             if (use_tty) {                                                        \
                 fprintf(stderr, "\e[01;35m %s ERROR: \e[0m" format "\n", timestr, \
                         ## __VA_ARGS__);                                          \
+                fflush(stderr);                                                   \
             } else {                                                              \
                 fprintf(stderr, " %s ERROR: " format "\n", timestr,               \
                         ## __VA_ARGS__);                                          \
+                fflush(stderr);                                                   \
             }                                                                     \
         } }                                                                       \
     while (0)
