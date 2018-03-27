@@ -13,22 +13,21 @@ ENV DNS_ADDR    8.8.8.8
 ENV DNS_ADDR_2  8.8.4.4
 ENV ARGS=
 
-COPY . /tmp
+COPY . /tmp/repo
 
 RUN set -ex && \
     apk add --no-cache --virtual .build-deps \
-                                git \
                                 autoconf \
                                 automake \
-                                libtool \
                                 build-base \
+                                c-ares-dev \
                                 libev-dev \
-                                linux-headers \
+                                libtool \
                                 libsodium-dev \
+                                linux-headers \
                                 mbedtls-dev \
-                                pcre-dev \
-                                c-ares-dev && \
-    cd /tmp && \
+                                pcre-dev && \
+    cd /tmp/repo && \
     ./autogen.sh && \
     ./configure --prefix=/usr --disable-documentation && \
     make install && \
@@ -43,7 +42,7 @@ RUN set -ex && \
                                 rng-tools \
                                 $runDeps && \
     apk del .build-deps && \
-    rm -rf /tmp/*
+    rm -rf /tmp/repo
 
 USER nobody
 
