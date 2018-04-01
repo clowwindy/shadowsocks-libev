@@ -92,6 +92,8 @@ int vpn        = 0;
 uint64_t tx    = 0;
 uint64_t rx    = 0;
 ev_tstamp last = 0;
+
+int is_remote_dns = 0;
 #endif
 
 static crypto_t *crypto;
@@ -827,7 +829,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             if (remote == NULL) {
                 remote = create_remote(server->listener, NULL);
 
-                if (sni_detected) {
+                if (sni_detected
+#ifdef __ANDROID__
+                        && !is_remote_dns
+#endif
+                        ) {
                     // Reconstruct address buffer
                     abuf->len               = 0;
                     abuf->data[abuf->len++] = 3;
@@ -1541,6 +1547,9 @@ main(int argc, char **argv)
             ipv6first = 1;
             break;
 #ifdef __ANDROID__
+        case 'D':
+            is_remote_dns = 1;
+            break;
         case 'V':
             vpn = 1;
             break;
