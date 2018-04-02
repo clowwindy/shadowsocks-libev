@@ -838,13 +838,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     abuf->len               = 0;
                     abuf->data[abuf->len++] = 3;
                     abuf->data[abuf->len++] = ret;
-                    memcpy(abuf->data + abuf->len, hostname, ret);
+                    memcpy(abuf->data + abuf->len, host, ret);
                     abuf->len += ret;
                     dst_port  = htons(dst_port);
                     memcpy(abuf->data + abuf->len, &dst_port, 2);
                     abuf->len += 2;
-
-                    ss_free(hostname);
                 }
             }
 
