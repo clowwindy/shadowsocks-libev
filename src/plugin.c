@@ -110,7 +110,11 @@ start_ss_plugin(const char *plugin,
     if (plugin_opts != NULL)
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
+#ifdef __ANDROID__
+    exec = cork_exec_new_with_params("sh", "-c", plugin, NULL);
+#else
     exec = cork_exec_new_with_params(plugin, NULL);
+#endif
 
     cork_exec_set_env(exec, env);
 
