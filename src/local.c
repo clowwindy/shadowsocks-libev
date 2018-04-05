@@ -831,7 +831,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 if (sni_detected
 #ifdef __ANDROID__
-                        && !is_remote_dns
+                        && acl && !is_remote_dns
 #endif
                         ) {
                     // Reconstruct address buffer
