@@ -1980,9 +1980,7 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
 #ifndef __MINGW32__
     ev_signal_init(&sigusr1_watcher, signal_cb, SIGUSR1);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigusr1_watcher);
-    ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #endif
 
     // Setup keys
