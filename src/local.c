@@ -471,7 +471,9 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
 #endif
         ) {
         int bypass   = 0;
+#ifndef __ANDROID__
         int resolved = 0;
+#endif
         struct sockaddr_storage storage;
         memset(&storage, 0, sizeof(struct sockaddr_storage));
         int err;
