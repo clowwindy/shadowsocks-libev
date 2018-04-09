@@ -552,9 +552,9 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
     if (remote == NULL) {
         remote = create_remote(server->listener, NULL);
 
-        if (sni_detected
+        if (sni_detected && acl
 #ifdef __ANDROID__
-            && acl && !is_remote_dns
+            && !is_remote_dns
 #endif
             ) {
             // Reconstruct address buffer
