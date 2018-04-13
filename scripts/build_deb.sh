@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright 2017 Roger Shimizu <rogershimizu@gmail.com>
+# Copyright 2017-2018 Roger Shimizu <rosh@debian.org>
 #
 # This is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -199,8 +199,15 @@ if [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ]; then
 		DHVER=$(dpkg -l debhelper|grep debhelper|awk '{print $3}'|head -n1)
 		cd libsodium
 		if dpkg --compare-versions $DHVER lt 10; then
+			sed -i 's/debhelper ( >= 11)/debhelper (>= 9), dh-autoreconf/' debian/control;
 			sed -i 's/debhelper ( >= 10)/debhelper (>= 9), dh-autoreconf/' debian/control;
 			echo 9 > debian/compat;
+			dch -D unstable -l~bpo~ "Rebuild as backports"
+			git add -u;
+			git commit -m "Patch to work with ubuntu"
+		elif dpkg --compare-versions $DHVER lt 11; then
+			sed -i 's/debhelper ( >= 11)/debhelper (>= 10)/' debian/control;
+			echo 10 > debian/compat;
 			dch -D unstable -l~bpo~ "Rebuild as backports"
 			git add -u;
 			git commit -m "Patch to work with ubuntu"
