@@ -6,6 +6,7 @@ FROM alpine
 LABEL maintainer="kev <noreply@datageek.info>, Sah <contact@leesah.name>"
 
 ENV SERVER_ADDR 0.0.0.0
+ENV SERVER_PORT 8388
 ENV PASSWORD=
 ENV METHOD      aes-256-cfb
 ENV TIMEOUT     300
@@ -43,11 +44,9 @@ RUN set -ex \
 
 USER nobody
 
-EXPOSE 8388/tcp 8388/udp
-
 CMD exec ss-server \
       -s $SERVER_ADDR \
-      -p 8388 \
+      -p $SERVER_PORT \
       -k ${PASSWORD:-$(hostname)} \
       -m $METHOD \
       -t $TIMEOUT \
