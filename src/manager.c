@@ -288,13 +288,13 @@ get_server(char *buf, int len)
             json_value *value = obj->u.object.values[i].value;
             if (strcmp(name, "server_port") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->port, value->u.string.ptr, 8);
+                    strncpy(server->port, value->u.string.ptr, 7);
                 } else if (value->type == json_integer) {
                     snprintf(server->port, 8, "%" PRIu64 "", value->u.integer);
                 }
             } else if (strcmp(name, "password") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->password, value->u.string.ptr, 128);
+                    strncpy(server->password, value->u.string.ptr, 127);
                 }
             } else if (strcmp(name, "method") == 0) {
                 if (value->type == json_string) {
@@ -355,7 +355,7 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
             char *name        = obj->u.object.values[i].name;
             json_value *value = obj->u.object.values[i].value;
             if (value->type == json_integer) {
-                strncpy(port, name, 8);
+                strncpy(port, name, 7);
                 *traffic = value->u.integer;
             }
         }
@@ -1172,8 +1172,8 @@ main(int argc, char **argv)
         for (i = 0; i < conf->port_password_num; i++) {
             struct server *server = ss_malloc(sizeof(struct server));
             memset(server, 0, sizeof(struct server));
-            strncpy(server->port, conf->port_password[i].port, 8);
-            strncpy(server->password, conf->port_password[i].password, 128);
+            strncpy(server->port, conf->port_password[i].port, 7);
+            strncpy(server->password, conf->port_password[i].password, 127);
             add_server(&manager, server);
         }
     }
