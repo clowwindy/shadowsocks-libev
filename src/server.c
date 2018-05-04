@@ -813,7 +813,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         int offset     = 0;
         int need_query = 0;
         char atyp      = server->buf->data[offset++];
-        char host[257] = { 0 };
+        char host[255] = { 0 };
         uint16_t port  = 0;
         struct addrinfo info;
         struct sockaddr_storage storage;
