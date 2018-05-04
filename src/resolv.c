@@ -448,6 +448,7 @@ reset_timer()
         return;
     }
     float repeat = tv->tv_sec + tv->tv_usec / 1000000. + 1e-9;
+    repeat = repeat < 1.f ? 1.f : repeat;
     ev_timer_set(&default_ctx.tw, repeat, repeat);
     ev_timer_again(default_loop, &default_ctx.tw);
 }
