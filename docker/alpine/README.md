@@ -29,7 +29,7 @@ $ docker pull shadowsocks/shadowsocks-libev:edge
 ## Start a container
 
 ```bash
-$ docker run -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
+$ docker run -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
 ```
 This starts a container of the latest release with all the default settings, which is equivalent to
 ```bash
@@ -43,7 +43,7 @@ In most cases you'll want to change a thing or two, for instance the port which 
 
 Here's an example to start a container that listens on `28388` (both TCP and UDP):
 ```bash
-$ docker run -p28388:8388 -p28388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
+$ docker run -p 28388:8388 -p 28388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
 ```
 
 ### With custom password
@@ -52,7 +52,7 @@ Another thing you may want to change is the password. To change that, you can pa
 
 Here's an example to start a container with `9MLSpPmNt` as the password:
 ```bash
-$ docker run -e PASSWORD=9MLSpPmNt -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
+$ docker run -e PASSWORD=9MLSpPmNt -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev
 ```
 > :warning: Click [here][6] to generate a strong password to protect your server.
 
@@ -65,7 +65,7 @@ Besides `PASSWORD`, the image also defines the following environment variables t
 
 Additional arguments supported by `ss-server` can be passed with the environment variable `ARGS`, for instance to start in verbose mode:
 ```bash
-$ docker run -e ARGS=-v -p8388:8388 -p8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
+$ docker run -e ARGS=-v -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shadowsocks-libev:latest
 ```
 
 ## Use docker-compose to manage (optional)
