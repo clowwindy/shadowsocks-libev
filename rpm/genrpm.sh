@@ -4,6 +4,9 @@ set -e
 SELF=$(readlink -f -- "$0")
 HERE=$(dirname -- "$SELF")
 
+RPMBUILD=rpmbuild
+RPMBUILD_OPTS=
+
 show_help()
 {
     echo -e "`basename $0` [OPTION...]"
@@ -11,11 +14,13 @@ show_help()
     echo -e "Options:"
     echo -e "  -h    show this help."
     echo -e "  -s    use system shared libraries"
+    echo -e "  -S    build SRPMs only"
 }
 
 OPT_USE_SYSTEM_LIB=0
+OPT_SRPMS_ONLY=0
 
-while getopts "hs" opt
+while getopts "hsS" opt
 do
     case ${opt} in
         h)
@@ -26,6 +31,9 @@ do
 		s)
             OPT_USE_SYSTEM_LIB=1
 			;;
+        S)
+            OPT_SRPMS_ONLY=1
+            ;;
         *)
 			show_help
             exit 1
@@ -82,6 +90,11 @@ sed -e "s/^\(Version:\).*$/\1       ${TARGET_VERSION}/" \
     "${TARGET_SPEC_PATH}".in > "${TARGET_SPEC_PATH}"
 
 # build rpms
-rpmbuild -ba "$TARGET_SPEC_PATH" \
+if [ "$OPT_SRPMS_ONLY" -ne 0 ]; then
+    RPMBUILD_OPTS+=' -bs'
+else
+    RPMBUILD_OPTS+=' -ba'
+fi
+"$RPMBUILD" $RPMBUILD_OPTS "$TARGET_SPEC_PATH" \
          --define "%_topdir $HERE" \
          --define "%use_system_lib $OPT_USE_SYSTEM_LIB"
