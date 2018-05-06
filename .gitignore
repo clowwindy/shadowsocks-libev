@@ -18,6 +18,7 @@ build/
 .deps/
 /Makefile
 src/Makefile
+rpm/Makefile
 libev/Makefile
 libudns/Makefile
 libcork/Makefile
