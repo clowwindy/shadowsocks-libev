@@ -55,15 +55,12 @@ typedef struct server {
     int fd;
 
     buffer_t *buf;
-    buffer_t *abuf;
     cipher_ctx_t *e_ctx;
     cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
     ss_addr_t destaddr;
-
-    ev_timer delayed_connect_watcher;
 } server_t;
 
 typedef struct remote_ctx {
