@@ -10,6 +10,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_USE_SYSTEM_EXTENSIONS
 
 AM_INIT_AUTOMAKE([subdir-objects foreign -Wno-gnu -Werror])
+AM_EXTRA_RECURSIVE_TARGETS([rpm srpm])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AM_MAINTAINER_MODE
@@ -239,7 +240,8 @@ AC_CHECK_LIB([ev], [ev_loop_destroy], [LIBS="-lev $LIBS"], [AC_MSG_ERROR([Couldn
 AC_CONFIG_FILES([shadowsocks-libev.pc
                  Makefile
                  doc/Makefile
-                 src/Makefile])
+                 src/Makefile
+                 rpm/Makefile])
 
 AM_COND_IF([USE_SYSTEM_SHARED_LIB],
 		   [AC_DEFINE([USE_SYSTEM_SHARED_LIB], [1], [Define if use system shared lib.])],
