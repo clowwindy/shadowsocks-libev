@@ -65,8 +65,12 @@
  * Implement DNS resolution interface using libc-ares
  */
 
+
+#define SS_NUM_IOS 6
+#define SS_INVALID_FD -1
+
 struct resolv_ctx {
-    struct ev_io io;
+    struct ev_io ios[SS_NUM_IOS];
     struct ev_timer tw;
 
     ares_channel channel;
@@ -90,7 +94,7 @@ struct resolv_query {
 
 extern int verbose;
 
-struct resolv_ctx default_ctx;
+static struct resolv_ctx default_ctx;
 static struct ev_loop *default_loop;
 
 enum {
@@ -121,8 +125,6 @@ static void reset_timer();
 static void
 resolv_sock_cb(EV_P_ ev_io *w, int revents)
 {
-    struct resolv_ctx *ctx = (struct resolv_ctx *)w;
-
     ares_socket_t rfd = ARES_SOCKET_BAD, wfd = ARES_SOCKET_BAD;
 
     if (revents & EV_READ)
@@ -130,7 +132,7 @@ resolv_sock_cb(EV_P_ ev_io *w, int revents)
     if (revents & EV_WRITE)
         wfd = w->fd;
 
-    ares_process_fd(ctx->channel, rfd, wfd);
+    ares_process_fd(default_ctx.channel, rfd, wfd);
 
     reset_timer();
 }
@@ -181,7 +183,9 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
         FATAL("failed to set nameservers");
     }
 
-    ev_init(&default_ctx.io, resolv_sock_cb);
+    for (int i = 0; i < SS_NUM_IOS; i++) {
+        ev_io_init(&default_ctx.ios[i], resolv_sock_cb, SS_INVALID_FD, 0);
+    }
     ev_timer_init(&default_ctx.tw, resolv_timeout_cb, 0.0, 0.0);
 
     return 0;
@@ -190,6 +194,11 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 void
 resolv_shutdown(struct ev_loop *loop)
 {
+    ev_timer_stop(default_loop, &default_ctx.tw);
+    for (int i = 0; i < SS_NUM_IOS; i++) {
+        ev_io_stop(default_loop, &default_ctx.ios[i]);
+    }
+
     ares_cancel(default_ctx.channel);
     ares_destroy(default_ctx.channel);
 
@@ -460,13 +469,35 @@ static void
 resolv_sock_state_cb(void *data, int s, int read, int write)
 {
     struct resolv_ctx *ctx = (struct resolv_ctx *)data;
+    int events = (read ? EV_READ : 0) | (write ? EV_WRITE : 0);
 
-    if (read || write) {
-        ev_io_stop(default_loop, &ctx->io);
-        ev_io_set(&ctx->io, s, (read ? EV_READ : 0) | (write ? EV_WRITE : 0));
-        ev_io_start(default_loop, &ctx->io);
+    int i = 0, ffi = -1;
+    for (; i < SS_NUM_IOS; i++) {
+        if (ctx->ios[i].fd == s) {
+            break;
+        }
+
+        if (ffi < 0 && ctx->ios[i].fd == SS_INVALID_FD) {
+            // first free index
+            ffi = i;
+        }
+    }
+
+    if (i < SS_NUM_IOS) {
+        ev_io_stop(default_loop, &ctx->ios[i]);
+    } else if (ffi > -1) {
+        i = ffi;
     } else {
-        ev_io_stop(default_loop, &ctx->io);
-        ev_io_set(&ctx->io, -1, 0);
+        LOGE("failed to find free I/O watcher slot for DNS query");
+        // last resort: stop io and re-use slot, will cause timeout
+        i = 0;
+        ev_io_stop(default_loop, &ctx->ios[i]);
+    }
+
+    if (events) {
+        ev_io_set(&ctx->ios[i], s, events);
+        ev_io_start(default_loop, &ctx->ios[i]);
+    } else {
+        ev_io_set(&ctx->ios[i], SS_INVALID_FD, 0);
     }
 }
