@@ -1,7 +1,7 @@
 if USE_SYSTEM_SHARED_LIB
-SUBDIRS = src rpm
+SUBDIRS = src
 else
-SUBDIRS = libcork libipset libbloom src rpm
+SUBDIRS = libcork libipset libbloom src
 endif
 
 if ENABLE_DOCUMENTATION
