@@ -23,4 +23,5 @@ tests
 # OS-specific packaging, etc.
 debian
 scripts/build_deb.sh
+rpm
 completions
