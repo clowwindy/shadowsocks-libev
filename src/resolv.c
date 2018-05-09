@@ -68,10 +68,12 @@
 
 #define SS_NUM_IOS 6
 #define SS_INVALID_FD -1
+#define SS_TIMER_AFTER 1.0
 
 struct resolv_ctx {
     struct ev_io ios[SS_NUM_IOS];
-    struct ev_timer tw;
+    struct ev_timer timer;
+    ev_tstamp  last_tick;
 
     ares_channel channel;
     struct ares_options options;
@@ -105,7 +107,7 @@ enum {
 static int resolv_mode = MODE_IPV4_FIRST;
 
 static void resolv_sock_cb(struct ev_loop *, struct ev_io *, int);
-static void resolv_timeout_cb(struct ev_loop *, struct ev_timer *, int);
+static void resolv_timer_cb(struct ev_loop *, struct ev_timer *, int);
 static void resolv_sock_state_cb(void *, int, int, int);
 
 static void dns_query_v4_cb(void *, int, int, struct hostent *);
@@ -116,8 +118,6 @@ static inline int all_requests_are_null(struct resolv_query *);
 static struct sockaddr *choose_ipv4_first(struct resolv_query *);
 static struct sockaddr *choose_ipv6_first(struct resolv_query *);
 static struct sockaddr *choose_any(struct resolv_query *);
-
-static void reset_timer();
 
 /*
  * DNS UDP socket activity callback
@@ -132,9 +132,9 @@ resolv_sock_cb(EV_P_ ev_io *w, int revents)
     if (revents & EV_WRITE)
         wfd = w->fd;
 
-    ares_process_fd(default_ctx.channel, rfd, wfd);
+    default_ctx.last_tick = ev_now(default_loop);
 
-    reset_timer();
+    ares_process_fd(default_ctx.channel, rfd, wfd);
 }
 
 int
@@ -186,7 +186,10 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
     for (int i = 0; i < SS_NUM_IOS; i++) {
         ev_io_init(&default_ctx.ios[i], resolv_sock_cb, SS_INVALID_FD, 0);
     }
-    ev_timer_init(&default_ctx.tw, resolv_timeout_cb, 0.0, 0.0);
+
+    default_ctx.last_tick = ev_now(default_loop);
+    ev_init(&default_ctx.timer, resolv_timer_cb);
+    resolv_timer_cb(default_loop, &default_ctx.timer, 0);
 
     return 0;
 }
@@ -194,7 +197,7 @@ resolv_init(struct ev_loop *loop, char *nameservers, int ipv6first)
 void
 resolv_shutdown(struct ev_loop *loop)
 {
-    ev_timer_stop(default_loop, &default_ctx.tw);
+    ev_timer_stop(default_loop, &default_ctx.timer);
     for (int i = 0; i < SS_NUM_IOS; i++) {
         ev_io_stop(default_loop, &default_ctx.ios[i]);
     }
@@ -229,8 +232,6 @@ resolv_start(const char *hostname, uint16_t port,
 
     ares_gethostbyname(default_ctx.channel, hostname, AF_INET, dns_query_v4_cb, query);
     ares_gethostbyname(default_ctx.channel, hostname, AF_INET6, dns_query_v6_cb, query);
-
-    reset_timer();
 }
 
 /*
@@ -436,30 +437,26 @@ all_requests_are_null(struct resolv_query *query)
 }
 
 /*
- *  DNS timeout callback
+ *  Timer callback
  */
 static void
-resolv_timeout_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
+resolv_timer_cb(struct ev_loop *loop, struct ev_timer *w, int revents)
 {
-    struct resolv_ctx *ctx = cork_container_of(w, struct resolv_ctx, tw);
+    struct resolv_ctx *ctx = cork_container_of(w, struct resolv_ctx, timer);
 
-    ares_process_fd(ctx->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+    ev_tstamp now = ev_now(default_loop);
+    ev_tstamp after = ctx->last_tick - now + SS_TIMER_AFTER;
 
-    reset_timer();
-}
+    if (after < 0.0) {
+        ctx->last_tick = now;
+        ares_process_fd(ctx->channel, ARES_SOCKET_BAD, ARES_SOCKET_BAD);
 
-static void
-reset_timer()
-{
-    struct timeval tvout;
-    struct timeval *tv = ares_timeout(default_ctx.channel, NULL, &tvout);
-    if (tv == NULL) {
-        return;
+        ev_timer_set(w, SS_TIMER_AFTER, 0.0);
+    } else {
+        ev_timer_set(w, after, 0.0);
     }
-    float repeat = tv->tv_sec + tv->tv_usec / 1000000. + 1e-9;
-    repeat = repeat < 1.f ? 1.f : repeat;
-    ev_timer_set(&default_ctx.tw, repeat, repeat);
-    ev_timer_again(default_loop, &default_ctx.tw);
+
+    ev_timer_start(loop, w);
 }
 
 /*
