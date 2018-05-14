@@ -6,14 +6,13 @@ NAME=shadowsocks-libev
 SELF=$(readlink -f -- "$0")
 HERE=$(dirname -- "$SELF")
 
-OUTDIR="${HERE}"/SRPMS
 SOURCES="${HERE}"/SOURCES
 SPEC_TEMPLATE="${HERE}"/SPECS/${NAME}.spec.in
 SPEC_FILE="${SPEC_TEMPLATE%%.in}"
 
 GIT_VERSION=$("${HERE}"/../scripts/git_version.sh)
 
-OPT_OUTDIR="${OUTDIR}"
+OPT_OUTDIR="${HERE}/SRPMS"
 OPT_USE_SYSTEM_LIB=0
 OUT_BUILD_RPM=0
 
@@ -38,8 +37,7 @@ build_src_rpm()
 
 build_rpm()
 {
-    echo "${OPT_USE_SYSTEM_LIB}"
-    rpmbuild --rebuild "${OUTDIR}"/${name_version}.src.rpm \
+    rpmbuild --rebuild "${OPT_OUTDIR}"/${name_version}.src.rpm \
        --define "%_topdir ${HERE}" \
        --define "%use_system_lib ${OPT_USE_SYSTEM_LIB}"
 }
