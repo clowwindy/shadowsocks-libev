@@ -29,6 +29,7 @@ build_proj() {
     host=$arch-w64-mingw32
     prefix=${DIST}/$arch
     dep=${PREFIX}/$arch
+    cpu="$(nproc --all)"
 
     cd "$SRC"
     if ! [ -d proj ]; then
@@ -49,7 +50,7 @@ build_proj() {
       --with-cares="$dep" \
       CFLAGS="-DCARES_STATICLIB -DPCRE_STATIC"
     make clean
-    make LDFLAGS="-all-static -L${dep}/lib"
+    make -j$cpu LDFLAGS="-all-static -L${dep}/lib"
     make install-strip
 
     # Reference SIP003 plugin (Experimental)
@@ -72,7 +73,7 @@ build_proj() {
       --disable-documentation \
       --with-ev="$dep"
     make clean
-    make LDFLAGS="-all-static -L${dep}/lib"
+    make -j$cpu LDFLAGS="-all-static -L${dep}/lib"
     make install-strip
 }
 

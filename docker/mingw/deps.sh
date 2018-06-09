@@ -29,17 +29,18 @@ build_deps() {
     host=$arch-w64-mingw32
     prefix=${PREFIX}/$arch
     args="--host=${host} --prefix=${prefix} --disable-shared --enable-static"
+    cpu="$(nproc --all)"
 
     # libev
     cd "$SRC/$LIBEV_SRC"
     ./configure $args
     make clean
-    make install
+    make -j$cpu install
 
     # mbedtls
     cd "$SRC/$MBEDTLS_SRC"
     make clean
-    make lib WINDOWS=1 CC="${host}-gcc" AR="${host}-ar"
+    make -j$cpu lib WINDOWS=1 CC="${host}-gcc" AR="${host}-ar"
     ## "make install" command from mbedtls
     DESTDIR="${prefix}"
     mkdir -p "${DESTDIR}"/include/mbedtls
@@ -54,21 +55,20 @@ build_deps() {
     cd "$SRC/$SODIUM_SRC"
     ./configure $args
     make clean
-    make install
+    make -j$cpu install
 
     # pcre
     cd "$SRC/$PCRE_SRC"
-    ./configure $args \
-      --enable-jit --disable-cpp \
+    ./configure $args --disable-cpp \
       --enable-unicode-properties
     make clean
-    make install
+    make -j$cpu install
 
     # c-ares
     cd "$SRC/$CARES_SRC"
     ./configure $args
     make clean
-    make install
+    make -j$cpu install
 }
 
 dk_deps() {
