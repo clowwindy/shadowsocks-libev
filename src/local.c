@@ -615,6 +615,8 @@ server_stream(EV_P_ ev_io *w, buffer_t *buf)
         return;
     }
 
+    ev_timer_again(EV_A_ & remote->recv_ctx->watcher);
+
     // insert shadowsocks header
     if (!remote->direct) {
 #ifdef __ANDROID__
