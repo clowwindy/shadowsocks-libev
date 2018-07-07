@@ -121,7 +121,7 @@ Specify destination server address and port for local port forwarding.
 Only available in tunnel mode.
 
 -d <addr>::
-Setup name servers for internal DNS resolver (libudns).
+Setup name servers for internal DNS resolver (libc-ares).
 The default server is fetched from /etc/resolv.conf.
 +
 Only available in server and manager mode.

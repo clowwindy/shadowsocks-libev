@@ -208,9 +208,9 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --plugin-opts \"%s\"", manager->plugin_opts);
     }
-    for (i = 0; i < manager->nameserver_num; i++) {
+    if (manager->nameservers) {
         int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -d %s", manager->nameservers[i]);
+        snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
     }
     for (i = 0; i < manager->host_num; i++) {
         int len = strlen(cmd);
@@ -871,8 +871,7 @@ main(int argc, char **argv)
     int server_num = 0;
     char *server_host[MAX_REMOTE_NUM];
 
-    char *nameservers[MAX_DNS_NUM + 1];
-    int nameserver_num = 0;
+    char *nameservers = NULL;
 
     jconf_t *conf = NULL;
 
@@ -953,9 +952,7 @@ main(int argc, char **argv)
             iface = optarg;
             break;
         case 'd':
-            if (nameserver_num < MAX_DNS_NUM) {
-                nameservers[nameserver_num++] = optarg;
-            }
+            nameservers = optarg;
             break;
         case 'a':
             user = optarg;
@@ -1024,8 +1021,8 @@ main(int argc, char **argv)
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
-        if (conf->nameserver != NULL) {
-            nameservers[nameserver_num++] = conf->nameserver;
+        if (nameservers == NULL) {
+            nameservers = conf->nameserver;
         }
         if (mode == TCP_ONLY) {
             mode = conf->mode;
@@ -1118,7 +1115,6 @@ main(int argc, char **argv)
     manager.hosts           = server_host;
     manager.host_num        = server_num;
     manager.nameservers     = nameservers;
-    manager.nameserver_num  = nameserver_num;
     manager.mtu             = mtu;
     manager.plugin          = plugin;
     manager.plugin_opts     = plugin_opts;

@@ -10,8 +10,7 @@ ENV SERVER_PORT 8388
 ENV PASSWORD=
 ENV METHOD      aes-256-cfb
 ENV TIMEOUT     300
-ENV DNS_ADDR    8.8.8.8
-ENV DNS_ADDR_2  8.8.4.4
+ENV DNS_ADDRS    8.8.8.8,8.8.4.4
 ENV ARGS=
 
 COPY . /tmp/repo
@@ -51,7 +50,6 @@ CMD exec ss-server \
       -m $METHOD \
       -t $TIMEOUT \
       --fast-open \
-      -d $DNS_ADDR \
-      -d $DNS_ADDR_2 \
+      -d $DNS_ADDRS \
       -u \
       $ARGS

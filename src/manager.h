@@ -56,8 +56,7 @@ struct manager_ctx {
     char *manager_address;
     char **hosts;
     int host_num;
-    char **nameservers;
-    int nameserver_num;
+    char *nameservers;
     int mtu;
     int ipv6first;
 #ifdef HAVE_SETRLIMIT
