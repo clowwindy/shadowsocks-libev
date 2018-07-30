@@ -524,19 +524,17 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                     goto not_bypass;
                 }
             }
-            if (resolved) {
-                int ip_match = acl_match_host(ip);
-                switch (get_acl_mode()) {
-                case BLACK_LIST:
-                    if (ip_match > 0)
-                        bypass = 1;                                           // bypass IPs in black list
-                    break;
-                case WHITE_LIST:
-                    bypass = 1;
-                    if (ip_match < 0)
-                        bypass = 0;                                           // proxy IPs in white list
-                    break;
-                }
+            int ip_match = acl_match_host(ip);
+            switch (get_acl_mode()) {
+            case BLACK_LIST:
+                if (ip_match > 0)
+                    bypass = 1;                                               // bypass IPs in black list
+                break;
+            case WHITE_LIST:
+                bypass = 1;
+                if (ip_match < 0)
+                    bypass = 0;                                               // proxy IPs in white list
+                break;
             }
         }
 
