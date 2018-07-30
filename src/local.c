@@ -358,6 +358,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
     }
 
     char host[257], ip[INET6_ADDRSTRLEN], port[16];
+    int resolved = 0;
 
     buffer_t *abuf = server->abuf;
     abuf->idx = 0;
@@ -381,6 +382,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             inet_ntop(AF_INET, (const void *)(buf->data + request_len),
                       ip, INET_ADDRSTRLEN);
             sprintf(port, "%d", p);
+            resolved = 1;
         }
     } else if (atyp == 3) {
         // Domain name
@@ -413,6 +415,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             inet_ntop(AF_INET6, (const void *)(buf->data + request_len),
                       ip, INET6_ADDRSTRLEN);
             sprintf(port, "%d", p);
+            resolved = 1;
         }
     } else {
         LOGE("unsupported addrtype: %d", request->atyp);
@@ -471,9 +474,6 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
 #endif
         ) {
         int bypass   = 0;
-#ifndef __ANDROID__
-        int resolved = 0;
-#endif
         struct sockaddr_storage storage;
         memset(&storage, 0, sizeof(struct sockaddr_storage));
         int err;
@@ -491,18 +491,19 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             if (atyp == 3) {                        // resolve domain so we can bypass domain with geoip
                 err = get_sockaddr(host, port, &storage, 0, ipv6first);
                 if (err != -1) {
-                    resolved = 1;
                     switch (((struct sockaddr *)&storage)->sa_family) {
                     case AF_INET:
                     {
                         struct sockaddr_in *addr_in = (struct sockaddr_in *)&storage;
                         inet_ntop(AF_INET, &(addr_in->sin_addr), ip, INET_ADDRSTRLEN);
+                        resolved = 1;
                         break;
                     }
                     case AF_INET6:
                     {
                         struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&storage;
                         inet_ntop(AF_INET6, &(addr_in6->sin6_addr), ip, INET6_ADDRSTRLEN);
+                        resolved = 1;
                         break;
                     }
                     default:
@@ -511,17 +512,19 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                 }
             }
 #endif
-            int ip_match = acl_match_host(ip);
-            switch (get_acl_mode()) {
-            case BLACK_LIST:
-                if (ip_match > 0)
-                    bypass = 1;                                               // bypass IPs in black list
-                break;
-            case WHITE_LIST:
-                bypass = 1;
-                if (ip_match < 0)
-                    bypass = 0;                                               // proxy IPs in white list
-                break;
+            if (resolved) {
+                int ip_match = acl_match_host(ip);
+                switch (get_acl_mode()) {
+                case BLACK_LIST:
+                    if (ip_match > 0)
+                        bypass = 1;                                               // bypass IPs in black list
+                    break;
+                case WHITE_LIST:
+                    bypass = 1;
+                    if (ip_match < 0)
+                        bypass = 0;                                               // proxy IPs in white list
+                    break;
+                }
             }
         }
 
@@ -535,11 +538,12 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                     LOGI("bypass [%s]:%s", ip, port);
             }
 #ifndef __ANDROID__
-            if (atyp == 3 && resolved != 1)
+            if (atyp == 3 && !resolved)
                 err = get_sockaddr(host, port, &storage, 0, ipv6first);
             else
 #endif
-            err = get_sockaddr(ip, port, &storage, 0, ipv6first);
+            if (resolved)
+                err = get_sockaddr(ip, port, &storage, 0, ipv6first);
             if (err != -1) {
                 remote = create_remote(server->listener, (struct sockaddr *)&storage);
                 if (remote != NULL)
