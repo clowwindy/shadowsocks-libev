@@ -268,6 +268,13 @@ ss_realloc(void *ptr, size_t new_size)
     return new;
 }
 
+int
+ss_is_ipv6addr(const char *addr)
+{
+    return strcmp(addr, ":") > 0;
+}
+
+
 void
 usage()
 {
