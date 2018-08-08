@@ -2015,7 +2015,7 @@ main(int argc, char **argv)
                 host = "127.0.0.1";
             }
 
-            if (host && strcmp(host, ":") > 0)
+            if (host && ss_is_ipv6addr(host))
                 LOGI("tcp server listening at [%s]:%s", host, server_port);
             else
                 LOGI("tcp server listening at %s:%s", host ? host : "0.0.0.0", server_port);
@@ -2054,7 +2054,7 @@ main(int argc, char **argv)
             if (plugin != NULL) {
                 port = plugin_port;
             }
-            if (host && strcmp(host, ":") > 0)
+            if (host && ss_is_ipv6addr(host))
                 LOGI("udp server listening at [%s]:%s", host, port);
             else
                 LOGI("udp server listening at %s:%s", host ? host : "0.0.0.0", port);

@@ -1863,7 +1863,7 @@ main(int argc, char **argv)
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #endif
 
-    if (strcmp(local_addr, ":") > 0)
+    if (ss_is_ipv6addr(local_addr))
         LOGI("listening at [%s]:%s", local_addr, local_port);
     else
         LOGI("listening at %s:%s", local_addr, local_port);
@@ -2045,7 +2045,7 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
     listen_ctx.iface          = NULL;
     listen_ctx.mptcp          = mptcp;
 
-    if (strcmp(local_addr, ":") > 0)
+    if (ss_is_ipv6addr(local_addr))
         LOGI("listening at [%s]:%s", local_addr, local_port_str);
     else
         LOGI("listening at %s:%s", local_addr, local_port_str);

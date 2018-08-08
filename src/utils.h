@@ -231,6 +231,8 @@ void *ss_malloc(size_t size);
 void *ss_align(size_t size);
 void *ss_realloc(void *ptr, size_t new_size);
 
+int ss_is_ipv6addr(const char *addr);
+
 #define ss_free(ptr)     \
     do {                 \
         free(ptr);       \
