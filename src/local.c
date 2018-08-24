@@ -391,11 +391,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             }
             sprintf(port, "%d", p);
         }
-    } else if (atyp == SOCKS5_ATYP_DOMAIN
-#ifdef __ANDROID__
-        && !vpn // protecting DNS packets isn't supported yet
-#endif
-    ) {
+    } else if (atyp == SOCKS5_ATYP_DOMAIN) {
         uint8_t name_len = *(uint8_t *)(buf->data + request_len);
         if (buf->len < request_len + 1 + name_len + 2) {
             return -1;
@@ -504,7 +500,11 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         else if (host_match < 0)
             bypass = 0;                             // proxy hostnames in white list
         else {
-            if (atyp == SOCKS5_ATYP_DOMAIN) {       // resolve domain so we can bypass domain with geoip
+            if (atyp == SOCKS5_ATYP_DOMAIN
+#ifdef __ANDROID__
+                && !vpn
+#endif
+                    ) {       // resolve domain so we can bypass domain with geoip
                 if (get_sockaddr(host, port, &storage, 0, ipv6first)) goto not_bypass;
                 resolved = 1;
                 switch (((struct sockaddr *)&storage)->sa_family) {
@@ -524,7 +524,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                     goto not_bypass;
                 }
             }
-            int ip_match = acl_match_host(ip);
+            int ip_match = resolved ? acl_match_host(ip) : 0;
             switch (get_acl_mode()) {
             case BLACK_LIST:
                 if (ip_match > 0)
@@ -548,6 +548,9 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                     LOGI("bypass [%s]:%s", ip, port);
             }
             if (atyp == SOCKS5_ATYP_DOMAIN && !resolved)
+#ifdef __ANDROID__
+                if (vpn) goto not_bypass; else
+#endif
                 err = get_sockaddr(host, port, &storage, 0, ipv6first);
             else
                 err = get_sockaddr(ip, port, &storage, 0, ipv6first);

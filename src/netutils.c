@@ -141,6 +141,10 @@ get_sockaddr(char *host, char *port,
         }
         return 0;
     } else {
+#ifdef __ANDROID__
+        extern int vpn;
+        assert(!vpn);   // protecting DNS packets isn't supported yet
+#endif
         struct addrinfo hints;
         struct addrinfo *result, *rp;
 
