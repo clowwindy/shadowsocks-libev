@@ -96,6 +96,7 @@ static int mode      = TCP_ONLY;
 static int nofile = 0;
 #endif
 static int no_delay = 0;
+static int fast_open = 0;
 static int ret_val  = 0;
 
 static struct ev_signal sigint_watcher;
@@ -387,14 +388,20 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_send_ctx->remote;
     server_t *server              = remote->server;
 
-    if (!remote_send_ctx->connected) {
-        struct sockaddr_storage addr;
-        socklen_t len = sizeof(struct sockaddr_storage);
+    ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
-        int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+    if (!remote_send_ctx->connected) {
+        
+        int r = 0;
+        
+        if (remote->addr == NULL) {
+            struct sockaddr_storage addr;
+            socklen_t len = sizeof(struct sockaddr_storage);
+            r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        }
+
         if (r == 0) {
             remote_send_ctx->connected = 1;
-            ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
             assert(remote->buf->len == 0);
             buffer_t *abuf = remote->buf;
@@ -470,8 +477,101 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         return;
     } else {
         // has data to send
-        ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
+        ssize_t s = -1;
+        if (remote->addr != NULL) {
+#if defined(TCP_FASTOPEN_WINSOCK)
+            DWORD s   = -1;
+            DWORD err = 0;
+            do {
+                int optval = 1;
+                // Set fast open option
+                if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN,
+                               &optval, sizeof(optval)) != 0) {
+                    ERROR("setsockopt");
+                    break;
+                }
+                // Load ConnectEx function
+                LPFN_CONNECTEX ConnectEx = winsock_getconnectex();
+                if (ConnectEx == NULL) {
+                    LOGE("Cannot load ConnectEx() function");
+                    err = WSAENOPROTOOPT;
+                    break;
+                }
+                // ConnectEx requires a bound socket
+                if (winsock_dummybind(remote->fd,
+                                      (struct sockaddr *)&(remote->addr)) != 0) {
+                    ERROR("bind");
+                    break;
+                }
+                // Call ConnectEx to send data
+                memset(&remote->olap, 0, sizeof(remote->olap));
+                remote->connect_ex_done = 0;
+                if (ConnectEx(remote->fd, (const struct sockaddr *)&(remote->addr),
+                              get_sockaddr_len(remote->addr), remote->buf->data, remote->buf->len,
+                              &s, &remote->olap)) {
+                    remote->connect_ex_done = 1;
+                    break;
+                }
+                // XXX: ConnectEx pending, check later in remote_send
+                if (WSAGetLastError() == ERROR_IO_PENDING) {
+                    err = CONNECT_IN_PROGRESS;
+                    break;
+                }
+                ERROR("ConnectEx");
+            } while (0);
+            // Set error number
+            if (err) {
+                SetLastError(err);
+            }
+#elif defined(CONNECT_DATA_IDEMPOTENT)
+            ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
+            sa_endpoints_t endpoints;
+            memset((char *)&endpoints, 0, sizeof(endpoints));
+            endpoints.sae_dstaddr    = (struct sockaddr *)&(remote->addr);
+            endpoints.sae_dstaddrlen = get_sockaddr_len(remote->addr);
+            s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
+                         CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
+                         NULL, 0, NULL, NULL);
+#elif defined(TCP_FASTOPEN_CONNECT)
+            int optval = 1;
+            if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                        (void *)&optval, sizeof(optval)) < 0)
+                FATAL("failed to set TCP_FASTOPEN_CONNECT");
+            s = connect(remote->fd, remote->addr, get_sockaddr_len(remote->addr));
+            if (s == 0)
+                s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
+#elif defined(MSG_FASTOPEN)
+            s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
+                       remote->buf->len, MSG_FASTOPEN, remote->addr,
+                       get_sockaddr_len(remote->addr));
+#else
+            FATAL("tcp fast open is not supported on this platform");
+#endif
+            
+            remote->addr = NULL;
+            
+            if (s == -1) {
+                if (errno == CONNECT_IN_PROGRESS) {
+                    ev_io_start(EV_A_ & remote_send_ctx->io);
+                    ev_timer_start(EV_A_ & remote_send_ctx->watcher);
+                } else {
+                    fast_open = 0;
+                    if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
+                            errno == ENOPROTOOPT) {
+                        LOGE("fast open is not supported on this platform");
+                    } else {
+                        ERROR("fast_open_connect");
+                    }
+                    close_and_free_remote(EV_A_ remote);
+                    close_and_free_server(EV_A_ server);
+                }
+                return;
+            }
+        } else {
+            s = send(remote->fd, remote->buf->data + remote->buf->idx,
                 remote->buf->len, 0);
+        }
+
         if (s == -1) {
             if (errno != EAGAIN && errno != EWOULDBLOCK) {
                 ERROR("send");
@@ -654,6 +754,8 @@ accept_cb(EV_P_ ev_io *w, int revents)
     }
 #endif
 
+    int keepAlive = 1;
+    setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepAlive, sizeof(keepAlive));
     setsockopt(remotefd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
@@ -693,18 +795,23 @@ accept_cb(EV_P_ ev_io *w, int revents)
     server->remote   = remote;
     remote->server   = server;
 
-    int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
+    if (fast_open) {
+        remote->addr = remote_addr;
+    } else {
+        int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
 
-    if (r == -1 && errno != CONNECT_IN_PROGRESS) {
-        ERROR("connect");
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
-        return;
+        if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+            ERROR("connect");
+            close_and_free_remote(EV_A_ remote);
+            close_and_free_server(EV_A_ server);
+            return;
+        }
     }
 
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
+
 }
 
 static void
@@ -791,6 +898,7 @@ main(int argc, char **argv)
     char *tunnel_addr_str = NULL;
 
     static struct option long_options[] = {
+        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
         { "mtu",         required_argument, NULL, GETOPT_VAL_MTU         },
         { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY     },
         { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP       },
@@ -815,6 +923,9 @@ main(int argc, char **argv)
                             long_options, NULL)) != -1) {
 #endif
         switch (c) {
+        case GETOPT_VAL_FAST_OPEN:
+            fast_open = 1;
+            break;
         case GETOPT_VAL_MTU:
             mtu = atoi(optarg);
             LOGI("set MTU to %d", mtu);
@@ -983,6 +1094,9 @@ main(int argc, char **argv)
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
+        if (fast_open == 0) {
+            fast_open = conf->fast_open;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
@@ -1044,7 +1158,16 @@ main(int argc, char **argv)
     if (local_addr == NULL) {
         local_addr = "127.0.0.1";
     }
-
+        
+    if (fast_open == 1) {
+#ifdef TCP_FASTOPEN
+        LOGI("using tcp fast open");
+#else
+        LOGE("tcp fast open is not supported by this environment");
+        fast_open = 0;
+#endif
+    }
+        
     USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
         daemonize(pid_path);
