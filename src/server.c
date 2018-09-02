@@ -362,23 +362,15 @@ create_and_bind(const char *host, const char *port, int mptcp)
 
     result = NULL;
 
-    for (int i = 1; i < 8; i++) {
-        s = getaddrinfo(host, port, &hints, &result);
-        if (s == 0) {
-            break;
-        } else {
-            sleep(pow(2, i));
-            LOGE("failed to resolve server name, wait %.0f seconds", pow(2, i));
-        }
-    }
+    s = getaddrinfo(host, port, &hints, &result);
 
     if (s != 0) {
-        LOGE("getaddrinfo: %s", gai_strerror(s));
+        LOGE("failed to resolve server name %s", host);
         return -1;
     }
 
     if (result == NULL) {
-        LOGE("Could not bind");
+        LOGE("Cannot bind");
         return -1;
     }
 
@@ -2008,6 +2000,7 @@ main(int argc, char **argv)
 
     // bind to each interface
     if (mode != UDP_ONLY) {
+        int num_listen_ctx = 0;
         for (int i = 0; i < server_num; i++) {
             const char *host = server_host[i];
 
@@ -2024,10 +2017,11 @@ main(int argc, char **argv)
             int listenfd;
             listenfd = create_and_bind(host, server_port, mptcp);
             if (listenfd == -1) {
-                FATAL("bind() error");
+                continue;
             }
             if (listen(listenfd, SSMAXCONN) == -1) {
-                FATAL("listen() error");
+                ERROR("listen()");
+                continue;
             }
             setfastopen(listenfd);
             setnonblocking(listenfd);
@@ -2042,8 +2036,14 @@ main(int argc, char **argv)
             ev_io_init(&listen_ctx->io, accept_cb, listenfd, EV_READ);
             ev_io_start(loop, &listen_ctx->io);
 
+            num_listen_ctx++;
+
             if (plugin != NULL)
                 break;
+        }
+
+        if (num_listen_ctx == 0) {
+            FATAL("failed to listen on any address");
         }
     }
 
