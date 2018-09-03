@@ -1355,19 +1355,19 @@ init_udprelay(const char *server_host, const char *server_port,
         buf_size    = packet_size * 2;
     }
 
-    // Initialize cache
-    struct cache *conn_cache;
-    cache_create(&conn_cache, MAX_UDP_CONN_NUM, free_cb);
-
     // ////////////////////////////////////////////////
     // Setup server context
 
     // Bind to port
     int serverfd = create_server_socket(server_host, server_port);
     if (serverfd < 0) {
-        FATAL("[udp] bind() error");
+        return -1;
     }
     setnonblocking(serverfd);
+
+    // Initialize cache
+    struct cache *conn_cache;
+    cache_create(&conn_cache, MAX_UDP_CONN_NUM, free_cb);
 
     server_ctx_t *server_ctx = new_server_ctx(serverfd);
 #ifdef MODULE_REMOTE

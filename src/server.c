@@ -2050,6 +2050,7 @@ main(int argc, char **argv)
     }
 
     if (mode != TCP_ONLY) {
+        int num_listen_ctx = 0;
         for (int i = 0; i < server_num; i++) {
             const char *host = server_host[i];
             const char *port = server_port;
@@ -2061,7 +2062,13 @@ main(int argc, char **argv)
             else
                 LOGI("udp server listening at %s:%s", host ? host : "0.0.0.0", port);
             // Setup UDP
-            init_udprelay(host, port, mtu, crypto, atoi(timeout), iface);
+            int err = init_udprelay(host, port, mtu, crypto, atoi(timeout), iface);
+            if (err == -1) continue;
+            num_listen_ctx++;
+        }
+
+        if (num_listen_ctx == 0) {
+            FATAL("failed to listen on any address");
         }
     }
 
