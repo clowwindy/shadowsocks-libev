@@ -119,7 +119,6 @@ extern FILE *logfile;
     }                                                         \
     while (0)
 
-
 #else // not __MINGW32__
 
 #include <syslog.h>

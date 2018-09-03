@@ -84,9 +84,8 @@ static void close_and_free_server(EV_P_ server_t *server);
 int vpn = 0;
 #endif
 
-int verbose        = 0;
-int reuse_port     = 0;
-int keep_resolving = 1;
+int verbose    = 0;
+int reuse_port = 0;
 
 static crypto_t *crypto;
 
@@ -95,9 +94,9 @@ static int mode      = TCP_ONLY;
 #ifdef HAVE_SETRLIMIT
 static int nofile = 0;
 #endif
-static int no_delay = 0;
+static int no_delay  = 0;
 static int fast_open = 0;
-static int ret_val  = 0;
+static int ret_val   = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
@@ -122,6 +121,7 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
 #endif
 
 int
@@ -391,9 +391,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
     if (!remote_send_ctx->connected) {
-        
         int r = 0;
-        
+
         if (remote->addr == NULL) {
             struct sockaddr_storage addr;
             socklen_t len = sizeof(struct sockaddr_storage);
@@ -460,7 +459,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             }
 
             ev_io_start(EV_A_ & remote->recv_ctx->io);
-
         } else {
             ERROR("getpeername");
             // not connected
@@ -529,13 +527,13 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             memset((char *)&endpoints, 0, sizeof(endpoints));
             endpoints.sae_dstaddr    = (struct sockaddr *)&(remote->addr);
             endpoints.sae_dstaddrlen = get_sockaddr_len(remote->addr);
-            s = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
-                         CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
-                         NULL, 0, NULL, NULL);
+            s                        = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
+                                                CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
+                                                NULL, 0, NULL, NULL);
 #elif defined(TCP_FASTOPEN_CONNECT)
             int optval = 1;
-            if(setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
-                        (void *)&optval, sizeof(optval)) < 0)
+            if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                           (void *)&optval, sizeof(optval)) < 0)
                 FATAL("failed to set TCP_FASTOPEN_CONNECT");
             s = connect(remote->fd, remote->addr, get_sockaddr_len(remote->addr));
             if (s == 0)
@@ -547,9 +545,9 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 #else
             FATAL("tcp fast open is not supported on this platform");
 #endif
-            
+
             remote->addr = NULL;
-            
+
             if (s == -1) {
                 if (errno == CONNECT_IN_PROGRESS) {
                     ev_io_start(EV_A_ & remote_send_ctx->io);
@@ -557,7 +555,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 } else {
                     fast_open = 0;
                     if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
-                            errno == ENOPROTOOPT) {
+                        errno == ENOPROTOOPT) {
                         LOGE("fast open is not supported on this platform");
                     } else {
                         ERROR("fast_open_connect");
@@ -569,7 +567,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             }
         } else {
             s = send(remote->fd, remote->buf->data + remote->buf->idx,
-                remote->buf->len, 0);
+                     remote->buf->len, 0);
         }
 
         if (s == -1) {
@@ -811,7 +809,6 @@ accept_cb(EV_P_ ev_io *w, int revents)
     // listen to remote connected event
     ev_io_start(EV_A_ & remote->send_ctx->io);
     ev_timer_start(EV_A_ & remote->send_ctx->watcher);
-
 }
 
 static void
@@ -824,8 +821,7 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             if (!is_plugin_running()) {
                 LOGE("plugin service exit unexpectedly");
                 ret_val = -1;
-            }
-            else
+            } else
                 return;
 #endif
         case SIGINT:
@@ -837,7 +833,6 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 #else
             ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
 #endif
-            keep_resolving = 0;
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
@@ -859,9 +854,9 @@ plugin_watcher_cb(EV_P_ ev_io *w, int revents)
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
     ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
     ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
-    keep_resolving = 0;
     ev_unloop(EV_A_ EVUNLOOP_ALL);
 }
+
 #endif
 
 int
@@ -898,7 +893,7 @@ main(int argc, char **argv)
     char *tunnel_addr_str = NULL;
 
     static struct option long_options[] = {
-        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
+        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
         { "mtu",         required_argument, NULL, GETOPT_VAL_MTU         },
         { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY     },
         { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP       },
@@ -1158,7 +1153,7 @@ main(int argc, char **argv)
     if (local_addr == NULL) {
         local_addr = "127.0.0.1";
     }
-        
+
     if (fast_open == 1) {
 #ifdef TCP_FASTOPEN
         LOGI("using tcp fast open");
@@ -1167,7 +1162,7 @@ main(int argc, char **argv)
         fast_open = 0;
 #endif
     }
-        
+
     USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
         daemonize(pid_path);
@@ -1194,9 +1189,9 @@ main(int argc, char **argv)
             do {
                 struct sockaddr_in addr;
                 memset(&addr, 0, sizeof(addr));
-                addr.sin_family = AF_INET;
+                addr.sin_family      = AF_INET;
                 addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-                addr.sin_port = htons(plugin_watcher.port);
+                addr.sin_port        = htons(plugin_watcher.port);
                 if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))) {
                     LOGE("failed to bind plugin control port");
                     break;

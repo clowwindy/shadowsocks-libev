@@ -115,13 +115,13 @@ typedef struct {
 typedef struct crypto {
     cipher_t *cipher;
 
-    int(*const encrypt_all)(buffer_t *, cipher_t *, size_t);
-    int(*const decrypt_all)(buffer_t *, cipher_t *, size_t);
-    int(*const encrypt)(buffer_t *, cipher_ctx_t *, size_t);
-    int(*const decrypt)(buffer_t *, cipher_ctx_t *, size_t);
+    int(*const encrypt_all) (buffer_t *, cipher_t *, size_t);
+    int(*const decrypt_all) (buffer_t *, cipher_t *, size_t);
+    int(*const encrypt) (buffer_t *, cipher_ctx_t *, size_t);
+    int(*const decrypt) (buffer_t *, cipher_ctx_t *, size_t);
 
-    void(*const ctx_init)(cipher_t *, cipher_ctx_t *, int);
-    void(*const ctx_release)(cipher_ctx_t *);
+    void(*const ctx_init) (cipher_t *, cipher_ctx_t *, int);
+    void(*const ctx_release) (cipher_ctx_t *);
 } crypto_t;
 
 int balloc(buffer_t *, size_t);

@@ -232,6 +232,7 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
 
     close(sfd);
 }
+
 #endif
 
 static void
@@ -345,6 +346,7 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
 #endif
 
 int
@@ -520,9 +522,9 @@ connect_to_remote(EV_P_ struct addrinfo *res,
 #if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
         int s = -1;
         s = sendto(sockfd, server->buf->data, server->buf->len,
-                MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
+                   MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #elif defined(TCP_FASTOPEN_WINSOCK)
-        DWORD s = -1;
+        DWORD s   = -1;
         DWORD err = 0;
         do {
             int optval = 1;
@@ -552,14 +554,14 @@ connect_to_remote(EV_P_ struct addrinfo *res,
                           &s, &remote->olap)) {
                 remote->connect_ex_done = 1;
                 break;
-            };
+            }
             // XXX: ConnectEx pending, check later in remote_send
             if (WSAGetLastError() == ERROR_IO_PENDING) {
                 err = CONNECT_IN_PROGRESS;
                 break;
             }
             ERROR("ConnectEx");
-        } while(0);
+        } while (0);
         // Set error number
         if (err) {
             SetLastError(err);
@@ -568,8 +570,8 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         int s = -1;
 #if defined(TCP_FASTOPEN_CONNECT)
         int optval = 1;
-        if(setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
-                    (void *)&optval, sizeof(optval)) < 0)
+        if (setsockopt(sockfd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                       (void *)&optval, sizeof(optval)) < 0)
             FATAL("failed to set TCP_FASTOPEN_CONNECT");
         s = connect(sockfd, res->ai_addr, res->ai_addrlen);
 #elif defined(CONNECT_DATA_IDEMPOTENT)
@@ -580,7 +582,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         endpoints.sae_dstaddrlen = res->ai_addrlen;
 
         s = connectx(sockfd, &endpoints, SAE_ASSOCID_ANY, CONNECT_DATA_IDEMPOTENT,
-                         NULL, 0, NULL, NULL);
+                     NULL, 0, NULL, NULL);
 #else
         FATAL("fast open is not enabled in this build");
 #endif
@@ -1228,8 +1230,8 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 // Non-blocking way to fetch ConnectEx result
                 if (WSAGetOverlappedResult(remote->fd, &remote->olap,
                                            &numBytes, FALSE, &flags)) {
-                    remote->buf->len -= numBytes;
-                    remote->buf->idx  = numBytes;
+                    remote->buf->len       -= numBytes;
+                    remote->buf->idx        = numBytes;
                     remote->connect_ex_done = 1;
                 } else if (WSAGetLastError() == WSA_IO_INCOMPLETE) {
                     // XXX: ConnectEx still not connected, wait for next time
@@ -1240,7 +1242,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     close_and_free_remote(EV_A_ remote);
                     close_and_free_server(EV_A_ server);
                     return;
-                };
+                }
             }
 
             // Make getpeername work
@@ -1498,8 +1500,7 @@ signal_cb(EV_P_ ev_signal *w, int revents)
             if (!is_plugin_running()) {
                 LOGE("plugin service exit unexpectedly");
                 ret_val = -1;
-            }
-            else
+            } else
                 return;
 #endif
         case SIGINT:
@@ -1534,6 +1535,7 @@ plugin_watcher_cb(EV_P_ ev_io *w, int revents)
     ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
     ev_unloop(EV_A_ EVUNLOOP_ALL);
 }
+
 #endif
 
 static void
@@ -1946,9 +1948,9 @@ main(int argc, char **argv)
             do {
                 struct sockaddr_in addr;
                 memset(&addr, 0, sizeof(addr));
-                addr.sin_family = AF_INET;
+                addr.sin_family      = AF_INET;
                 addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-                addr.sin_port = htons(plugin_watcher.port);
+                addr.sin_port        = htons(plugin_watcher.port);
                 if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))) {
                     LOGE("failed to bind plugin control port");
                     break;

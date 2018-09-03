@@ -64,6 +64,7 @@ ERROR(const char *s)
     char *msg = strerror(errno);
     LOGE("%s: %s", s, msg);
 }
+
 #endif
 
 int use_tty = 1;
@@ -273,7 +274,6 @@ ss_is_ipv6addr(const char *addr)
 {
     return strcmp(addr, ":") > 0;
 }
-
 
 void
 usage()
@@ -500,7 +500,7 @@ get_default_conf(void)
 #ifndef __MINGW32__
     static char sysconf[] = "/etc/shadowsocks-libev/config.json";
     static char *userconf = NULL;
-    static int buf_size = 0;
+    static int buf_size   = 0;
     char *conf_home;
 
     conf_home = getenv("XDG_CONFIG_HOME");
@@ -513,14 +513,14 @@ get_default_conf(void)
             userconf = malloc(buf_size);
         }
         snprintf(userconf, buf_size, "%s%s", getenv("HOME"),
-            "/.config/shadowsocks-libev/config.json");
+                 "/.config/shadowsocks-libev/config.json");
     } else {
         if (buf_size == 0) {
             buf_size = 50 + strlen(conf_home);
             userconf = malloc(buf_size);
         }
         snprintf(userconf, buf_size, "%s%s", conf_home,
-            "/shadowsocks-libev/config.json");
+                 "/shadowsocks-libev/config.json");
     }
 
     // Check if the user-specific config exists.

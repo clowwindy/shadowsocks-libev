@@ -116,6 +116,7 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
 #endif
 
 #if defined(MODULE_REMOTE) && defined(SO_BROADCAST)
@@ -371,12 +372,12 @@ create_remote_socket(int ipv6)
             }
         } else {
 #endif
-            if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-                FATAL("[udp] cannot bind remote");
-                return -1;
-            }
-#ifdef MODULE_REMOTE
+        if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+            FATAL("[udp] cannot bind remote");
+            return -1;
         }
+#ifdef MODULE_REMOTE
+    }
 #endif
     } else {
         // Or else bind to IPv4
@@ -399,12 +400,12 @@ create_remote_socket(int ipv6)
             }
         } else {
 #endif
-            if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-                FATAL("[udp] cannot bind remote");
-                return -1;
-            }
-#ifdef MODULE_REMOTE
+        if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+            FATAL("[udp] cannot bind remote");
+            return -1;
         }
+#ifdef MODULE_REMOTE
+    }
 #endif
     }
     return remote_sock;
@@ -905,7 +906,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     } else if (buf->len > packet_size) {
         if (verbose) {
-            LOGI("[udp] UDP server_recv_recvmsg fragmentation, MTU at least be: " SSIZE_FMT, buf->len + PACKET_HEADER_SIZE);
+            LOGI("[udp] UDP server_recv_recvmsg fragmentation, MTU at least be: " SSIZE_FMT,
+                 buf->len + PACKET_HEADER_SIZE);
         }
     }
 
@@ -1182,9 +1184,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #endif
 
         // Init remote_ctx
-        remote_ctx                  = new_remote(remotefd, server_ctx);
-        remote_ctx->src_addr        = src_addr;
-        remote_ctx->af              = remote_addr->sa_family;
+        remote_ctx           = new_remote(remotefd, server_ctx);
+        remote_ctx->src_addr = src_addr;
+        remote_ctx->af       = remote_addr->sa_family;
 
         // Add to conn cache
         cache_insert(conn_cache, key, HASH_KEY_LEN, (void *)remote_ctx);
@@ -1228,7 +1230,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (buf->len - addr_header_len > packet_size) {
         if (verbose) {
-            LOGI("[udp] server_recv_sendto fragmentation, MTU at least be: " SSIZE_FMT, buf->len - addr_header_len + PACKET_HEADER_SIZE);
+            LOGI("[udp] server_recv_sendto fragmentation, MTU at least be: " SSIZE_FMT,
+                 buf->len - addr_header_len + PACKET_HEADER_SIZE);
         }
     }
 
