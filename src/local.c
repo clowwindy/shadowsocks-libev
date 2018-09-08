@@ -530,7 +530,10 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
                     goto not_bypass;
                 }
             }
-            int ip_match = resolved ? acl_match_host(ip) : 0;
+
+            int ip_match = (resolved || atyp == SOCKS5_ATYP_IPV4
+                    || atyp == SOCKS5_ATYP_IPV6) ? acl_match_host(ip) : 0;
+
             switch (get_acl_mode()) {
             case BLACK_LIST:
                 if (ip_match > 0)
