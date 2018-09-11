@@ -36,7 +36,10 @@
 #include <inttypes.h>
 #endif
 
-/* Definations for mbedTLS */
+/* Definitions for libsodium */
+#include <sodium.h>
+typedef crypto_aead_aes256gcm_state aes256gcm_ctx;
+/* Definitions for mbedTLS */
 #include <mbedtls/cipher.h>
 #include <mbedtls/md.h>
 typedef mbedtls_cipher_info_t cipher_kt_t;
@@ -105,6 +108,7 @@ typedef struct {
     uint32_t init;
     uint64_t counter;
     cipher_evp_t *evp;
+    aes256gcm_ctx *aes256gcm_ctx;
     cipher_t *cipher;
     buffer_t *chunk;
     uint8_t salt[MAX_KEY_LENGTH];
