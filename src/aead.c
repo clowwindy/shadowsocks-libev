@@ -167,9 +167,9 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
 
     switch (cipher_ctx->cipher->method) {
     case AES256GCM: // Only AES-256-GCM is supported by libsodium.
-        if (crypto_aead_aes256gcm_is_available()) { // Use it if availble
-            err =  crypto_aead_aes256gcm_encrypt(c, &long_clen, m, mlen,
-                                          ad, adlen, NULL, n, k);
+        if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
+            err =  crypto_aead_aes256gcm_encrypt_afternm(c, &long_clen, m, mlen,
+                                          ad, adlen, NULL, n, cipher_ctx->aes256gcm_ctx);
             *clen = (size_t)long_clen; // it's safe to cast 64bit to 32bit length here
             break;
         }
@@ -215,9 +215,9 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
 
     switch (cipher_ctx->cipher->method) {
     case AES256GCM: // Only AES-256-GCM is supported by libsodium.
-        if (crypto_aead_aes256gcm_is_available()) { // Use it if availble
-            err = crypto_aead_aes256gcm_decrypt(p, &long_plen, NULL, m, mlen,
-                                          ad, adlen, n, k);
+        if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
+            err = crypto_aead_aes256gcm_decrypt_afternm(p, &long_plen, NULL, m, mlen,
+                                          ad, adlen, n, cipher_ctx->aes256gcm_ctx);
             *plen = (size_t)long_plen; // it's safe to cast 64bit to 32bit length here
             break;
         }
@@ -296,7 +296,13 @@ aead_cipher_ctx_set_key(cipher_ctx_t *cipher_ctx, int enc)
     if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
         return;
     }
-
+    if (cipher_ctx->aes256gcm_ctx != NULL) {
+        if (crypto_aead_aes256gcm_beforenm(cipher_ctx->aes256gcm_ctx,
+                                           cipher_ctx->skey) != 0) {
+            FATAL("Cannot set libsodium cipher key");
+        }
+        return;
+    }
     if (mbedtls_cipher_setkey(cipher_ctx->evp, cipher_ctx->skey,
                               cipher_ctx->cipher->key_len * 8, enc) != 0) {
         FATAL("Cannot set mbed TLS cipher key");
@@ -322,18 +328,25 @@ aead_cipher_ctx_init(cipher_ctx_t *cipher_ctx, int method, int enc)
 
     const cipher_kt_t *cipher = aead_get_cipher_type(method);
 
-    cipher_ctx->evp = ss_malloc(sizeof(cipher_evp_t));
-    memset(cipher_ctx->evp, 0, sizeof(cipher_evp_t));
-    cipher_evp_t *evp = cipher_ctx->evp;
+    if (method == AES256GCM && crypto_aead_aes256gcm_is_available()) {
+        cipher_ctx->aes256gcm_ctx = ss_malloc(sizeof(aes256gcm_ctx));
+        memset(cipher_ctx->aes256gcm_ctx, 0, sizeof(aes256gcm_ctx));
+    } else {
+        cipher_ctx->aes256gcm_ctx = NULL;
+        cipher_ctx->evp = ss_malloc(sizeof(cipher_evp_t));
+        memset(cipher_ctx->evp, 0, sizeof(cipher_evp_t));
+        cipher_evp_t *evp = cipher_ctx->evp;
+        mbedtls_cipher_init(evp);
+        if (mbedtls_cipher_setup(evp, cipher) != 0) {
+            FATAL("Cannot initialize mbed TLS cipher context");
+        }
+    }
 
     if (cipher == NULL) {
         LOGE("Cipher %s not found in mbed TLS library", ciphername);
         FATAL("Cannot initialize mbed TLS cipher");
     }
-    mbedtls_cipher_init(evp);
-    if (mbedtls_cipher_setup(evp, cipher) != 0) {
-        FATAL("Cannot initialize mbed TLS cipher context");
-    }
+
 
 #ifdef SS_DEBUG
     dump("KEY", (char *)cipher_ctx->cipher->key, cipher_ctx->cipher->key_len);
@@ -363,6 +376,11 @@ aead_ctx_release(cipher_ctx_t *cipher_ctx)
     }
 
     if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
+        return;
+    }
+    
+    if (cipher_ctx->aes256gcm_ctx != NULL) {
+        ss_free(cipher_ctx->aes256gcm_ctx);
         return;
     }
 
