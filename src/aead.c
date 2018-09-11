@@ -166,9 +166,17 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
     size_t tlen = cipher_ctx->cipher->tag_len;
 
     switch (cipher_ctx->cipher->method) {
-    case AES128GCM:
+    case AES256GCM: // Only AES-256-GCM is supported by libsodium.
+        if (crypto_aead_aes256gcm_is_available()) { // Use it if availble
+            err =  crypto_aead_aes256gcm_encrypt(c, &long_clen, m, mlen,
+                                          ad, adlen, NULL, n, k);
+            *clen = (size_t)long_clen; // it's safe to cast 64bit to 32bit length here
+            break;
+        }
+        // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
-    case AES256GCM:
+    case AES128GCM:
+
         err = mbedtls_cipher_auth_encrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen, c, clen, c + mlen, tlen);
         *clen += tlen;
@@ -206,9 +214,16 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
     size_t tlen = cipher_ctx->cipher->tag_len;
 
     switch (cipher_ctx->cipher->method) {
-    case AES128GCM:
+    case AES256GCM: // Only AES-256-GCM is supported by libsodium.
+        if (crypto_aead_aes256gcm_is_available()) { // Use it if availble
+            err = crypto_aead_aes256gcm_decrypt(p, &long_plen, NULL, m, mlen,
+                                          ad, adlen, n, k);
+            *plen = (size_t)long_plen; // it's safe to cast 64bit to 32bit length here
+            break;
+        }
+        // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
-    case AES256GCM:
+    case AES128GCM:
         err = mbedtls_cipher_auth_decrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen - tlen, p, plen, m + mlen - tlen, tlen);
         break;
