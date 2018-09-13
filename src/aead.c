@@ -169,7 +169,8 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
     case AES256GCM: // Only AES-256-GCM is supported by libsodium.
         if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
             err =  crypto_aead_aes256gcm_encrypt_afternm(c, &long_clen, m, mlen,
-                                          ad, adlen, NULL, n, cipher_ctx->aes256gcm_ctx);
+                                          ad, adlen, NULL, n,
+                                          (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
             *clen = (size_t)long_clen; // it's safe to cast 64bit to 32bit length here
             break;
         }
@@ -217,7 +218,8 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
     case AES256GCM: // Only AES-256-GCM is supported by libsodium.
         if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
             err = crypto_aead_aes256gcm_decrypt_afternm(p, &long_plen, NULL, m, mlen,
-                                          ad, adlen, n, cipher_ctx->aes256gcm_ctx);
+                                          ad, adlen, n,
+                                          (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
             *plen = (size_t)long_plen; // it's safe to cast 64bit to 32bit length here
             break;
         }
@@ -378,7 +380,7 @@ aead_ctx_release(cipher_ctx_t *cipher_ctx)
     if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
         return;
     }
-    
+
     if (cipher_ctx->aes256gcm_ctx != NULL) {
         ss_free(cipher_ctx->aes256gcm_ctx);
         return;
