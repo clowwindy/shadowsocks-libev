@@ -16,6 +16,7 @@ After=network.target
 [Service]
 Type=simple
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 EnvironmentFile=/etc/default/shadowsocks-libev
 User=nobody
 Group=nogroup
