@@ -1132,6 +1132,12 @@ main(int argc, char **argv)
 
     struct passwd *pw   = getpwuid(getuid());
     const char *homedir = pw->pw_dir;
+
+    if (homedir == NULL || strlen(homedir) == 0)
+    {
+        // if home dir not defined, fall back to /tmp
+        homedir = "/tmp";
+    }
     working_dir_size = strlen(homedir) + 15;
     working_dir      = ss_malloc(working_dir_size);
     snprintf(working_dir, working_dir_size, "%s/.shadowsocks", homedir);
