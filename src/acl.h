@@ -1,7 +1,7 @@
 /*
  * acl.h - Define the ACL interface
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -26,7 +26,7 @@
 #define BLACK_LIST 0
 #define WHITE_LIST 1
 
-#define MAX_TRIES  64
+#define MAX_TRIES  256
 #define MALICIOUS  8
 #define SUSPICIOUS 4
 #define BAD        2

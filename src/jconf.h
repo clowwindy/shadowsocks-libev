@@ -1,7 +1,7 @@
 /*
  * jconf.h - Define the config data structure
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  * shadowsocks-libev is free software; you can redistribute it and/or modify
@@ -24,11 +24,20 @@
 
 #define MAX_PORT_NUM 1024
 #define MAX_REMOTE_NUM 10
+#define MAX_DSCP_NUM 64
 #define MAX_CONF_SIZE 128 * 1024
-#define MAX_DNS_NUM 4
 #define MAX_CONNECT_TIMEOUT 10
 #define MAX_REQUEST_TIMEOUT 60
 #define MIN_UDP_TIMEOUT 10
+
+#define DSCP_EF      0x2E
+#define DSCP_MIN     0x0
+#define DSCP_MAX     0x3F
+#define DSCP_DEFAULT 0x0
+#define DSCP_MIN_LEN 2
+#define DSCP_MAX_LEN 4
+#define DSCP_CS_LEN  3
+#define DSCP_AF_LEN  4
 
 #define TCP_ONLY     0
 #define TCP_AND_UDP  1
@@ -45,6 +54,11 @@ typedef struct {
 } ss_port_password_t;
 
 typedef struct {
+    char *port;
+    int dscp;
+} ss_dscp_t;
+
+typedef struct {
     int remote_num;
     ss_addr_t remote_addr[MAX_REMOTE_NUM];
     int port_password_num;
@@ -59,16 +73,18 @@ typedef struct {
     char *user;
     char *plugin;
     char *plugin_opts;
-    int auth;
     int fast_open;
     int reuse_port;
     int nofile;
     char *nameserver;
+    int dscp_num;
+    ss_dscp_t dscp[MAX_DSCP_NUM];
     char *tunnel_address;
     int mode;
     int mtu;
     int mptcp;
     int ipv6_first;
+    int no_delay;
 } jconf_t;
 
 jconf_t *read_jconf(const char *file);

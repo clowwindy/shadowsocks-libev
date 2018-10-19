@@ -1,7 +1,7 @@
 /*
  * common.h - Provide global definitions
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  * shadowsocks-libev is free software; you can redistribute it and/or modify
@@ -21,8 +21,6 @@
 
 #ifndef _COMMON_H
 #define _COMMON_H
-
-#define DEFAULT_CONF_PATH "/etc/shadowsocks-libev/config.json"
 
 #ifndef SOL_TCP
 #define SOL_TCP IPPROTO_TCP
@@ -45,7 +43,7 @@ int init_udprelay(const char *server_host, const char *server_port,
 
 void free_udprelay(void);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 int protect_socket(int fd);
 int send_traffic_stat(uint64_t tx, uint64_t rx);
 #endif
@@ -53,7 +51,7 @@ int send_traffic_stat(uint64_t tx, uint64_t rx);
 #define STAGE_ERROR     -1  /* Error detected                   */
 #define STAGE_INIT       0  /* Initial stage                    */
 #define STAGE_HANDSHAKE  1  /* Handshake with client            */
-#define STAGE_PARSE      2  /* Parse the header                 */
+#define STAGE_SNI        3  /* Parse HTTP/SNI header            */
 #define STAGE_RESOLVE    4  /* Resolve the hostname             */
 #define STAGE_STREAM     5  /* Stream between client and server */
 
@@ -62,6 +60,7 @@ enum {
     GETOPT_VAL_HELP = 257,
     GETOPT_VAL_REUSE_PORT,
     GETOPT_VAL_FAST_OPEN,
+    GETOPT_VAL_NODELAY,
     GETOPT_VAL_ACL,
     GETOPT_VAL_MTU,
     GETOPT_VAL_MPTCP,

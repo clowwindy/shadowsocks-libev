@@ -1,7 +1,7 @@
 /*
  * tunnel.c - Setup a local port forwarding through remote shadowsocks server
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -29,13 +29,13 @@
 #include <strings.h>
 #include <unistd.h>
 #include <getopt.h>
-
+#ifndef __MINGW32__
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
+#endif
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -47,12 +47,12 @@
 #endif
 
 #include <libcork/core.h>
-#include <udns.h>
 
 #include "netutils.h"
 #include "utils.h"
 #include "plugin.h"
 #include "tunnel.h"
+#include "winsock.h"
 
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
@@ -80,13 +80,12 @@ static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
 static void close_and_free_server(EV_P_ server_t *server);
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 int vpn = 0;
 #endif
 
-int verbose        = 0;
-int reuse_port     = 0;
-int keep_resolving = 1;
+int verbose    = 0;
+int reuse_port = 0;
 
 static crypto_t *crypto;
 
@@ -95,11 +94,24 @@ static int mode      = TCP_ONLY;
 #ifdef HAVE_SETRLIMIT
 static int nofile = 0;
 #endif
+static int no_delay  = 0;
+static int fast_open = 0;
+static int ret_val   = 0;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
+#ifndef __MINGW32__
 static struct ev_signal sigchld_watcher;
+#else
+static struct plugin_watcher_t {
+    ev_io io;
+    SOCKET fd;
+    uint16_t port;
+    int valid;
+} plugin_watcher;
+#endif
 
+#ifndef __MINGW32__
 static int
 setnonblocking(int fd)
 {
@@ -109,6 +121,8 @@ setnonblocking(int fd)
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
+#endif
 
 int
 create_and_bind(const char *addr, const char *port)
@@ -121,9 +135,16 @@ create_and_bind(const char *addr, const char *port)
     hints.ai_family   = AF_UNSPEC;   /* Return IPv4 and IPv6 choices */
     hints.ai_socktype = SOCK_STREAM; /* We want a TCP socket */
 
+    result = NULL;
+
     s = getaddrinfo(addr, port, &hints, &result);
     if (s != 0) {
         LOGI("getaddrinfo: %s", gai_strerror(s));
+        return -1;
+    }
+
+    if (result == NULL) {
+        LOGE("Could not bind");
         return -1;
     }
 
@@ -154,11 +175,7 @@ create_and_bind(const char *addr, const char *port)
         }
 
         close(listen_sock);
-    }
-
-    if (rp == NULL) {
-        LOGE("Could not bind");
-        return -1;
+        listen_sock = -1;
     }
 
     freeaddrinfo(result);
@@ -356,12 +373,12 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     // Disable TCP_NODELAY after the first response are sent
-    if (!remote->recv_ctx->connected) {
+    if (!remote->recv_ctx->connected && !no_delay) {
         int opt = 0;
         setsockopt(server->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
         setsockopt(remote->fd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
-        remote->recv_ctx->connected = 1;
     }
+    remote->recv_ctx->connected = 1;
 }
 
 static void
@@ -371,19 +388,22 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_send_ctx->remote;
     server_t *server              = remote->server;
 
-    if (!remote_send_ctx->connected) {
-        struct sockaddr_storage addr;
-        socklen_t len = sizeof(struct sockaddr_storage);
+    ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
-        int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+    if (!remote_send_ctx->connected) {
+        int r = 0;
+
+        if (remote->addr == NULL) {
+            struct sockaddr_storage addr;
+            socklen_t len = sizeof(struct sockaddr_storage);
+            r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+        }
+
         if (r == 0) {
             remote_send_ctx->connected = 1;
-            ev_io_stop(EV_A_ & remote_send_ctx->io);
-            ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
 
-            buffer_t ss_addr_to_send;
-            buffer_t *abuf = &ss_addr_to_send;
-            balloc(abuf, BUF_SIZE);
+            assert(remote->buf->len == 0);
+            buffer_t *abuf = remote->buf;
 
             ss_addr_t *sa = &server->destaddr;
             struct cork_ip ip;
@@ -394,7 +414,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     memset(&host, 0, sizeof(struct in_addr));
                     int host_len = sizeof(struct in_addr);
 
-                    if (dns_pton(AF_INET, sa->host, &host) == -1) {
+                    if (inet_pton(AF_INET, sa->host, &host) == -1) {
                         FATAL("IP parser error");
                     }
                     abuf->data[abuf->len++] = 1;
@@ -406,7 +426,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                     memset(&host, 0, sizeof(struct in6_addr));
                     int host_len = sizeof(struct in6_addr);
 
-                    if (dns_pton(AF_INET6, sa->host, &host) == -1) {
+                    if (inet_pton(AF_INET6, sa->host, &host) == -1) {
                         FATAL("IP parser error");
                     }
                     abuf->data[abuf->len++] = 4;
@@ -432,28 +452,13 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             int err = crypto->encrypt(abuf, server->e_ctx, BUF_SIZE);
 
             if (err) {
-                bfree(abuf);
                 LOGE("invalid password or cipher");
                 close_and_free_remote(EV_A_ remote);
                 close_and_free_server(EV_A_ server);
                 return;
             }
 
-            int s = send(remote->fd, abuf->data, abuf->len, 0);
-
-            bfree(abuf);
-
-            if (s < abuf->len) {
-                LOGE("failed to send addr");
-                close_and_free_remote(EV_A_ remote);
-                close_and_free_server(EV_A_ server);
-                return;
-            }
-
             ev_io_start(EV_A_ & remote->recv_ctx->io);
-            ev_io_start(EV_A_ & server->recv_ctx->io);
-
-            return;
         } else {
             ERROR("getpeername");
             // not connected
@@ -461,36 +466,129 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             close_and_free_server(EV_A_ server);
             return;
         }
+    }
+
+    if (remote->buf->len == 0) {
+        // close and free
+        close_and_free_remote(EV_A_ remote);
+        close_and_free_server(EV_A_ server);
+        return;
     } else {
-        if (remote->buf->len == 0) {
-            // close and free
-            close_and_free_remote(EV_A_ remote);
-            close_and_free_server(EV_A_ server);
-            return;
-        } else {
-            // has data to send
-            ssize_t s = send(remote->fd, remote->buf->data + remote->buf->idx,
-                             remote->buf->len, 0);
+        // has data to send
+        ssize_t s = -1;
+        if (remote->addr != NULL) {
+#if defined(TCP_FASTOPEN_WINSOCK)
+            DWORD s   = -1;
+            DWORD err = 0;
+            do {
+                int optval = 1;
+                // Set fast open option
+                if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN,
+                               &optval, sizeof(optval)) != 0) {
+                    ERROR("setsockopt");
+                    break;
+                }
+                // Load ConnectEx function
+                LPFN_CONNECTEX ConnectEx = winsock_getconnectex();
+                if (ConnectEx == NULL) {
+                    LOGE("Cannot load ConnectEx() function");
+                    err = WSAENOPROTOOPT;
+                    break;
+                }
+                // ConnectEx requires a bound socket
+                if (winsock_dummybind(remote->fd,
+                                      (struct sockaddr *)&(remote->addr)) != 0) {
+                    ERROR("bind");
+                    break;
+                }
+                // Call ConnectEx to send data
+                memset(&remote->olap, 0, sizeof(remote->olap));
+                remote->connect_ex_done = 0;
+                if (ConnectEx(remote->fd, (const struct sockaddr *)&(remote->addr),
+                              get_sockaddr_len(remote->addr), remote->buf->data, remote->buf->len,
+                              &s, &remote->olap)) {
+                    remote->connect_ex_done = 1;
+                    break;
+                }
+                // XXX: ConnectEx pending, check later in remote_send
+                if (WSAGetLastError() == ERROR_IO_PENDING) {
+                    err = CONNECT_IN_PROGRESS;
+                    break;
+                }
+                ERROR("ConnectEx");
+            } while (0);
+            // Set error number
+            if (err) {
+                SetLastError(err);
+            }
+#elif defined(CONNECT_DATA_IDEMPOTENT)
+            ((struct sockaddr_in *)&(remote->addr))->sin_len = sizeof(struct sockaddr_in);
+            sa_endpoints_t endpoints;
+            memset((char *)&endpoints, 0, sizeof(endpoints));
+            endpoints.sae_dstaddr    = (struct sockaddr *)&(remote->addr);
+            endpoints.sae_dstaddrlen = get_sockaddr_len(remote->addr);
+            s                        = connectx(remote->fd, &endpoints, SAE_ASSOCID_ANY,
+                                                CONNECT_RESUME_ON_READ_WRITE | CONNECT_DATA_IDEMPOTENT,
+                                                NULL, 0, NULL, NULL);
+#elif defined(TCP_FASTOPEN_CONNECT)
+            int optval = 1;
+            if (setsockopt(remote->fd, IPPROTO_TCP, TCP_FASTOPEN_CONNECT,
+                           (void *)&optval, sizeof(optval)) < 0)
+                FATAL("failed to set TCP_FASTOPEN_CONNECT");
+            s = connect(remote->fd, remote->addr, get_sockaddr_len(remote->addr));
+            if (s == 0)
+                s = send(remote->fd, remote->buf->data, remote->buf->len, 0);
+#elif defined(MSG_FASTOPEN)
+            s = sendto(remote->fd, remote->buf->data + remote->buf->idx,
+                       remote->buf->len, MSG_FASTOPEN, remote->addr,
+                       get_sockaddr_len(remote->addr));
+#else
+            FATAL("tcp fast open is not supported on this platform");
+#endif
+
+            remote->addr = NULL;
+
             if (s == -1) {
-                if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                    ERROR("send");
-                    // close and free
+                if (errno == CONNECT_IN_PROGRESS) {
+                    ev_io_start(EV_A_ & remote_send_ctx->io);
+                    ev_timer_start(EV_A_ & remote_send_ctx->watcher);
+                } else {
+                    fast_open = 0;
+                    if (errno == EOPNOTSUPP || errno == EPROTONOSUPPORT ||
+                        errno == ENOPROTOOPT) {
+                        LOGE("fast open is not supported on this platform");
+                    } else {
+                        ERROR("fast_open_connect");
+                    }
                     close_and_free_remote(EV_A_ remote);
                     close_and_free_server(EV_A_ server);
                 }
                 return;
-            } else if (s < remote->buf->len) {
-                // partly sent, move memory, wait for the next time to send
-                remote->buf->len -= s;
-                remote->buf->idx += s;
-                return;
-            } else {
-                // all sent out, wait for reading
-                remote->buf->len = 0;
-                remote->buf->idx = 0;
-                ev_io_stop(EV_A_ & remote_send_ctx->io);
-                ev_io_start(EV_A_ & server->recv_ctx->io);
             }
+        } else {
+            s = send(remote->fd, remote->buf->data + remote->buf->idx,
+                     remote->buf->len, 0);
+        }
+
+        if (s == -1) {
+            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                ERROR("send");
+                // close and free
+                close_and_free_remote(EV_A_ remote);
+                close_and_free_server(EV_A_ server);
+            }
+            return;
+        } else if (s < remote->buf->len) {
+            // partly sent, move memory, wait for the next time to send
+            remote->buf->len -= s;
+            remote->buf->idx += s;
+            return;
+        } else {
+            // all sent out, wait for reading
+            remote->buf->len = 0;
+            remote->buf->idx = 0;
+            ev_io_stop(EV_A_ & remote_send_ctx->io);
+            ev_io_start(EV_A_ & server->recv_ctx->io);
         }
     }
 }
@@ -636,7 +734,7 @@ accept_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-#ifdef ANDROID
+#ifdef __ANDROID__
     if (vpn) {
         int not_protect = 0;
         if (remote_addr->sa_family == AF_INET) {
@@ -654,14 +752,28 @@ accept_cb(EV_P_ ev_io *w, int revents)
     }
 #endif
 
+    int keepAlive = 1;
+    setsockopt(remotefd, SOL_SOCKET, SO_KEEPALIVE, (void *)&keepAlive, sizeof(keepAlive));
     setsockopt(remotefd, SOL_TCP, TCP_NODELAY, &opt, sizeof(opt));
 #ifdef SO_NOSIGPIPE
     setsockopt(remotefd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
 
-    if (listener->mptcp == 1) {
-        int err = setsockopt(remotefd, SOL_TCP, MPTCP_ENABLED, &opt, sizeof(opt));
+    if (listener->mptcp > 1) {
+        int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
         if (err == -1) {
+            ERROR("failed to enable multipath TCP");
+        }
+    } else if (listener->mptcp == 1) {
+        int i = 0;
+        while ((listener->mptcp = mptcp_enabled_values[i]) > 0) {
+            int err = setsockopt(remotefd, SOL_TCP, listener->mptcp, &opt, sizeof(opt));
+            if (err != -1) {
+                break;
+            }
+            i++;
+        }
+        if (listener->mptcp == 0) {
             ERROR("failed to enable multipath TCP");
         }
     }
@@ -681,13 +793,17 @@ accept_cb(EV_P_ ev_io *w, int revents)
     server->remote   = remote;
     remote->server   = server;
 
-    int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
+    if (fast_open) {
+        remote->addr = remote_addr;
+    } else {
+        int r = connect(remotefd, remote_addr, get_sockaddr_len(remote_addr));
 
-    if (r == -1 && errno != CONNECT_IN_PROGRESS) {
-        ERROR("connect");
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
-        return;
+        if (r == -1 && errno != CONNECT_IN_PROGRESS) {
+            ERROR("connect");
+            close_and_free_remote(EV_A_ remote);
+            close_and_free_server(EV_A_ server);
+            return;
+        }
     }
 
     // listen to remote connected event
@@ -700,21 +816,48 @@ signal_cb(EV_P_ ev_signal *w, int revents)
 {
     if (revents & EV_SIGNAL) {
         switch (w->signum) {
+#ifndef __MINGW32__
         case SIGCHLD:
-            if (!is_plugin_running())
+            if (!is_plugin_running()) {
                 LOGE("plugin service exit unexpectedly");
-            else
+                ret_val = -1;
+            } else
                 return;
+#endif
         case SIGINT:
         case SIGTERM:
             ev_signal_stop(EV_DEFAULT, &sigint_watcher);
             ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
             ev_signal_stop(EV_DEFAULT, &sigchld_watcher);
-            keep_resolving = 0;
+#else
+            ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
+#endif
             ev_unloop(EV_A_ EVUNLOOP_ALL);
         }
     }
 }
+
+#ifdef __MINGW32__
+static void
+plugin_watcher_cb(EV_P_ ev_io *w, int revents)
+{
+    char buf[1];
+    SOCKET fd = accept(plugin_watcher.fd, NULL, NULL);
+    if (fd == INVALID_SOCKET) {
+        return;
+    }
+    recv(fd, buf, 1, 0);
+    closesocket(fd);
+    LOGE("plugin service exit unexpectedly");
+    ret_val = -1;
+    ev_signal_stop(EV_DEFAULT, &sigint_watcher);
+    ev_signal_stop(EV_DEFAULT, &sigterm_watcher);
+    ev_io_stop(EV_DEFAULT, &plugin_watcher.io);
+    ev_unloop(EV_A_ EVUNLOOP_ALL);
+}
+
+#endif
 
 int
 main(int argc, char **argv)
@@ -750,29 +893,34 @@ main(int argc, char **argv)
     char *tunnel_addr_str = NULL;
 
     static struct option long_options[] = {
-        { "mtu",         required_argument, NULL, GETOPT_VAL_MTU },
-        { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP },
-        { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN },
+        { "fast-open",   no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
+        { "mtu",         required_argument, NULL, GETOPT_VAL_MTU         },
+        { "no-delay",    no_argument,       NULL, GETOPT_VAL_NODELAY     },
+        { "mptcp",       no_argument,       NULL, GETOPT_VAL_MPTCP       },
+        { "plugin",      required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts", required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
-        { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD },
-        { "key",         required_argument, NULL, GETOPT_VAL_KEY },
-        { "help",        no_argument,       NULL, GETOPT_VAL_HELP },
-        { NULL,          0,                 NULL, 0 }
+        { "reuse-port",  no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
+        { "password",    required_argument, NULL, GETOPT_VAL_PASSWORD    },
+        { "key",         required_argument, NULL, GETOPT_VAL_KEY         },
+        { "help",        no_argument,       NULL, GETOPT_VAL_HELP        },
+        { NULL,                          0, NULL,                      0 }
     };
 
     opterr = 0;
 
     USE_TTY();
 
-#ifdef ANDROID
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUvV6",
+#ifdef __ANDROID__
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUvV6A",
                             long_options, NULL)) != -1) {
 #else
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUv6",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:L:a:n:huUv6A",
                             long_options, NULL)) != -1) {
 #endif
         switch (c) {
+        case GETOPT_VAL_FAST_OPEN:
+            fast_open = 1;
+            break;
         case GETOPT_VAL_MTU:
             mtu = atoi(optarg);
             LOGI("set MTU to %d", mtu);
@@ -780,6 +928,10 @@ main(int argc, char **argv)
         case GETOPT_VAL_MPTCP:
             mptcp = 1;
             LOGI("enable multipath TCP");
+            break;
+        case GETOPT_VAL_NODELAY:
+            no_delay = 1;
+            LOGI("enable TCP no-delay");
             break;
         case GETOPT_VAL_PLUGIN:
             plugin = optarg;
@@ -855,11 +1007,14 @@ main(int argc, char **argv)
         case '6':
             ipv6first = 1;
             break;
-#ifdef ANDROID
+#ifdef __ANDROID__
         case 'V':
             vpn = 1;
             break;
 #endif
+        case 'A':
+            FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
+            break;
         case '?':
             // The option character is not recognized.
             LOGE("Unrecognized option: %s", optarg);
@@ -875,7 +1030,7 @@ main(int argc, char **argv)
 
     if (argc == 1) {
         if (conf_path == NULL) {
-            conf_path = DEFAULT_CONF_PATH;
+            conf_path = get_default_conf();
         }
     }
 
@@ -928,8 +1083,14 @@ main(int argc, char **argv)
         if (mptcp == 0) {
             mptcp = conf->mptcp;
         }
+        if (no_delay == 0) {
+            no_delay = conf->no_delay;
+        }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
+        }
+        if (fast_open == 0) {
+            fast_open = conf->fast_open;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
@@ -939,10 +1100,14 @@ main(int argc, char **argv)
     }
 
     if (remote_num == 0 || remote_port == NULL || tunnel_addr_str == NULL
-            || local_port == NULL || (password == NULL && key == NULL)) {
+        || local_port == NULL || (password == NULL && key == NULL)) {
         usage();
         exit(EXIT_FAILURE);
     }
+
+#ifdef __MINGW32__
+    winsock_init();
+#endif
 
     if (plugin != NULL) {
         uint16_t port = get_local_port();
@@ -953,11 +1118,19 @@ main(int argc, char **argv)
         plugin_host = "127.0.0.1";
         plugin_port = tmp_port;
 
+#ifdef __MINGW32__
+        memset(&plugin_watcher, 0, sizeof(plugin_watcher));
+        plugin_watcher.port = get_local_port();
+        if (plugin_watcher.port == 0) {
+            LOGE("failed to assign a control port for plugin");
+        }
+#endif
+
         LOGI("plugin \"%s\" enabled", plugin);
     }
 
     if (method == NULL) {
-        method = "rc4-md5";
+        method = "chacha20-ietf-poly1305";
     }
 
     if (timeout == NULL) {
@@ -981,8 +1154,17 @@ main(int argc, char **argv)
         local_addr = "127.0.0.1";
     }
 
+    if (fast_open == 1) {
+#ifdef TCP_FASTOPEN
+        LOGI("using tcp fast open");
+#else
+        LOGE("tcp fast open is not supported by this environment");
+        fast_open = 0;
+#endif
+    }
+
+    USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
-        USE_SYSLOG(argv[0]);
         daemonize(pid_path);
     }
 
@@ -997,9 +1179,43 @@ main(int argc, char **argv)
         FATAL("tunnel port is not defined");
     }
 
+#ifdef __MINGW32__
+    // Listen on plugin control port
+    if (plugin != NULL && plugin_watcher.port != 0) {
+        SOCKET fd;
+        fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (fd != INVALID_SOCKET) {
+            plugin_watcher.valid = 0;
+            do {
+                struct sockaddr_in addr;
+                memset(&addr, 0, sizeof(addr));
+                addr.sin_family      = AF_INET;
+                addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+                addr.sin_port        = htons(plugin_watcher.port);
+                if (bind(fd, (struct sockaddr *)&addr, sizeof(addr))) {
+                    LOGE("failed to bind plugin control port");
+                    break;
+                }
+                if (listen(fd, 1)) {
+                    LOGE("failed to listen on plugin control port");
+                    break;
+                }
+                plugin_watcher.fd = fd;
+                ev_io_init(&plugin_watcher.io, plugin_watcher_cb, fd, EV_READ);
+                ev_io_start(EV_DEFAULT, &plugin_watcher.io);
+                plugin_watcher.valid = 1;
+            } while (0);
+            if (!plugin_watcher.valid) {
+                closesocket(fd);
+                plugin_watcher.port = 0;
+            }
+        }
+    }
+#endif
+
     if (plugin != NULL) {
-        int len = 0;
-        size_t buf_size = 256 * remote_num;
+        int len          = 0;
+        size_t buf_size  = 256 * remote_num;
         char *remote_str = ss_malloc(buf_size);
 
         snprintf(remote_str, buf_size, "%s", remote_addr[0].host);
@@ -1008,22 +1224,31 @@ main(int argc, char **argv)
             len = strlen(remote_str);
         }
         int err = start_plugin(plugin, plugin_opts, remote_str,
-                remote_port, plugin_host, plugin_port, MODE_CLIENT);
+                               remote_port, plugin_host, plugin_port,
+#ifdef __MINGW32__
+                               plugin_watcher.port,
+#endif
+                               MODE_CLIENT);
         if (err) {
+            ERROR("start_plugin");
             FATAL("failed to start the plugin");
         }
     }
 
+#ifndef __MINGW32__
     // ignore SIGPIPE
     signal(SIGPIPE, SIG_IGN);
     signal(SIGABRT, SIG_IGN);
+#endif
 
     ev_signal_init(&sigint_watcher, signal_cb, SIGINT);
     ev_signal_init(&sigterm_watcher, signal_cb, SIGTERM);
-    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigint_watcher);
     ev_signal_start(EV_DEFAULT, &sigterm_watcher);
+#ifndef __MINGW32__
+    ev_signal_init(&sigchld_watcher, signal_cb, SIGCHLD);
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
+#endif
 
     // Setup keys
     LOGI("initializing ciphers... %s", method);
@@ -1052,11 +1277,14 @@ main(int argc, char **argv)
         }
         listen_ctx.remote_addr[i] = (struct sockaddr *)storage;
 
-        if (plugin != NULL) break;
+        if (plugin != NULL)
+            break;
     }
     listen_ctx.timeout = atoi(timeout);
     listen_ctx.iface   = iface;
     listen_ctx.mptcp   = mptcp;
+
+    LOGI("listening at %s:%s", local_addr, local_port);
 
     struct ev_loop *loop = EV_DEFAULT;
 
@@ -1081,8 +1309,8 @@ main(int argc, char **argv)
     // Setup UDP
     if (mode != TCP_ONLY) {
         LOGI("UDP relay enabled");
-        char *host = remote_addr[0].host;
-        char *port = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
+        char *host                       = remote_addr[0].host;
+        char *port                       = remote_addr[0].port == NULL ? remote_port : remote_addr[0].port;
         struct sockaddr_storage *storage = ss_malloc(sizeof(struct sockaddr_storage));
         memset(storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(host, port, storage, 1, ipv6first) == -1) {
@@ -1090,15 +1318,14 @@ main(int argc, char **argv)
         }
         struct sockaddr *addr = (struct sockaddr *)storage;
         init_udprelay(local_addr, local_port, addr, get_sockaddr_len(addr),
-                tunnel_addr, mtu, crypto, listen_ctx.timeout, iface);
+                      tunnel_addr, mtu, crypto, listen_ctx.timeout, iface);
     }
 
     if (mode == UDP_ONLY) {
         LOGI("TCP relay disabled");
     }
 
-    LOGI("listening at %s:%s", local_addr, local_port);
-
+#ifndef __MINGW32__
     // setuid
     if (user != NULL && !run_as(user)) {
         FATAL("failed to switch user");
@@ -1107,6 +1334,7 @@ main(int argc, char **argv)
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
+#endif
 
     ev_run(loop, 0);
 
@@ -1114,5 +1342,13 @@ main(int argc, char **argv)
         stop_plugin();
     }
 
-    return 0;
+#ifdef __MINGW32__
+    if (plugin_watcher.valid) {
+        closesocket(plugin_watcher.fd);
+    }
+
+    winsock_cleanup();
+#endif
+
+    return ret_val;
 }

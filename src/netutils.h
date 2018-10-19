@@ -1,7 +1,7 @@
 /*
  * netutils.h - Network utilities
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,36 +23,40 @@
 #ifndef _NETUTILS_H
 #define _NETUTILS_H
 
-#if defined(__linux__)
-#include <netdb.h>
+#ifdef __MINGW32__
+#include "winsock.h"
 #else
+#include <sys/socket.h>
+#endif
+
+#ifdef HAVE_LINUX_TCP_H
+#include <linux/tcp.h>
+#elif defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
 #endif
 
-// only enable TCP_FASTOPEN on linux
-#if defined(__linux__)
-#include <linux/tcp.h>
-/*  conditional define for TCP_FASTOPEN */
+#ifdef HAVE_NETDB_H
+#include <netdb.h>
+#endif
+
+/* Hard coded defines for TCP fast open on Android */
+#ifdef __ANDROID__
 #ifndef TCP_FASTOPEN
 #define TCP_FASTOPEN   23
 #endif
-/*  conditional define for MSG_FASTOPEN */
 #ifndef MSG_FASTOPEN
 #define MSG_FASTOPEN   0x20000000
 #endif
-#elif !defined(__APPLE__)
-#ifdef TCP_FASTOPEN
-#undef TCP_FASTOPEN
+#ifdef TCP_FASTOPEN_CONNECT
+#undef TCP_FASTOPEN_CONNECT
 #endif
 #endif
 
-/* Backward compatibility for MPTCP_ENABLED between kernel 3 & 4 */
+/* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
 #ifndef MPTCP_ENABLED
-#ifdef TCP_CC_INFO
-#define MPTCP_ENABLED 42
+static const char mptcp_enabled_values[] = { 42, 26, 0 };
 #else
-#define MPTCP_ENABLED 26
-#endif
+static const char mptcp_enabled_values[] = { MPTCP_ENABLED, 0 };
 #endif
 
 #ifndef UPDATE_INTERVAL

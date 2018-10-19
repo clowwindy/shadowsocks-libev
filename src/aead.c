@@ -1,7 +1,7 @@
 /*
  * aead.c - Manage AEAD ciphers
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -31,11 +31,14 @@
 #include <assert.h>
 
 #include <sodium.h>
+#ifndef __MINGW32__
 #include <arpa/inet.h>
+#endif
 
-#include "cache.h"
+#include "ppbloom.h"
 #include "aead.h"
 #include "utils.h"
+#include "winsock.h"
 
 #define NONE                    (-1)
 #define AES128GCM               0
@@ -56,75 +59,48 @@
 #define CHUNK_SIZE_MASK         0x3FFF
 
 /*
- * This is SIP004 proposed by @Mygod, the design of TCP chunk is from @breakwa11 and
- * @Noisyfox. This first version of this file is written by @wongsyrone.
+ * Spec: http://shadowsocks.org/en/spec/AEAD-Ciphers.html
  *
- * The first nonce is either from client or server side, it is generated randomly, and
- * the sequent nonces are increased by 1.
+ * The way Shadowsocks using AEAD ciphers is specified in SIP004 and amended in SIP007. SIP004 was proposed by @Mygod
+ * with design inspirations from @wongsyrone, @Noisyfox and @breakwa11. SIP007 was proposed by @riobard with input from
+ * @madeye, @Mygod, @wongsyrone, and many others.
  *
- * Data.Len is used to separate general ciphertext and Auth tag. We can start decryption
- * if and only if the verification is passed.
- * Firstly, we do length check, then decrypt it, separate ciphertext and attached data tag
- * based on the verified length, verify data tag and decrypt the corresponding data.
- * Finally, do what you supposed to do, e.g. forward user data.
+ * Key Derivation
  *
- * For UDP, nonces are generated randomly without the incrementation.
+ * HKDF_SHA1 is a function that takes a secret key, a non-secret salt, an info string, and produces a subkey that is
+ * cryptographically strong even if the input secret key is weak.
  *
- * TCP request (before encryption)
- * +------+---------------------+------------------+
- * | ATYP | Destination Address | Destination Port |
- * +------+---------------------+------------------+
- * |  1   |       Variable      |         2        |
- * +------+---------------------+------------------+
+ *      HKDF_SHA1(key, salt, info) => subkey
  *
- * TCP request (after encryption, *ciphertext*)
- * +--------+--------------+------------------+--------------+---------------+
- * | NONCE  |  *HeaderLen* |   HeaderLen_TAG  |   *Header*   |  Header_TAG   |
- * +--------+--------------+------------------+--------------+---------------+
- * | Fixed  |       2      |       Fixed      |   Variable   |     Fixed     |
- * +--------+--------------+------------------+--------------+---------------+
+ * The info string binds the generated subkey to a specific application context. In our case, it must be the string
+ * "ss-subkey" without quotes.
  *
- * Header input: atyp + dst.addr + dst.port
- * HeaderLen is length(atyp + dst.addr + dst.port)
- * HeaderLen_TAG and Header_TAG are in plaintext
+ * We derive a per-session subkey from a pre-shared master key using HKDF_SHA1. Salt must be unique through the entire
+ * life of the pre-shared master key.
  *
- * TCP Chunk (before encryption)
- * +----------+
- * |  DATA    |
- * +----------+
- * | Variable |
- * +----------+
+ * TCP
  *
- * Data.Len is a 16-bit big-endian integer indicating the length of DATA.
+ * An AEAD encrypted TCP stream starts with a randomly generated salt to derive the per-session subkey, followed by any
+ * number of encrypted chunks. Each chunk has the following structure:
  *
- * TCP Chunk (after encryption, *ciphertext*)
- * +--------------+---------------+--------------+------------+
- * |  *DataLen*   |  DataLen_TAG  |    *Data*    |  Data_TAG  |
- * +--------------+---------------+--------------+------------+
- * |      2       |     Fixed     |   Variable   |   Fixed    |
- * +--------------+---------------+--------------+------------+
+ *      [encrypted payload length][length tag][encrypted payload][payload tag]
  *
- * Len_TAG and DATA_TAG have the same length, they are in plaintext.
- * After encryption, DATA -> DATA*
+ * Payload length is a 2-byte big-endian unsigned integer capped at 0x3FFF. The higher two bits are reserved and must be
+ * set to zero. Payload is therefore limited to 16*1024 - 1 bytes.
  *
- * UDP (before encryption)
- * +------+---------------------+------------------+----------+
- * | ATYP | Destination Address | Destination Port |   DATA   |
- * +------+---------------------+------------------+----------+
- * |  1   |       Variable      |         2        | Variable |
- * +------+---------------------+------------------+----------+
+ * The first AEAD encrypt/decrypt operation uses a counting nonce starting from 0. After each encrypt/decrypt operation,
+ * the nonce is incremented by one as if it were an unsigned little-endian integer. Note that each TCP chunk involves
+ * two AEAD encrypt/decrypt operation: one for the payload length, and one for the payload. Therefore each chunk
+ * increases the nonce twice.
  *
- * UDP (after encryption, *ciphertext*)
- * +--------+-----------+-----------+
- * | NONCE  |  *Data*   |  Data_TAG |
- * +--------+-----------+-----------+
- * | Fixed  | Variable  |   Fixed   |
- * +--------+-----------+-----------+
+ * UDP
  *
- * *Data* is Encrypt(atyp + dst.addr + dst.port + payload)
- * RSV and FRAG are dropped
- * Since UDP packet is either received completely or missed,
- * we don't have to keep a field to track its length.
+ * An AEAD encrypted UDP packet has the following structure:
+ *
+ *      [salt][encrypted payload][tag]
+ *
+ * The salt is used to derive the per-session subkey and must be generated randomly to ensure uniqueness. Each UDP
+ * packet is encrypted/decrypted independently, using the derived subkey and a nonce with all zero bytes.
  *
  */
 
@@ -190,9 +166,18 @@ aead_cipher_encrypt(cipher_ctx_t *cipher_ctx,
     size_t tlen = cipher_ctx->cipher->tag_len;
 
     switch (cipher_ctx->cipher->method) {
-    case AES128GCM:
+    case AES256GCM: // Only AES-256-GCM is supported by libsodium.
+        if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
+            err =  crypto_aead_aes256gcm_encrypt_afternm(c, &long_clen, m, mlen,
+                                          ad, adlen, NULL, n,
+                                          (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
+            *clen = (size_t)long_clen; // it's safe to cast 64bit to 32bit length here
+            break;
+        }
+        // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
-    case AES256GCM:
+    case AES128GCM:
+
         err = mbedtls_cipher_auth_encrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen, c, clen, c + mlen, tlen);
         *clen += tlen;
@@ -230,9 +215,17 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
     size_t tlen = cipher_ctx->cipher->tag_len;
 
     switch (cipher_ctx->cipher->method) {
-    case AES128GCM:
+    case AES256GCM: // Only AES-256-GCM is supported by libsodium.
+        if (cipher_ctx->aes256gcm_ctx != NULL) { // Use it if availble
+            err = crypto_aead_aes256gcm_decrypt_afternm(p, &long_plen, NULL, m, mlen,
+                                          ad, adlen, n,
+                                          (const aes256gcm_ctx *)cipher_ctx->aes256gcm_ctx);
+            *plen = (size_t)long_plen; // it's safe to cast 64bit to 32bit length here
+            break;
+        }
+        // Otherwise, just use the mbedTLS one with crappy AES-NI.
     case AES192GCM:
-    case AES256GCM:
+    case AES128GCM:
         err = mbedtls_cipher_auth_decrypt(cipher_ctx->evp, n, nlen, ad, adlen,
                                           m, mlen - tlen, p, plen, m + mlen - tlen, tlen);
         break;
@@ -291,10 +284,10 @@ aead_cipher_ctx_set_key(cipher_ctx_t *cipher_ctx, int enc)
     }
 
     int err = crypto_hkdf(md,
-            cipher_ctx->salt, cipher_ctx->cipher->key_len,
-            cipher_ctx->cipher->key, cipher_ctx->cipher->key_len,
-            (uint8_t *)SUBKEY_INFO, strlen(SUBKEY_INFO),
-            cipher_ctx->skey, cipher_ctx->cipher->key_len);
+                          cipher_ctx->salt, cipher_ctx->cipher->key_len,
+                          cipher_ctx->cipher->key, cipher_ctx->cipher->key_len,
+                          (uint8_t *)SUBKEY_INFO, strlen(SUBKEY_INFO),
+                          cipher_ctx->skey, cipher_ctx->cipher->key_len);
     if (err) {
         FATAL("Unable to generate subkey");
     }
@@ -305,7 +298,13 @@ aead_cipher_ctx_set_key(cipher_ctx_t *cipher_ctx, int enc)
     if (cipher_ctx->cipher->method >= CHACHA20POLY1305IETF) {
         return;
     }
-
+    if (cipher_ctx->aes256gcm_ctx != NULL) {
+        if (crypto_aead_aes256gcm_beforenm(cipher_ctx->aes256gcm_ctx,
+                                           cipher_ctx->skey) != 0) {
+            FATAL("Cannot set libsodium cipher key");
+        }
+        return;
+    }
     if (mbedtls_cipher_setkey(cipher_ctx->evp, cipher_ctx->skey,
                               cipher_ctx->cipher->key_len * 8, enc) != 0) {
         FATAL("Cannot set mbed TLS cipher key");
@@ -331,18 +330,25 @@ aead_cipher_ctx_init(cipher_ctx_t *cipher_ctx, int method, int enc)
 
     const cipher_kt_t *cipher = aead_get_cipher_type(method);
 
-    cipher_ctx->evp = ss_malloc(sizeof(cipher_evp_t));
-    memset(cipher_ctx->evp, 0, sizeof(cipher_evp_t));
-    cipher_evp_t *evp = cipher_ctx->evp;
+    if (method == AES256GCM && crypto_aead_aes256gcm_is_available()) {
+        cipher_ctx->aes256gcm_ctx = ss_malloc(sizeof(aes256gcm_ctx));
+        memset(cipher_ctx->aes256gcm_ctx, 0, sizeof(aes256gcm_ctx));
+    } else {
+        cipher_ctx->aes256gcm_ctx = NULL;
+        cipher_ctx->evp = ss_malloc(sizeof(cipher_evp_t));
+        memset(cipher_ctx->evp, 0, sizeof(cipher_evp_t));
+        cipher_evp_t *evp = cipher_ctx->evp;
+        mbedtls_cipher_init(evp);
+        if (mbedtls_cipher_setup(evp, cipher) != 0) {
+            FATAL("Cannot initialize mbed TLS cipher context");
+        }
+    }
 
     if (cipher == NULL) {
         LOGE("Cipher %s not found in mbed TLS library", ciphername);
         FATAL("Cannot initialize mbed TLS cipher");
     }
-    mbedtls_cipher_init(evp);
-    if (mbedtls_cipher_setup(evp, cipher) != 0) {
-        FATAL("Cannot initialize mbed TLS cipher context");
-    }
+
 
 #ifdef SS_DEBUG
     dump("KEY", (char *)cipher_ctx->cipher->key, cipher_ctx->cipher->key_len);
@@ -375,6 +381,11 @@ aead_ctx_release(cipher_ctx_t *cipher_ctx)
         return;
     }
 
+    if (cipher_ctx->aes256gcm_ctx != NULL) {
+        ss_free(cipher_ctx->aes256gcm_ctx);
+        return;
+    }
+
     mbedtls_cipher_free(cipher_ctx->evp);
     ss_free(cipher_ctx->evp);
 }
@@ -385,9 +396,9 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     cipher_ctx_t cipher_ctx;
     aead_ctx_init(cipher, &cipher_ctx, 1);
 
-    size_t salt_len  = cipher->key_len;
-    size_t tag_len   = cipher->tag_len;
-    int err          = CRYPTO_OK;
+    size_t salt_len = cipher->key_len;
+    size_t tag_len  = cipher->tag_len;
+    int err         = CRYPTO_OK;
 
     static buffer_t tmp = { 0, 0, 0, NULL };
     brealloc(&tmp, salt_len + tag_len + plaintext->len, capacity);
@@ -397,6 +408,8 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     /* copy salt to first pos */
     memcpy(ciphertext->data, cipher_ctx.salt, salt_len);
 
+    ppbloom_add((void *)cipher_ctx.salt, salt_len);
+
     aead_cipher_ctx_set_key(&cipher_ctx, 1);
 
     size_t clen = ciphertext->len;
@@ -405,13 +418,11 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
                               (uint8_t *)plaintext->data, plaintext->len,
                               NULL, 0, cipher_ctx.nonce, cipher_ctx.skey);
 
-    if (err) {
-        bfree(plaintext);
-        aead_ctx_release(&cipher_ctx);
-        return CRYPTO_ERROR;
-    }
-
     aead_ctx_release(&cipher_ctx);
+
+    if (err)
+        return CRYPTO_ERROR;
+
     assert(ciphertext->len == clen);
 
     brealloc(plaintext, salt_len + ciphertext->len, capacity);
@@ -424,9 +435,9 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
 int
 aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
 {
-    size_t salt_len  = cipher->key_len;
-    size_t tag_len   = cipher->tag_len;
-    int err          = CRYPTO_OK;
+    size_t salt_len = cipher->key_len;
+    size_t tag_len  = cipher->tag_len;
+    int err         = CRYPTO_OK;
 
     if (ciphertext->len <= salt_len + tag_len) {
         return CRYPTO_ERROR;
@@ -444,6 +455,11 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
     uint8_t *salt = cipher_ctx.salt;
     memcpy(salt, ciphertext->data, salt_len);
 
+    if (ppbloom_check((void *)salt, salt_len) == 1) {
+        LOGE("crypto: AEAD: repeat salt detected");
+        return CRYPTO_ERROR;
+    }
+
     aead_cipher_ctx_set_key(&cipher_ctx, 0);
 
     size_t plen = plaintext->len;
@@ -453,13 +469,12 @@ aead_decrypt_all(buffer_t *ciphertext, cipher_t *cipher, size_t capacity)
                               ciphertext->len - salt_len, NULL, 0,
                               cipher_ctx.nonce, cipher_ctx.skey);
 
-    if (err) {
-        bfree(ciphertext);
-        aead_ctx_release(&cipher_ctx);
-        return CRYPTO_ERROR;
-    }
-
     aead_ctx_release(&cipher_ctx);
+
+    if (err)
+        return CRYPTO_ERROR;
+
+    ppbloom_add((void *)salt, salt_len);
 
     brealloc(ciphertext, plaintext->len, capacity);
     memcpy(ciphertext->data, plaintext->data, plaintext->len);
@@ -475,7 +490,7 @@ aead_chunk_encrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c,
     size_t nlen = ctx->cipher->nonce_len;
     size_t tlen = ctx->cipher->tag_len;
 
-    assert(plen + tlen < CHUNK_SIZE_MASK);
+    assert(plen <= CHUNK_SIZE_MASK);
 
     int err;
     size_t clen;
@@ -488,15 +503,17 @@ aead_chunk_encrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c,
                                NULL, 0, n, ctx->skey);
     if (err)
         return CRYPTO_ERROR;
+
     assert(clen == CHUNK_SIZE_LEN + tlen);
 
     sodium_increment(n, nlen);
 
     clen = plen + tlen;
-    err  = aead_cipher_encrypt(ctx, c + CHUNK_SIZE_LEN + tlen, &clen,p, plen,
+    err  = aead_cipher_encrypt(ctx, c + CHUNK_SIZE_LEN + tlen, &clen, p, plen,
                                NULL, 0, n, ctx->skey);
     if (err)
         return CRYPTO_ERROR;
+
     assert(clen == plen + tlen);
 
     sodium_increment(n, nlen);
@@ -518,11 +535,11 @@ aead_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
     static buffer_t tmp = { 0, 0, 0, NULL };
     buffer_t *ciphertext;
 
-    cipher_t *cipher  = cipher_ctx->cipher;
-    int err           = CRYPTO_ERROR;
-    size_t salt_ofst  = 0;
-    size_t salt_len   = cipher->key_len;
-    size_t tag_len    = cipher->tag_len;
+    cipher_t *cipher = cipher_ctx->cipher;
+    int err          = CRYPTO_ERROR;
+    size_t salt_ofst = 0;
+    size_t salt_len  = cipher->key_len;
+    size_t tag_len   = cipher->tag_len;
 
     if (!cipher_ctx->init) {
         salt_ofst = salt_len;
@@ -537,6 +554,8 @@ aead_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         memcpy(ciphertext->data, cipher_ctx->salt, salt_len);
         aead_cipher_ctx_set_key(cipher_ctx, 1);
         cipher_ctx->init = 1;
+
+        ppbloom_add((void *)cipher_ctx->salt, salt_len);
     }
 
     err = aead_chunk_encrypt(cipher_ctx,
@@ -609,7 +628,7 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
     cipher_t *cipher = cipher_ctx->cipher;
 
-    size_t salt_len  = cipher->key_len;
+    size_t salt_len = cipher->key_len;
 
     if (cipher_ctx->chunk == NULL) {
         cipher_ctx->chunk = (buffer_t *)ss_malloc(sizeof(buffer_t));
@@ -634,12 +653,9 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
         aead_cipher_ctx_set_key(cipher_ctx, 0);
 
-        if (cache_key_exist(nonce_cache, (char *)cipher_ctx->salt, salt_len)) {
+        if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
             LOGE("crypto: AEAD: repeat salt detected");
-            bfree(ciphertext);
             return CRYPTO_ERROR;
-        } else {
-            cache_insert(nonce_cache, (char *)cipher_ctx->salt, salt_len, NULL);
         }
 
         memmove(cipher_ctx->chunk->data, cipher_ctx->chunk->data + salt_len,
@@ -670,6 +686,16 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
     }
     plaintext->len = plen;
 
+    // Add the salt to bloom filter
+    if (cipher_ctx->init == 1) {
+        if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
+            LOGE("crypto: AEAD: repeat salt detected");
+            return CRYPTO_ERROR;
+        }
+        ppbloom_add((void *)cipher_ctx->salt, salt_len);
+        cipher_ctx->init = 2;
+    }
+
     brealloc(ciphertext, plaintext->len, capacity);
     memcpy(ciphertext->data, plaintext->data, plaintext->len);
     ciphertext->len = plaintext->len;
@@ -685,16 +711,8 @@ aead_key_init(int method, const char *pass, const char *key)
         return NULL;
     }
 
-    // Initialize cache
-    cache_create(&nonce_cache, 1024, NULL);
-
     cipher_t *cipher = (cipher_t *)ss_malloc(sizeof(cipher_t));
     memset(cipher, 0, sizeof(cipher_t));
-
-    // Initialize sodium for random generator
-    if (sodium_init() == -1) {
-        FATAL("Failed to initialize sodium");
-    }
 
     if (method >= CHACHA20POLY1305IETF) {
         cipher_kt_t *cipher_info = (cipher_kt_t *)ss_malloc(sizeof(cipher_kt_t));
@@ -713,10 +731,10 @@ aead_key_init(int method, const char *pass, const char *key)
 
     if (key != NULL)
         cipher->key_len = crypto_parse_key(key, cipher->key,
-                supported_aead_ciphers_key_size[method]);
+                                           supported_aead_ciphers_key_size[method]);
     else
         cipher->key_len = crypto_derive_key(pass, cipher->key,
-                supported_aead_ciphers_key_size[method]);
+                                            supported_aead_ciphers_key_size[method]);
 
     if (cipher->key_len == 0) {
         FATAL("Cannot generate key and nonce");
@@ -740,10 +758,9 @@ aead_init(const char *pass, const char *key, const char *method)
                 break;
             }
         if (m >= AEAD_CIPHER_NUM) {
-            LOGE("Invalid cipher name: %s, use aes-256-gcm instead", method);
-            m = AES256GCM;
+            LOGE("Invalid cipher name: %s, use chacha20-ietf-poly1305 instead", method);
+            m = CHACHA20POLY1305IETF;
         }
     }
     return aead_key_init(m, pass, key);
 }
-

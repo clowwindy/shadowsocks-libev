@@ -1,7 +1,7 @@
 /*
  * server.c - Provide shadowsocks service
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -71,7 +71,6 @@ char *working_dir    = NULL;
 int working_dir_size = 0;
 
 static struct cork_hash_table *server_table;
-static struct cork_hash_table *sock_table;
 
 static int
 setnonblocking(int fd)
@@ -84,7 +83,21 @@ setnonblocking(int fd)
 }
 
 static void
-build_config(char *prefix, struct server *server)
+destroy_server(struct server *server)
+{
+// function used to free memories alloced in **get_server**
+    if (server->method)
+        ss_free(server->method);
+    if (server->plugin)
+        ss_free(server->plugin);
+    if (server->plugin_opts)
+        ss_free(server->plugin_opts);
+    if (server->mode)
+        ss_free(server->mode);
+}
+
+static void
+build_config(char *prefix, struct manager_ctx *manager, struct server *server)
 {
     char *path    = NULL;
     int path_size = strlen(prefix) + strlen(server->port) + 20;
@@ -100,9 +113,27 @@ build_config(char *prefix, struct server *server)
         return;
     }
     fprintf(f, "{\n");
-    fprintf(f, "\"server_port\":\"%s\",\n", server->port);
-    fprintf(f, "\"password\":\"%s\",\n", server->password);
-    fprintf(f, "}\n");
+    fprintf(f, "\"server_port\":%d,\n", atoi(server->port));
+    fprintf(f, "\"password\":\"%s\"", server->password);
+    if (server->method)
+        fprintf(f, ",\n\"method\":\"%s\"", server->method);
+    else if (manager->method)
+        fprintf(f, ",\n\"method\":\"%s\"", manager->method);
+    if (server->fast_open[0])
+        fprintf(f, ",\n\"fast_open\": %s", server->fast_open);
+    else if (manager->fast_open)
+        fprintf(f, ",\n\"fast_open\": true");
+    if (server->no_delay[0])
+        fprintf(f, ",\n\"no_delay\": %s", server->no_delay);
+    else if (manager->no_delay)
+        fprintf(f, ",\n\"no_delay\": true");
+    if (server->mode)
+        fprintf(f, ",\n\"mode\":\"%s\"", server->mode);
+    if (server->plugin)
+        fprintf(f, ",\n\"plugin\":\"%s\"", server->plugin);
+    if (server->plugin_opts)
+        fprintf(f, ",\n\"plugin_opts\":\"%s\"", server->plugin_opts);
+    fprintf(f, "\n}\n");
     fclose(f);
     ss_free(path);
 }
@@ -112,14 +143,16 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
 {
     static char cmd[BUF_SIZE];
     int i;
+    int port;
 
-    build_config(working_dir, server);
+    port = atoi(server->port);
+
+    build_config(working_dir, manager, server);
 
     memset(cmd, 0, BUF_SIZE);
     snprintf(cmd, BUF_SIZE,
-             "%s -m %s --manager-address %s -f %s/.shadowsocks_%s.pid -c %s/.shadowsocks_%s.conf",
-             executable, manager->method, manager->manager_address,
-             working_dir, server->port, working_dir, server->port);
+             "%s --manager-address %s -f %s/.shadowsocks_%d.pid -c %s/.shadowsocks_%d.conf",
+             executable, manager->manager_address, working_dir, port, working_dir, port);
 
     if (manager->acl != NULL) {
         int len = strlen(cmd);
@@ -143,21 +176,21 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -v");
     }
-    if (manager->mode == UDP_ONLY) {
+    if (server->mode == NULL && manager->mode == UDP_ONLY) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -U");
     }
-    if (manager->mode == TCP_AND_UDP) {
+    if (server->mode == NULL && manager->mode == TCP_AND_UDP) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -u");
     }
-    if (manager->auth) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -A");
-    }
-    if (manager->fast_open) {
+    if (server->fast_open[0] == 0 && manager->fast_open) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
+    }
+    if (server->no_delay[0] == 0 && manager->no_delay) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " --no-delay");
     }
     if (manager->ipv6first) {
         int len = strlen(cmd);
@@ -167,26 +200,21 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --mtu %d", manager->mtu);
     }
-    if (manager->plugin) {
+    if (server->plugin == NULL && manager->plugin) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --plugin \"%s\"", manager->plugin);
     }
-    if (manager->plugin_opts) {
+    if (server->plugin_opts == NULL && manager->plugin_opts) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --plugin-opts \"%s\"", manager->plugin_opts);
     }
-    for (i = 0; i < manager->nameserver_num; i++) {
+    if (manager->nameservers) {
         int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -d %s", manager->nameservers[i]);
+        snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
     }
     for (i = 0; i < manager->host_num; i++) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -s %s", manager->hosts[i]);
-    }
-    // Always enable reuse port
-    {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " --reuse-port");
     }
 
     if (verbose) {
@@ -260,13 +288,37 @@ get_server(char *buf, int len)
             json_value *value = obj->u.object.values[i].value;
             if (strcmp(name, "server_port") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->port, value->u.string.ptr, 8);
+                    strncpy(server->port, value->u.string.ptr, 7);
                 } else if (value->type == json_integer) {
                     snprintf(server->port, 8, "%" PRIu64 "", value->u.integer);
                 }
             } else if (strcmp(name, "password") == 0) {
                 if (value->type == json_string) {
-                    strncpy(server->password, value->u.string.ptr, 128);
+                    strncpy(server->password, value->u.string.ptr, 127);
+                }
+            } else if (strcmp(name, "method") == 0) {
+                if (value->type == json_string) {
+                    server->method = strdup(value->u.string.ptr);
+                }
+            } else if (strcmp(name, "fast_open") == 0) {
+                if (value->type == json_boolean) {
+                    strncpy(server->fast_open, (value->u.boolean ? "true" : "false"), 8);
+                }
+            } else if (strcmp(name, "no_delay") == 0) {
+                if (value->type == json_boolean) {
+                    strncpy(server->no_delay, (value->u.boolean ? "true" : "false"), 8);
+                }
+            } else if (strcmp(name, "plugin") == 0) {
+                if (value->type == json_string) {
+                    server->plugin = strdup(value->u.string.ptr);
+                }
+            } else if (strcmp(name, "plugin_opts") == 0) {
+                if (value->type == json_string) {
+                    server->plugin_opts = strdup(value->u.string.ptr);
+                }
+            } else if (strcmp(name, "mode") == 0) {
+                if (value->type == json_string) {
+                    server->mode = strdup(value->u.string.ptr);
                 }
             } else {
                 LOGE("invalid data: %s", data);
@@ -303,7 +355,7 @@ parse_traffic(char *buf, int len, char *port, uint64_t *traffic)
             char *name        = obj->u.object.values[i].name;
             json_value *value = obj->u.object.values[i].value;
             if (value->type == json_integer) {
-                strncpy(port, name, 8);
+                strncpy(port, name, 7);
                 *traffic = value->u.integer;
             }
         }
@@ -318,7 +370,7 @@ create_and_bind(const char *host, const char *port, int protocol)
 {
     struct addrinfo hints;
     struct addrinfo *result, *rp, *ipv4v6bindall;
-    int s, listen_sock = -1, is_reuse_port = 0;
+    int s, listen_sock = -1;
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family   = AF_UNSPEC;                  /* Return IPv4 and IPv6 choices */
@@ -371,25 +423,12 @@ create_and_bind(const char *host, const char *port, int protocol)
 #ifdef SO_NOSIGPIPE
         setsockopt(listen_sock, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
-        /* Use port reuse to act as lock */
-        int err = set_reuseport(listen_sock);
-        if (err == 0) {
-            if (verbose) {
-                LOGI("%s port reuse enabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
-            }
-            is_reuse_port = 1;
-        }
 
         s = bind(listen_sock, rp->ai_addr, rp->ai_addrlen);
         if (s == 0) {
             /* We managed to bind successfully! */
 
-            if (!is_reuse_port) {
-                if (verbose) {
-                    LOGI("close sock due to %s port reuse disabled", protocol == IPPROTO_TCP ? "tcp" : "udp");
-                }
-                close(listen_sock);
-            }
+            close(listen_sock);
 
             break;
         } else {
@@ -406,80 +445,7 @@ create_and_bind(const char *host, const char *port, int protocol)
         return -1;
     }
 
-    return is_reuse_port ? listen_sock : -2;
-}
-
-static void
-release_sock_lock(sock_lock_t *sock_lock)
-{
-    ev_timer_stop(EV_DEFAULT, &sock_lock->watcher);
-
-    while (--sock_lock->fd_count > -1) {
-        if (verbose) {
-            LOGI("close sock %d then remaining fd count is %d",
-                 *(sock_lock->fds + sock_lock->fd_count), sock_lock->fd_count);
-        }
-        close(*(sock_lock->fds + sock_lock->fd_count));
-    }
-
-    if (verbose) {
-        LOGI("release sock lock: %s", sock_lock->port);
-    }
-
-    ss_free(sock_lock->port);
-    ss_free(sock_lock->fds);
-    ss_free(sock_lock);
-}
-
-static void
-get_and_release_sock_lock(char *port)
-{
-    if (verbose) {
-        LOGI("try to release sock lock at port: %s", port);
-    }
-
-    sock_lock_t *sock_lock = NULL;
-    bool ret               = cork_hash_table_delete(sock_table, port, NULL, (void **)&sock_lock);
-
-    if (ret) {
-        release_sock_lock(sock_lock);
-    }
-}
-
-static void
-sock_lock_timeout_cb(EV_P_ ev_timer *watcher, int revents)
-{
-    sock_lock_t *sock_lock = cork_container_of(watcher, sock_lock_t, watcher);
-
-    cork_hash_table_delete(sock_table, sock_lock->port, NULL, NULL);
-    release_sock_lock(sock_lock);
-}
-
-static sock_lock_t *
-new_sock_lock(char *port, int *fds, int fd_count)
-{
-    if (verbose) {
-        LOGI("new sock lock with port: %s fd_count: %d", port, fd_count);
-    }
-
-    sock_lock_t *sock_lock;
-    sock_lock = ss_malloc(sizeof(sock_lock_t));
-
-    memset(sock_lock, 0, sizeof(sock_lock_t));
-
-    sock_lock->port = ss_malloc(strlen(port) * sizeof(char));
-    strcpy(sock_lock->port, port);
-
-    sock_lock->fds = ss_malloc(fd_count * sizeof(int));
-    memcpy(sock_lock->fds, fds, fd_count * sizeof(int));
-
-    sock_lock->fd_count = fd_count;
-
-    /* use 128 as ss-server may use at most 128 seconds to query dns */
-    ev_timer_init(&sock_lock->watcher, sock_lock_timeout_cb, 128., 0.);
-    ev_timer_start(EV_DEFAULT, &sock_lock->watcher);
-
-    return sock_lock;
+    return listen_sock;
 }
 
 static int
@@ -509,44 +475,16 @@ check_port(struct manager_ctx *manager, struct server *server)
         if (sock_fds[i] == -1 || (both_tcp_udp && sock_fds[i + manager->host_num] == -1)) {
             bind_err = -1;
             break;
-        } else if (sock_fds[i] == -2 || (both_tcp_udp && sock_fds[i + manager->host_num] == -2)) {
-            /* continue to check all hosts */
-            bind_err = -2;
         }
     }
 
-    if (!bind_err) {
-        /* no err happened */
-        if (verbose) {
-            LOGI("port check passed and locked");
+    /* clean socks */
+    for (int i = 0; i < fd_count; i++)
+        if (sock_fds[i] > 0) {
+            close(sock_fds[i]);
         }
-
-        sock_lock_t *sock_lock = new_sock_lock(server->port, sock_fds, fd_count);
-
-        sock_lock_t *old_sock_lock = NULL;
-        bool new                   = false;
-
-        cork_hash_table_put(sock_table, (void *)sock_lock->port, (void *)sock_lock, &new, NULL, (void **)&old_sock_lock);
-
-        if (old_sock_lock) {
-            if (verbose) {
-                LOGI("release old sock lock after add new one to hash table");
-            }
-            release_sock_lock(old_sock_lock);
-        }
-    } else {
-        /* clean socks */
-        for (int i = 0; i < fd_count; i++)
-            if (sock_fds[i] > 0) {
-                close(sock_fds[i]);
-            }
-    }
 
     ss_free(sock_fds);
-
-    if (bind_err == -2) {
-        LOGI("port is available but can not be locked");
-    }
 
     return bind_err == -1 ? -1 : 0;
 }
@@ -627,6 +565,7 @@ remove_server(char *prefix, char *port)
     cork_hash_table_delete(server_table, (void *)port, (void **)&old_port, (void **)&old_server);
 
     if (old_server != NULL) {
+        destroy_server(old_server);
         ss_free(old_server);
     }
 
@@ -651,7 +590,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
 {
     struct manager_ctx *manager = (struct manager_ctx *)w;
     socklen_t len;
-    size_t r;
+    ssize_t r;
     struct sockaddr_un claddr;
     char buf[BUF_SIZE];
 
@@ -680,6 +619,7 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (server == NULL || server->port[0] == 0 || server->password[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
+                destroy_server(server);
                 ss_free(server);
             }
             goto ERROR_MSG;
@@ -702,18 +642,52 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         if (sendto(manager->fd, msg, msg_len, 0, (struct sockaddr *)&claddr, len) != 2) {
             ERROR("add_sendto");
         }
+    } else if (strcmp(action, "list") == 0) {
+        struct cork_hash_table_iterator iter;
+        struct cork_hash_table_entry  *entry;
+        char buf[BUF_SIZE];
+        memset(buf, 0, BUF_SIZE);
+        sprintf(buf, "[");
+
+        cork_hash_table_iterator_init(server_table, &iter);
+        while ((entry = cork_hash_table_iterator_next(&iter)) != NULL) {
+            struct server *server = (struct server *)entry->value;
+            char *method          = server->method ? server->method : manager->method;
+            size_t pos            = strlen(buf);
+            size_t entry_len      = strlen(server->port) + strlen(server->password) + strlen(method);
+            if (pos > BUF_SIZE - entry_len - 50) {
+                if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
+                    != pos) {
+                    ERROR("list_sendto");
+                }
+                memset(buf, 0, BUF_SIZE);
+                pos = 0;
+            }
+            sprintf(buf + pos, "\n\t{\"server_port\":\"%s\",\"password\":\"%s\",\"method\":\"%s\"},",
+                    server->port, server->password, method);
+        }
+
+        size_t pos = strlen(buf);
+        strcpy(buf + pos - 1, "\n]"); // Remove trailing ","
+        pos = strlen(buf);
+        if (sendto(manager->fd, buf, pos, 0, (struct sockaddr *)&claddr, len)
+            != pos) {
+            ERROR("list_sendto");
+        }
     } else if (strcmp(action, "remove") == 0) {
         struct server *server = get_server(buf, r);
 
         if (server == NULL || server->port[0] == 0) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
             if (server != NULL) {
+                destroy_server(server);
                 ss_free(server);
             }
             goto ERROR_MSG;
         }
 
         remove_server(working_dir, server->port);
+        destroy_server(server);
         ss_free(server);
 
         char msg[3] = "ok";
@@ -730,7 +704,6 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         update_stat(port, traffic);
-        get_and_release_sock_lock(port);
     } else if (strcmp(action, "ping") == 0) {
         struct cork_hash_table_entry *entry;
         struct cork_hash_table_iterator server_iter;
@@ -884,8 +857,8 @@ main(int argc, char **argv)
     char *plugin          = NULL;
     char *plugin_opts     = NULL;
 
-    int auth       = 0;
     int fast_open  = 0;
+    int no_delay   = 0;
     int reuse_port = 0;
     int mode       = TCP_ONLY;
     int mtu        = 0;
@@ -898,25 +871,25 @@ main(int argc, char **argv)
     int server_num = 0;
     char *server_host[MAX_REMOTE_NUM];
 
-    char *nameservers[MAX_DNS_NUM + 1];
-    int nameserver_num = 0;
+    char *nameservers = NULL;
 
     jconf_t *conf = NULL;
 
     static struct option long_options[] = {
-        { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN },
-        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT },
-        { "acl",             required_argument, NULL, GETOPT_VAL_ACL },
+        { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
+        { "no-delay",        no_argument,       NULL, GETOPT_VAL_NODELAY     },
+        { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
+        { "acl",             required_argument, NULL, GETOPT_VAL_ACL         },
         { "manager-address", required_argument, NULL,
-                                                GETOPT_VAL_MANAGER_ADDRESS },
+          GETOPT_VAL_MANAGER_ADDRESS },
         { "executable",      required_argument, NULL,
-                                                GETOPT_VAL_EXECUTABLE },
-        { "mtu",             required_argument, NULL, GETOPT_VAL_MTU },
-        { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN },
+          GETOPT_VAL_EXECUTABLE },
+        { "mtu",             required_argument, NULL, GETOPT_VAL_MTU         },
+        { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
-        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD },
-        { "help",            no_argument,       NULL, GETOPT_VAL_HELP },
-        { NULL,              0,                 NULL, 0 }
+        { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
+        { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
+        { NULL,                              0, NULL,                      0 }
     };
 
     opterr = 0;
@@ -931,6 +904,9 @@ main(int argc, char **argv)
             break;
         case GETOPT_VAL_FAST_OPEN:
             fast_open = 1;
+            break;
+        case GETOPT_VAL_NODELAY:
+            no_delay = 1;
             break;
         case GETOPT_VAL_ACL:
             acl = optarg;
@@ -976,9 +952,7 @@ main(int argc, char **argv)
             iface = optarg;
             break;
         case 'd':
-            if (nameserver_num < MAX_DNS_NUM) {
-                nameservers[nameserver_num++] = optarg;
-            }
+            nameservers = optarg;
             break;
         case 'a':
             user = optarg;
@@ -999,14 +973,14 @@ main(int argc, char **argv)
         case 'h':
             usage();
             exit(EXIT_SUCCESS);
-        case 'A':
-            auth = 1;
-            break;
 #ifdef HAVE_SETRLIMIT
         case 'n':
             nofile = atoi(optarg);
             break;
 #endif
+        case 'A':
+            FATAL("One time auth has been deprecated. Try AEAD ciphers instead.");
+            break;
         case '?':
             // The option character is not recognized.
             LOGE("Unrecognized option: %s", optarg);
@@ -1041,14 +1015,14 @@ main(int argc, char **argv)
         if (fast_open == 0) {
             fast_open = conf->fast_open;
         }
+        if (no_delay == 0) {
+            no_delay = conf->no_delay;
+        }
         if (reuse_port == 0) {
             reuse_port = conf->reuse_port;
         }
-        if (conf->nameserver != NULL) {
-            nameservers[nameserver_num++] = conf->nameserver;
-        }
-        if (auth == 0) {
-            auth = conf->auth;
+        if (nameservers == NULL) {
+            nameservers = conf->nameserver;
         }
         if (mode == TCP_ONLY) {
             mode = conf->mode;
@@ -1084,8 +1058,8 @@ main(int argc, char **argv)
         timeout = "60";
     }
 
+    USE_SYSLOG(argv[0], pid_flags);
     if (pid_flags) {
-        USE_SYSLOG(argv[0]);
         daemonize(pid_path);
     }
 
@@ -1107,8 +1081,8 @@ main(int argc, char **argv)
 #endif
     }
 
-    if (auth) {
-        LOGI("onetime authentication enabled");
+    if (no_delay == 1) {
+        LOGI("using tcp no-delay");
     }
 
     // ignore SIGPIPE
@@ -1128,9 +1102,9 @@ main(int argc, char **argv)
 
     manager.reuse_port      = reuse_port;
     manager.fast_open       = fast_open;
+    manager.no_delay        = no_delay;
     manager.verbose         = verbose;
     manager.mode            = mode;
-    manager.auth            = auth;
     manager.password        = password;
     manager.timeout         = timeout;
     manager.method          = method;
@@ -1141,7 +1115,6 @@ main(int argc, char **argv)
     manager.hosts           = server_host;
     manager.host_num        = server_num;
     manager.nameservers     = nameservers;
-    manager.nameserver_num  = nameserver_num;
     manager.mtu             = mtu;
     manager.plugin          = plugin;
     manager.plugin_opts     = plugin_opts;
@@ -1153,17 +1126,18 @@ main(int argc, char **argv)
     // initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 
-    // setuid
-    if (user != NULL && !run_as(user)) {
-        FATAL("failed to switch user");
-    }
-
     if (geteuid() == 0) {
         LOGI("running from root user");
     }
 
     struct passwd *pw   = getpwuid(getuid());
     const char *homedir = pw->pw_dir;
+
+    if (homedir == NULL || strlen(homedir) == 0)
+    {
+        // if home dir not defined, fall back to /tmp
+        homedir = "/tmp";
+    }
     working_dir_size = strlen(homedir) + 15;
     working_dir      = ss_malloc(working_dir_size);
     snprintf(working_dir, working_dir_size, "%s/.shadowsocks", homedir);
@@ -1195,14 +1169,13 @@ main(int argc, char **argv)
     }
 
     server_table = cork_string_hash_table_new(MAX_PORT_NUM, 0);
-    sock_table   = cork_string_hash_table_new(MAX_PORT_NUM, 0);
 
     if (conf != NULL) {
         for (i = 0; i < conf->port_password_num; i++) {
             struct server *server = ss_malloc(sizeof(struct server));
             memset(server, 0, sizeof(struct server));
-            strncpy(server->port, conf->port_password[i].port, 8);
-            strncpy(server->password, conf->port_password[i].password, 128);
+            strncpy(server->port, conf->port_password[i].port, 7);
+            strncpy(server->password, conf->port_password[i].password, 127);
             add_server(&manager, server);
         }
     }
@@ -1258,20 +1231,12 @@ main(int argc, char **argv)
     // Clean up
     struct cork_hash_table_entry *entry;
     struct cork_hash_table_iterator server_iter;
-    struct cork_hash_table_iterator sock_iter;
 
     cork_hash_table_iterator_init(server_table, &server_iter);
 
     while ((entry = cork_hash_table_iterator_next(&server_iter)) != NULL) {
         struct server *server = (struct server *)entry->value;
         stop_server(working_dir, server->port);
-    }
-
-    cork_hash_table_iterator_init(sock_table, &sock_iter);
-
-    while ((entry = cork_hash_table_iterator_next(&sock_iter)) != NULL) {
-        sock_lock_t *sock_lock = (sock_lock_t *)entry->value;
-        release_sock_lock(sock_lock);
     }
 
     ev_signal_stop(EV_DEFAULT, &sigint_watcher);
