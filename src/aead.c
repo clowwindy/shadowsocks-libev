@@ -408,6 +408,8 @@ aead_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     /* copy salt to first pos */
     memcpy(ciphertext->data, cipher_ctx.salt, salt_len);
 
+    ppbloom_add((void *)cipher_ctx.salt, salt_len);
+
     aead_cipher_ctx_set_key(&cipher_ctx, 1);
 
     size_t clen = ciphertext->len;
@@ -552,6 +554,8 @@ aead_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         memcpy(ciphertext->data, cipher_ctx->salt, salt_len);
         aead_cipher_ctx_set_key(cipher_ctx, 1);
         cipher_ctx->init = 1;
+
+        ppbloom_add((void *)cipher_ctx->salt, salt_len);
     }
 
     err = aead_chunk_encrypt(cipher_ctx,
