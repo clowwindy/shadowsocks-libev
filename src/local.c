@@ -365,7 +365,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         return -1;
     }
 
-    char host[257], ip[INET6_ADDRSTRLEN], port[16];
+    char host[MAX_HOSTNAME_LEN+1], ip[INET6_ADDRSTRLEN], port[16];
 
     buffer_t *abuf = server->abuf;
     abuf->idx = 0;
@@ -437,29 +437,30 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
 
     size_t abuf_len  = abuf->len;
     int sni_detected = 0;
-    int ret          = 0;
+    int hostname_len = 0;
 
     char *hostname;
     uint16_t dst_port = ntohs(*(uint16_t *)(abuf->data + abuf->len - 2));
 
     if (atyp == SOCKS5_ATYP_IPV4 || atyp == SOCKS5_ATYP_IPV6) {
         if (dst_port == http_protocol->default_port)
-            ret = http_protocol->parse_packet(buf->data + 3 + abuf->len,
+            hostname_len = http_protocol->parse_packet(buf->data + 3 + abuf->len,
                                               buf->len - 3 - abuf->len, &hostname);
         else if (dst_port == tls_protocol->default_port)
-            ret = tls_protocol->parse_packet(buf->data + 3 + abuf->len,
+            hostname_len = tls_protocol->parse_packet(buf->data + 3 + abuf->len,
                                              buf->len - 3 - abuf->len, &hostname);
-        if (ret == -1 && buf->len < BUF_SIZE && server->stage != STAGE_SNI) {
+        if (hostname_len == -1 && buf->len < BUF_SIZE && server->stage != STAGE_SNI) {
             if (server_handshake_reply(EV_A_ w, 0, &response) < 0)
                 return -1;
             server->stage = STAGE_SNI;
             ev_timer_start(EV_A_ & server->delayed_connect_watcher);
             return -1;
-        } else if (ret > 0) {
+        } else if (hostname_len > 0) {
             sni_detected = 1;
             if (acl || verbose) {
-                memcpy(host, hostname, ret);
-                host[ret] = '\0';
+                hostname_len = hostname_len > MAX_HOSTNAME_LEN ? MAX_HOSTNAME_LEN : hostname_len;
+                memcpy(host, hostname, hostname_len);
+                host[hostname_len] = '\0';
             }
             ss_free(hostname);
         }
@@ -586,9 +587,9 @@ not_bypass:
             // Reconstruct address buffer
             abuf->len               = 0;
             abuf->data[abuf->len++] = 3;
-            abuf->data[abuf->len++] = ret;
-            memcpy(abuf->data + abuf->len, host, ret);
-            abuf->len += ret;
+            abuf->data[abuf->len++] = hostname_len;
+            memcpy(abuf->data + abuf->len, host, hostname_len);
+            abuf->len += hostname_len;
             dst_port   = htons(dst_port);
             memcpy(abuf->data + abuf->len, &dst_port, 2);
             abuf->len += 2;
