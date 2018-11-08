@@ -1,7 +1,7 @@
 shadowsocks-libev (3.2.1-1) unstable; urgency=medium
 
-  * Add TCP fast open suuport to ss-tunnel by @PantherJohn.
-  * Fix sevral security issues.
+  * Add TCP fast open support to ss-tunnel by @PantherJohn.
+  * Fix several security issues.
 
  -- Max Lv <max.c.lv@gmail.com>  Wed, 07 Nov 2018 22:31:59 -0800
 
