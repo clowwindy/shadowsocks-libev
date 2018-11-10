@@ -269,8 +269,8 @@ sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-are
 ## Arch
 sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
 
-# Installation of Libsodium
-export LIBSODIUM_VER=1.0.13
+# Installation of libsodium
+export LIBSODIUM_VER=1.0.16
 wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
 tar xvf libsodium-$LIBSODIUM_VER.tar.gz
 pushd libsodium-$LIBSODIUM_VER
