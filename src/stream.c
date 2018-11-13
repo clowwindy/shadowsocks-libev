@@ -345,7 +345,9 @@ stream_encrypt_all(buffer_t *plaintext, cipher_t *cipher, size_t capacity)
     cipher_ctx_set_nonce(&cipher_ctx, nonce, nonce_len, 1);
     memcpy(ciphertext->data, nonce, nonce_len);
 
+#ifdef MODULE_REMOTE
     ppbloom_add((void *)nonce, nonce_len);
+#endif
 
     if (cipher->method >= SALSA20) {
         crypto_stream_xor_ic((uint8_t *)(ciphertext->data + nonce_len),
@@ -402,7 +404,9 @@ stream_encrypt(buffer_t *plaintext, cipher_ctx_t *cipher_ctx, size_t capacity)
         cipher_ctx->counter = 0;
         cipher_ctx->init    = 1;
 
+#ifdef MODULE_REMOTE
         ppbloom_add((void *)cipher_ctx->nonce, nonce_len);
+#endif
     }
 
     if (cipher->method >= SALSA20) {
