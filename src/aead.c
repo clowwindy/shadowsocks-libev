@@ -331,7 +331,7 @@ aead_cipher_ctx_init(cipher_ctx_t *cipher_ctx, int method, int enc)
     const cipher_kt_t *cipher = aead_get_cipher_type(method);
 
     if (method == AES256GCM && crypto_aead_aes256gcm_is_available()) {
-        cipher_ctx->aes256gcm_ctx = ss_malloc(sizeof(aes256gcm_ctx));
+        cipher_ctx->aes256gcm_ctx = ss_align(sizeof(aes256gcm_ctx));
         memset(cipher_ctx->aes256gcm_ctx, 0, sizeof(aes256gcm_ctx));
     } else {
         cipher_ctx->aes256gcm_ctx = NULL;

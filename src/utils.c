@@ -246,6 +246,7 @@ ss_align(size_t size)
     int err;
     void *tmp = NULL;
 #ifdef HAVE_POSIX_MEMALIGN
+    /* ensure 16 byte alignment */
     err = posix_memalign(&tmp, sizeof(void *), size);
 #else
     err = -1;
