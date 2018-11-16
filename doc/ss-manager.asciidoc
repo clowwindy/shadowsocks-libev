@@ -141,12 +141,14 @@ To add a port: ::::
 To remove a port: ::::
  remove: {"server_port": 8001}
 
-To receive a pong: ::::
+To receive the traffic statistics: ::::
  ping
 
-Then `ss-manager`(1) will send back the traffic statistics: ::::
+The format of the traffic statistics: ::::
  stat: {"8001":11370}
 
+There is no way to reset the traffic statistics, unless you remove the port and add it again
+ 
 EXAMPLE
 -------
 To use `ss-manager`(1), First start it and specify necessary information.
