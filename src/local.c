@@ -1883,9 +1883,9 @@ main(int argc, char **argv)
 
     struct ev_loop *loop = EV_DEFAULT;
 
+    int listenfd;
     if (mode != UDP_ONLY) {
         // Setup socket
-        int listenfd;
 #ifdef HAVE_LAUNCHD
         listenfd = launch_or_create(local_addr, local_port);
 #else
@@ -1918,6 +1918,8 @@ main(int argc, char **argv)
         struct sockaddr *addr = (struct sockaddr *)storage;
         udp_fd = init_udprelay(local_addr, local_port, addr,
                                get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
+    } else {
+        udp_fd = listenfd;
     }
 
 #ifdef HAVE_LAUNCHD
@@ -2063,9 +2065,9 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
     else
         LOGI("listening at %s:%s", local_addr, local_port_str);
 
+    int listenfd;
     if (mode != UDP_ONLY) {
         // Setup socket
-        int listenfd;
         listenfd = create_and_bind(local_addr, local_port_str);
         if (listenfd == -1) {
             ERROR("bind()");
@@ -2089,6 +2091,8 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
         struct sockaddr *addr = (struct sockaddr *)(&storage);
         udp_fd = init_udprelay(local_addr, local_port_str, addr,
                                get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
+    } else {
+        udp_fd = listenfd;
     }
 
     // Init connections
