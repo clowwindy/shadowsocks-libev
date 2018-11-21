@@ -247,12 +247,7 @@ AM_COND_IF([USE_SYSTEM_SHARED_LIB],
 
 AC_ARG_ENABLE(connmarktos,
 [AS_HELP_STRING(--enable-connmarktos, Enable saved connmark to IP TOS QoS feature)],
-[
-  enable_connmarktos="yes"
-],
-[
-  enable_connmarktos="no"
-])
+[ enable_connmarktos="$enableval" ])
 
 if test x"$enable_connmarktos" = "xyes" ; then
 	AC_MSG_NOTICE([Linux Netfilter Conntrack support requested by --enable-connmarktos: ${enable_connmarktos}])
