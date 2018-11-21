@@ -288,7 +288,7 @@ server_handshake_reply(EV_P_ ev_io *w, int udp_assc, struct socks5_response *res
     struct sockaddr_in sock_addr;
     if (udp_assc) {
         socklen_t addr_len = sizeof(sock_addr);
-        if (getsockname(udp_fd, (struct sockaddr *)&sock_addr, &addr_len) < 0) {
+        if (getsockname(server->fd, (struct sockaddr *)&sock_addr, &addr_len) < 0) {
             LOGE("getsockname: %s", strerror(errno));
             response->rep = SOCKS5_REP_CONN_REFUSED;
             send(server->fd, (char *)response, sizeof(struct socks5_response), 0);
@@ -1883,9 +1883,9 @@ main(int argc, char **argv)
 
     struct ev_loop *loop = EV_DEFAULT;
 
-    int listenfd;
     if (mode != UDP_ONLY) {
         // Setup socket
+        int listenfd;
 #ifdef HAVE_LAUNCHD
         listenfd = launch_or_create(local_addr, local_port);
 #else
@@ -1918,8 +1918,6 @@ main(int argc, char **argv)
         struct sockaddr *addr = (struct sockaddr *)storage;
         udp_fd = init_udprelay(local_addr, local_port, addr,
                                get_sockaddr_len(addr), mtu, crypto, listen_ctx.timeout, iface);
-    } else {
-        udp_fd = listenfd;
     }
 
 #ifdef HAVE_LAUNCHD
@@ -2065,9 +2063,9 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
     else
         LOGI("listening at %s:%s", local_addr, local_port_str);
 
-    int listenfd;
     if (mode != UDP_ONLY) {
         // Setup socket
+        int listenfd;
         listenfd = create_and_bind(local_addr, local_port_str);
         if (listenfd == -1) {
             ERROR("bind()");
@@ -2091,8 +2089,6 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
         struct sockaddr *addr = (struct sockaddr *)(&storage);
         udp_fd = init_udprelay(local_addr, local_port_str, addr,
                                get_sockaddr_len(addr), mtu, crypto, timeout, NULL);
-    } else {
-        udp_fd = listenfd;
     }
 
     // Init connections
