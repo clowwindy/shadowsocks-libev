@@ -106,6 +106,8 @@ static int buf_size                                  = DEFAULT_PACKET_SIZE * 2;
 static int server_num                                = 0;
 static server_ctx_t *server_ctx_list[MAX_REMOTE_NUM] = { NULL };
 
+const char* s_port = NULL;
+
 #ifndef __MINGW32__
 static int
 setnonblocking(int fd)
@@ -1116,9 +1118,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             char dst[SS_ADDRSTRLEN];
             strcpy(src, get_addr_str((struct sockaddr *)&src_addr));
             strcpy(dst, get_addr_str((struct sockaddr *)&dst_addr));
-            LOGI("[udp] cache miss: %s <-> %s", dst, src);
+            LOGI("[%s] [udp] cache miss: %s <-> %s", s_port, dst, src);
 #else
-            LOGI("[udp] cache miss: %s:%s <-> %s", host, port,
+            LOGI("[%s] [udp] cache miss: %s:%s <-> %s", s_port, host, port,
                  get_addr_str((struct sockaddr *)&src_addr));
 #endif
         }
@@ -1129,9 +1131,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             char dst[SS_ADDRSTRLEN];
             strcpy(src, get_addr_str((struct sockaddr *)&src_addr));
             strcpy(dst, get_addr_str((struct sockaddr *)&dst_addr));
-            LOGI("[udp] cache hit: %s <-> %s", dst, src);
+            LOGI("[%s] [udp] cache hit: %s <-> %s", s_port, dst, src);
 #else
-            LOGI("[udp] cache hit: %s:%s <-> %s", host, port,
+            LOGI("[%s] [udp] cache hit: %s:%s <-> %s", s_port, host, port,
                  get_addr_str((struct sockaddr *)&src_addr));
 #endif
         }
@@ -1346,6 +1348,7 @@ init_udprelay(const char *server_host, const char *server_port,
 #endif
               int mtu, crypto_t *crypto, int timeout, const char *iface)
 {
+    s_port = server_port;
     // Initialize ev loop
     struct ev_loop *loop = EV_DEFAULT;
 

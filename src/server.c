@@ -927,9 +927,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (verbose) {
             if ((atyp & ADDRTYPE_MASK) == 4)
-                LOGI("connect to [%s]:%d", host, ntohs(port));
+                LOGI("[%s] connect to [%s]:%d", remote_port, host, ntohs(port));
             else
-                LOGI("connect to %s:%d", host, ntohs(port));
+                LOGI("[%s] connect to %s:%d", remote_port, host, ntohs(port));
         }
 
         if (!need_query) {
