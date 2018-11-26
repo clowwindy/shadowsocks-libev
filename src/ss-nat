@@ -21,9 +21,9 @@ usage() {
 
     Valid options are:
 
-        -s <server_ip>          ip address of shadowsocks remote server
+        -s <server_ip>          Host name or IP address of shadowsocks remote server
         -l <local_port>         port number of shadowsocks local server
-        -S <server_ip>          ip address of shadowsocks remote UDP server
+        -S <server_ip>          Host name or IP address of shadowsocks remote UDP server
         -L <local_port>         port number of shadowsocks local UDP server
         -i <ip_list_file>       a file content is bypassed ip list
         -I <interface>          lan interface of nat, default: eth0
@@ -170,13 +170,13 @@ EOF
 while getopts ":s:l:S:L:i:I:e:a:b:w:ouUfh" arg; do
 	case "$arg" in
 		s)
-			server=$OPTARG
+			server=$(dig +short $OPTARG)
 			;;
 		l)
 			local_port=$OPTARG
 			;;
 		S)
-			SERVER=$OPTARG
+			SERVER=$(dig +short $OPTARG)
 			;;
 		L)
 			LOCAL_PORT=$OPTARG
