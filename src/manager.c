@@ -1161,7 +1161,7 @@ main(int argc, char **argv)
         if (strstr(homedir, "nologin") || strstr(homedir, "nonexistent") || homedir == NULL || strlen(homedir) == 0) {
             homedir = "/tmp";
         }
-        LOGI("File path changed to %s", homedir);
+        LOGI("working directory points to %s", homedir);
     }
     working_dir_size = strlen(homedir) + 15;
     working_dir      = ss_malloc(working_dir_size);
