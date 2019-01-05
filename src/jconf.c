@@ -328,6 +328,8 @@ read_jconf(const char *file)
                     value, json_boolean,
                     "invalid config file: option 'no_delay' must be a boolean");
                 conf.no_delay = value->u.boolean;
+            } else if (strcmp(name, "workdir") == 0) {
+                conf.workdir = to_string(value);
             }
         }
     } else {

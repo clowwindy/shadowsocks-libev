@@ -388,6 +388,8 @@ usage()
 #ifdef MODULE_MANAGER
     printf(
         "       [--executable <path>]      Path to the executable of ss-server.\n");
+    printf(
+        "       [-D <path>]                Path to the working directory of ss-manager.\n");
 #endif
     printf(
         "       [--mtu <MTU>]              MTU of your network interface.\n");
