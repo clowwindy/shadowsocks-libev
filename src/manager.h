@@ -59,7 +59,7 @@ struct manager_ctx {
     char *nameservers;
     int mtu;
     int ipv6first;
-    char *homedir;
+    char *workdir;
 #ifdef HAVE_SETRLIMIT
     int nofile;
 #endif
@@ -74,7 +74,6 @@ struct server {
     char *method;
     char *plugin;
     char *plugin_opts;
-    char *homedir;
     uint64_t traffic;
 };
 

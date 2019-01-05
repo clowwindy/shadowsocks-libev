@@ -212,10 +212,10 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
     }
-    if (manager->homedir)
+    if (manager->workdir)
     {
         int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -D \"%s\"", manager->homedir);
+        snprintf(cmd + len, BUF_SIZE - len, " -D \"%s\"", manager->workdir);
     }
     for (i = 0; i < manager->host_num; i++) {
         int len = strlen(cmd);
@@ -861,7 +861,7 @@ main(int argc, char **argv)
     char *manager_address = NULL;
     char *plugin          = NULL;
     char *plugin_opts     = NULL;
-    char *homedir         = NULL;
+    char *workdir         = NULL;
 
     int fast_open  = 0;
     int no_delay   = 0;
@@ -894,7 +894,7 @@ main(int argc, char **argv)
         { "plugin",          required_argument, NULL, GETOPT_VAL_PLUGIN      },
         { "plugin-opts",     required_argument, NULL, GETOPT_VAL_PLUGIN_OPTS },
         { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
-        { "homedir",         required_argument, NULL, GETOPT_VAL_HOMEDIR     },
+        { "workdir",         required_argument, NULL, GETOPT_VAL_WORKDIR     },
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
         { NULL,                              0, NULL,                      0 }
     };
@@ -973,9 +973,9 @@ main(int argc, char **argv)
         case '6':
             ipv6first = 1;
             break;
-        case GETOPT_VAL_HOMEDIR:
+        case GETOPT_VAL_WORKDIR:
         case 'D':
-            homedir = optarg;
+            workdir = optarg;
             break;
         case 'v':
             verbose = 1;
@@ -1050,9 +1050,9 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
-        if (homedir == NULL)
+        if (workdir == NULL)
         {
-            homedir = conf->homedir;
+            workdir = conf->workdir;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
@@ -1134,7 +1134,7 @@ main(int argc, char **argv)
     manager.plugin          = plugin;
     manager.plugin_opts     = plugin_opts;
     manager.ipv6first       = ipv6first;
-    manager.homedir         = homedir;
+    manager.workdir         = workdir;
 #ifdef HAVE_SETRLIMIT
     manager.nofile = nofile;
 #endif
@@ -1155,17 +1155,22 @@ main(int argc, char **argv)
 
     struct passwd *pw   = getpwuid(getuid());
 
-    if (homedir == NULL || strlen(homedir) == 0) {
-        homedir = pw->pw_dir;
+    if (workdir == NULL || strlen(workdir) == 0) {
+        workdir = pw->pw_dir;
         // If home dir is still not defined or set to nologin/nonexistent, fall back to /tmp
-        if (strstr(homedir, "nologin") || strstr(homedir, "nonexistent") || homedir == NULL || strlen(homedir) == 0) {
-            homedir = "/tmp";
+        if (strstr(workdir, "nologin") || strstr(workdir, "nonexistent") || workdir == NULL || strlen(workdir) == 0) {
+            workdir = "/tmp";
         }
-        LOGI("working directory points to %s", homedir);
+
+        working_dir_size = strlen(workdir) + 15;
+        working_dir = ss_malloc(working_dir_size);
+        snprintf(working_dir, working_dir_size, "%s/.shadowsocks", workdir);
+    } else {
+        working_dir_size = strlen(workdir) + 2;
+        working_dir = ss_malloc(working_dir_size);
+        snprintf(working_dir, working_dir_size, "%s", workdir);
     }
-    working_dir_size = strlen(homedir) + 15;
-    working_dir      = ss_malloc(working_dir_size);
-    snprintf(working_dir, working_dir_size, "%s/.shadowsocks", homedir);
+    LOGI("working directory points to %s", working_dir);
 
     int err = mkdir(working_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
     if (err != 0 && errno != EEXIST) {
