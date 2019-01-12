@@ -93,6 +93,7 @@ uint64_t rx    = 0;
 ev_tstamp last = 0;
 
 int is_remote_dns = 0;
+char *stat_path = NULL;
 #endif
 
 static crypto_t *crypto;
@@ -1498,7 +1499,7 @@ main(int argc, char **argv)
     USE_TTY();
 
 #ifdef __ANDROID__
-    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUvV6AD",
+    while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:S:huUvV6AD",
                             long_options, NULL)) != -1) {
 #else
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:i:c:b:a:n:huUv6A",
@@ -1596,6 +1597,9 @@ main(int argc, char **argv)
             ipv6first = 1;
             break;
 #ifdef __ANDROID__
+        case 'S':
+            stat_path = optarg;
+            break;
         case 'D':
             is_remote_dns = 1;
             break;
