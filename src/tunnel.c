@@ -95,7 +95,7 @@ static int mode      = TCP_ONLY;
 static int nofile = 0;
 #endif
 static int no_delay  = 0;
-static int fast_open = 0;
+       int fast_open = 0;
 static int ret_val   = 0;
 
 static struct ev_signal sigint_watcher;

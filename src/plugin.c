@@ -109,10 +109,13 @@ start_ss_plugin(const char *plugin,
     if (plugin_opts != NULL)
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
+    exec = cork_exec_new(plugin);
+    cork_exec_add_param(exec, plugin);  // argv[0]
+    extern int fast_open;
+    if (fast_open) cork_exec_add_param(exec, "--fast-open");
 #ifdef __ANDROID__
-    exec = cork_exec_new_with_params("sh", "-c", plugin, NULL);
-#else
-    exec = cork_exec_new_with_params(plugin, NULL);
+    extern int vpn;
+    if (vpn) cork_exec_add_param(exec, "-V");
 #endif
 
     cork_exec_set_env(exec, env);
