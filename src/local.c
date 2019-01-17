@@ -142,7 +142,7 @@ static int create_and_bind(const char *addr, const char *port);
 #ifdef HAVE_LAUNCHD
 static int launch_or_create(const char *addr, const char *port);
 #endif
-static remote_t *create_remote(listen_ctx_t *listener, struct sockaddr *addr);
+static remote_t *create_remote(listen_ctx_t *listener, struct sockaddr *addr, int direct);
 static void free_remote(remote_t *remote);
 static void close_and_free_remote(EV_P_ remote_t *remote);
 static void free_server(server_t *server);
@@ -568,9 +568,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
             else
                 err = get_sockaddr(ip, port, &storage, 0, ipv6first);
             if (err != -1) {
-                remote = create_remote(server->listener, (struct sockaddr *)&storage);
-                if (remote != NULL)
-                    remote->direct = 1;
+                remote = create_remote(server->listener, (struct sockaddr *)&storage, 1);
             }
         }
     }
@@ -578,7 +576,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
 not_bypass:
     // Not bypass
     if (remote == NULL) {
-        remote = create_remote(server->listener, NULL);
+        remote = create_remote(server->listener, NULL, 0);
 
         if (sni_detected && acl
 #ifdef __ANDROID__
@@ -643,7 +641,7 @@ server_stream(EV_P_ ev_io *w, buffer_t *buf)
         return;
     }
 
-    ev_timer_again(EV_A_ & remote->recv_ctx->watcher);
+    if (!remote->direct) ev_timer_again(EV_A_ & remote->recv_ctx->watcher);
 
     // insert shadowsocks header
     if (!remote->direct) {
@@ -1010,7 +1008,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_recv_ctx->remote;
     server_t *server              = remote->server;
 
-    ev_timer_again(EV_A_ & remote->recv_ctx->watcher);
+    if (!remote->direct) ev_timer_again(EV_A_ & remote->recv_ctx->watcher);
 
     ssize_t r = recv(remote->fd, server->buf->data, BUF_SIZE, 0);
 
@@ -1125,7 +1123,7 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         if (r == 0) {
             remote_send_ctx->connected = 1;
             ev_timer_stop(EV_A_ & remote_send_ctx->watcher);
-            ev_timer_start(EV_A_ & remote->recv_ctx->watcher);
+            if (!remote->direct) ev_timer_start(EV_A_ & remote->recv_ctx->watcher);
             ev_io_start(EV_A_ & remote->recv_ctx->io);
 
             // no need to send any data
@@ -1315,7 +1313,8 @@ close_and_free_server(EV_P_ server_t *server)
 
 static remote_t *
 create_remote(listen_ctx_t *listener,
-              struct sockaddr *addr)
+              struct sockaddr *addr,
+              int direct)
 {
     struct sockaddr *remote_addr;
 
@@ -1367,9 +1366,10 @@ create_remote(listen_ctx_t *listener,
     }
 #endif
 
-    remote_t *remote = new_remote(remotefd, listener->timeout);
+    remote_t *remote = new_remote(remotefd, direct ? MAX_CONNECT_TIMEOUT : listener->timeout);
     remote->addr_len = get_sockaddr_len(remote_addr);
     memcpy(&(remote->addr), remote_addr, remote->addr_len);
+    remote->direct = direct;
 
     return remote;
 }
