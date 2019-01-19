@@ -256,7 +256,7 @@ if test x"$enable_connmarktos" = "xyes" ; then
 	        if test x"$enable_connmarktos" = "xyes"; then
 	            AC_MSG_ERROR([--enable-connmarktos specified but libnetfilter-conntrack library not found])
 	        fi
-	        with_netfilter_conntrack=no])
+	        with_netfilter_conntrack=no], [-lnfnetlink])
 	    AC_CHECK_HEADERS([libnetfilter_conntrack/libnetfilter_conntrack.h \
 	        libnetfilter_conntrack/libnetfilter_conntrack_tcp.h],,[
 	        if test x"$enable_connmarktos" = "xyes"; then
