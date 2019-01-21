@@ -1684,6 +1684,7 @@ main(int argc, char **argv)
             ipv6first = conf->ipv6_first;
         }
         if (acl == 0) {
+            LOGI("initializing acl...");
             acl = !init_acl(conf->acl);
         }
     }
@@ -2011,6 +2012,7 @@ _start_ss_local_server(profile_t profile, ss_local_callback callback, void *udat
     USE_LOGFILE(log);
 
     if (profile.acl != NULL) {
+        LOGI("initializing acl...");
         acl = !init_acl(profile.acl);
     }
 

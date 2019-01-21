@@ -1818,6 +1818,7 @@ main(int argc, char **argv)
             ipv6first = conf->ipv6_first;
         }
         if (acl == 0) {
+            LOGI("initializing acl...");
             acl = !init_acl(conf->acl);
         }
     }
