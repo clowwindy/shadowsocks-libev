@@ -1054,6 +1054,9 @@ main(int argc, char **argv)
         {
             workdir = conf->workdir;
         }
+        if (acl == NULL) {
+            acl = conf->acl;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;

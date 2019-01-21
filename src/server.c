@@ -1817,6 +1817,9 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
+        if (acl == 0) {
+            acl = !init_acl(conf->acl);
+        }
     }
 
     if (server_num == 0) {

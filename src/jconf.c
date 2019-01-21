@@ -330,6 +330,8 @@ read_jconf(const char *file)
                 conf.no_delay = value->u.boolean;
             } else if (strcmp(name, "workdir") == 0) {
                 conf.workdir = to_string(value);
+            } else if (strcmp(name, "acl") == 0) {
+                conf.acl = to_string(value);
             }
         }
     } else {
