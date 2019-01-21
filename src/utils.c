@@ -248,6 +248,8 @@ ss_align(size_t size)
 #ifdef HAVE_POSIX_MEMALIGN
     /* ensure 16 byte alignment */
     err = posix_memalign(&tmp, 16, size);
+#elif __MINGW32__
+    tmp = __mingw_aligned_malloc(size, 16);
 #else
     err = -1;
 #endif
