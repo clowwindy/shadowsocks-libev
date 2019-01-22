@@ -263,6 +263,17 @@ ss_align(size_t size)
     }
 }
 
+void
+ss_free(void *ptr)
+{
+#ifdef __MINGW32__
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
+    ptr = NULL;
+}
+
 void *
 ss_realloc(void *ptr, size_t new_size)
 {

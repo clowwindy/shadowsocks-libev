@@ -229,14 +229,9 @@ int set_nofile(int nofile);
 void *ss_malloc(size_t size);
 void *ss_align(size_t size);
 void *ss_realloc(void *ptr, size_t new_size);
+void ss_free(void *ptr);
 
 int ss_is_ipv6addr(const char *addr);
-
-#define ss_free(ptr)     \
-    do {                 \
-        free(ptr);       \
-        ptr = NULL;      \
-    } while (0)
 
 char *get_default_conf(void);
 
