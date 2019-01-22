@@ -51,7 +51,7 @@ build_proj() {
       CFLAGS="-DCARES_STATICLIB -DPCRE_STATIC"
     make clean
     make -j$cpu LDFLAGS="-all-static -L${dep}/lib"
-    make install-strip
+    make install
 
     # Reference SIP003 plugin (Experimental)
     [[ "${PLUGIN}" != "true" ]] && return 0
@@ -74,7 +74,7 @@ build_proj() {
       --with-ev="$dep"
     make clean
     make -j$cpu LDFLAGS="-all-static -L${dep}/lib"
-    make install-strip
+    make install
 }
 
 dk_build() {
