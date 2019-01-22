@@ -250,6 +250,7 @@ ss_align(size_t size)
     err = posix_memalign(&tmp, 16, size);
 #elif __MINGW32__
     tmp = __mingw_aligned_malloc(size, 16);
+    err = tmp == NULL;
 #else
     err = -1;
 #endif
