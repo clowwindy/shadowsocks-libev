@@ -243,7 +243,7 @@ ss_malloc(size_t size)
 }
 
 void *
-ss_align(size_t size)
+ss_aligned_malloc(size_t size)
 {
     int err;
     void *tmp = NULL;
@@ -264,13 +264,20 @@ ss_align(size_t size)
 }
 
 void
-ss_free(void *ptr)
+ss_aligned_free(void *ptr)
 {
 #ifdef __MINGW32__
     _aligned_free(ptr);
 #else
     free(ptr);
 #endif
+    ptr = NULL;
+}
+
+void
+ss_free(void *ptr)
+{
+    free(ptr);
     ptr = NULL;
 }
 
