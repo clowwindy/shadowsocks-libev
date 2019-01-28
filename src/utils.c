@@ -38,6 +38,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 
 #include <sodium.h>
 
@@ -464,10 +465,19 @@ daemonize(const char *path)
         exit(EXIT_FAILURE);
     }
 
-    /* Close out the standard file descriptors */
+    int dev_null = open("/dev/null", O_WRONLY);
+    if (dev_null) {
+        /* Redirect to null device  */
+        dup2(dev_null, STDOUT_FILENO);
+        dup2(dev_null, STDERR_FILENO);
+    } else {
+        /* Close the standard file descriptors */
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+    }
+
+    /* Close the standard file descriptors */
     close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
 #else
     LOGE("daemonize(): not implemented in MinGW port");
 #endif
