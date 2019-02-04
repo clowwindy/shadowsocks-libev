@@ -1927,17 +1927,6 @@ main(int argc, char **argv)
     ev_signal_start(EV_DEFAULT, &sigchld_watcher);
 #endif
 
-#ifndef __MINGW32__
-    // setuid
-    if (user != NULL && !run_as(user)) {
-        FATAL("failed to switch user");
-    }
-
-    if (geteuid() == 0) {
-        LOGI("running from root user");
-    }
-#endif
-
     // setup keys
     LOGI("initializing ciphers... %s", method);
     crypto = crypto_init(password, key, method);
@@ -2096,6 +2085,17 @@ main(int argc, char **argv)
 
     ev_timer_init(&block_list_watcher, block_list_clear_cb, UPDATE_INTERVAL, UPDATE_INTERVAL);
     ev_timer_start(EV_DEFAULT, &block_list_watcher);
+
+#ifndef __MINGW32__
+    // setuid
+    if (user != NULL && !run_as(user)) {
+        FATAL("failed to switch user");
+    }
+
+    if (geteuid() == 0) {
+        LOGI("running from root user");
+    }
+#endif
 
     // init block list
     init_block_list();
