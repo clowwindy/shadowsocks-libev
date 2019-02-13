@@ -498,7 +498,7 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
 
 ## Security Tips
 
-To avoid users accessing localhost of your server, please add `--acl acl/server_block_local.acl` to your server command.
+For any public server, to avoid users accessing localhost of your server, please add `--acl acl/server_block_local.acl` to the command line.
 
 Although shadowsocks-libev can handle thousands of concurrent connections nicely, we still recommend
 setting up your server's firewall rules to limit connections from each user:
