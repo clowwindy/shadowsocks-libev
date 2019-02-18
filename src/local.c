@@ -1531,8 +1531,7 @@ main(int argc, char **argv)
             break;
         case 's':
             if (remote_num < MAX_REMOTE_NUM) {
-                remote_addr[remote_num].host   = optarg;
-                remote_addr[remote_num++].port = NULL;
+                parse_addr(optarg, &remote_addr[remote_num++]);
             }
             break;
         case 'p':
@@ -1683,7 +1682,7 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
-        if (acl == 0) {
+        if (acl == 0 && conf->acl != NULL) {
             LOGI("initializing acl...");
             acl = !init_acl(conf->acl);
         }
