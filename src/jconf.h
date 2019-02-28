@@ -44,11 +44,6 @@
 #define UDP_ONLY     3
 
 typedef struct {
-    char *host;
-    char *port;
-} ss_addr_t;
-
-typedef struct {
     char *port;
     char *password;
 } ss_port_password_t;

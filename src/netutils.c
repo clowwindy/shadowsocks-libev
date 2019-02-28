@@ -283,3 +283,19 @@ validate_hostname(const char *hostname, const int hostname_len)
 
     return 1;
 }
+
+int
+is_ipv6only(ss_addr_t *servers, size_t server_num)
+{
+    struct cork_ip ip;
+    int i;
+    for (i = 0; i < server_num; i++)
+    {
+        if (cork_ip_init(&ip, servers[i].host) != -1) {
+            if (ip.version != 6) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}

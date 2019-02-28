@@ -404,8 +404,8 @@ create_and_bind(const char *host, const char *port, int mptcp)
         }
 
         if (rp->ai_family == AF_INET6) {
-            int ipv6only = host ? 1 : 0;
-            setsockopt(listen_sock, IPPROTO_IPV6, IPV6_V6ONLY, &ipv6only, sizeof(ipv6only));
+            int opt = host ? 1 : 0;
+            setsockopt(listen_sock, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt));
         }
 
         int opt = 1;
@@ -1607,6 +1607,7 @@ main(int argc, char **argv)
 
     char *server_port = NULL;
     char *plugin_opts = NULL;
+    char *plugin_host = NULL;
     char *plugin_port = NULL;
     char tmp_port[8];
 
@@ -1834,6 +1835,12 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (is_ipv6only(server_addr, server_num)) {
+        plugin_host = "::1";
+    } else {
+        plugin_host = "127.0.0.1";
+    }
+
     remote_port = server_port;
 
 #ifdef __MINGW32__
@@ -1991,7 +1998,7 @@ main(int argc, char **argv)
         }
 
         int err = start_plugin(plugin, plugin_opts, server_str,
-                               plugin_port, "127.0.0.1", server_port,
+                               plugin_port, plugin_host, server_port,
 #ifdef __MINGW32__
                                plugin_watcher.port,
 #endif
@@ -2013,7 +2020,7 @@ main(int argc, char **argv)
             const char *port = server_addr[i].port ? server_addr[i].port : server_port;
 
             if (plugin != NULL) {
-                host = "127.0.0.1";
+                host = plugin_host;
             }
 
             if (host && ss_is_ipv6addr(host))

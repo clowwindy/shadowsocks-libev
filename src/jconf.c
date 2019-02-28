@@ -25,6 +25,7 @@
 #include <string.h>
 #include <time.h>
 
+#include "netutils.h"
 #include "utils.h"
 #include "jconf.h"
 #include "json.h"

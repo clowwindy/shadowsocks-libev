@@ -58,8 +58,8 @@
 
 #include "json.h"
 #include "utils.h"
-#include "manager.h"
 #include "netutils.h"
+#include "manager.h"
 
 #ifndef BUF_SIZE
 #define BUF_SIZE 65535
