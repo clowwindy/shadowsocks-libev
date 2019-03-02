@@ -171,29 +171,23 @@ EOF
 while getopts ":s:l:S:L:i:I:e:a:b:w:ouUfh" arg; do
 	case "$arg" in
 		s)
-			command -v dig > /dev/null &&
-				server=$(dig +short $OPTARG) ||
-				if ! [[ $OPTARG =~ $IP_REGEX ]]
-				then
-					loger 3 "Hostname detected for server but no dig present to resolve!"
-					exit 1
-				else
-					server=$OPTARG
-				fi
+            if [[ $OPTARG =~ $IP_REGEX ]]
+            then
+                server=$OPTARG
+            else
+                server=$(ping -4 -q -c 1 -s 0 -W 1 -w 1 $OPTARG| head -n 1 | sed -n 's/[^(]*(\([^)]*\)).*/\1/p')
+            fi
 			;;
 		l)
 			local_port=$OPTARG
 			;;
 		S)
-			command -v dig > /dev/null &&
-				SERVER=$(dig +short $OPTARG) ||
-				if ! [[ $OPTARG =~ $IP_REGEX ]]
-				then
-					loger 3 "Hostname detected for UDP server but no dig present to resolve!"
-					exit 1
-				else
-					SERVER=$OPTARG
-				fi
+            if [[ $OPTARG =~ $IP_REGEX ]]
+            then
+                SERVER=$OPTARG
+            else
+                SERVER=$(ping -4 -q -c 1 -s 0 -W 1 -w 1 $OPTARG| head -n 1 | sed -n 's/[^(]*(\([^)]*\)).*/\1/p')
+            fi
 			;;
 		L)
 			LOCAL_PORT=$OPTARG
