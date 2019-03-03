@@ -419,7 +419,7 @@ you may refer to the man pages of the applications, respectively.
                                   for local port forwarding.
                                   (only available in tunnel mode)
 
-       [-6]                       Resovle hostname to IPv6 address first.
+       [-6]                       Resolve hostname to IPv6 address first.
 
        [-d <addr>]                Name servers for internal DNS resolver.
                                   (only available in server mode)
@@ -458,7 +458,7 @@ you may refer to the man pages of the applications, respectively.
 
 ## Transparent proxy
 
-The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use a OpenWRT-powered router.
+The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use an OpenWRT-powered router.
 
     # Create new chain
     iptables -t nat -N SHADOWSOCKS
