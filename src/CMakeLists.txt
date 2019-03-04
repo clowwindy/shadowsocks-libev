@@ -86,6 +86,17 @@ set(SS_REDIR_SOURCE
         ${SS_PLUGIN_SOURCE}
         )
 
+if (CMAKE_SYSTEM_NAME STREQUAL Darwin)
+find_path(LIBSODIUM_INCLUDE_DIR sodium.h
+        PATHS
+        $ENV{LIBSODIUM_INCLUDE_DIR}
+        $ENV{LIBSODIUM_DIR}/include
+        /usr/local/libsodium/include
+        /opt/libsodium/include
+        /usr/local/include
+)
+include_directories(${LIBSODIUM_INCLUDE_DIR})
+endif ()
 
 if (WITH_STATIC)
 find_library(LIBSODIUM libsodium.a)
