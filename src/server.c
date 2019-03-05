@@ -1610,11 +1610,11 @@ main(int argc, char **argv)
     char *plugin_host = NULL;
     char *plugin_port = NULL;
     char tmp_port[8];
+    char *nameservers = NULL;
 
     int server_num = 0;
     ss_addr_t server_addr[MAX_REMOTE_NUM];
-
-    char *nameservers = NULL;
+    memset(server_addr, 0, sizeof(ss_addr_t) * MAX_REMOTE_NUM);
 
     static struct option long_options[] = {
         { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },

@@ -68,9 +68,10 @@ parse_addr(const char *str_in, ss_addr_t *addr)
     if (str_in == NULL)
         return;
 
-    int ipv6 = 0, ret = -1, n = 0;
+    int ipv6 = 0, ret = -1, n = 0, len;
     char *pch;
     char *str = strdup(str_in);
+    len = strlen(str_in);
 
     struct cork_ip ip;
     if (cork_ip_init(&ip, str) != -1) {
@@ -85,6 +86,7 @@ parse_addr(const char *str_in, ss_addr_t *addr)
         ret = pch - str;
         pch = strchr(pch + 1, ':');
     }
+
     if (n > 1) {
         ipv6 = 1;
         if (str[ret - 1] != ']') {
@@ -105,7 +107,12 @@ parse_addr(const char *str_in, ss_addr_t *addr)
         } else {
             addr->host = ss_strndup(str, ret);
         }
-        addr->port = strdup(str + ret + 1);
+        if (ret < len - 1)
+        {
+            addr->port = strdup(str + ret + 1);
+        } else {
+            addr->port = NULL;
+        }
     }
 
     free(str);
