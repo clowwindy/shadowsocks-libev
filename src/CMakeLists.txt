@@ -239,6 +239,7 @@ target_link_libraries(shadowsocks-libev-shared ${DEPS_SHARED})
 # Misc
 # Recommend to install shared by default
 install(DIRECTORY ${RUNTIME_SHARED_OUTPUT_DIRECTORY}/
+        USE_SOURCE_PERMISSIONS
         DESTINATION bin)
 
 if (WITH_STATIC)
