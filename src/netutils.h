@@ -1,7 +1,7 @@
 /*
  * netutils.h - Network utilities
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -23,7 +23,11 @@
 #ifndef _NETUTILS_H
 #define _NETUTILS_H
 
+#ifdef __MINGW32__
+#include "winsock.h"
+#else
 #include <sys/socket.h>
+#endif
 
 #ifdef HAVE_LINUX_TCP_H
 #include <linux/tcp.h>
@@ -47,6 +51,11 @@
 #undef TCP_FASTOPEN_CONNECT
 #endif
 #endif
+
+typedef struct {
+    char *host;
+    char *port;
+} ss_addr_t;
 
 /* MPTCP_ENABLED setsockopt values for kernel 4 & 3, best behaviour to be independant of kernel version is to test from newest to the latest values */
 #ifndef MPTCP_ENABLED
@@ -98,5 +107,7 @@ int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
                       struct sockaddr_storage *addr2, socklen_t len);
 
 int validate_hostname(const char *hostname, const int hostname_len);
+
+int is_ipv6only(ss_addr_t *servers, size_t server_num);
 
 #endif

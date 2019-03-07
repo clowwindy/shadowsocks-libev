@@ -1,7 +1,7 @@
 /*
  * acl.c - Manage the ACL (Access Control List)
  *
- * Copyright (C) 2013 - 2017, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -164,6 +164,11 @@ trimwhitespace(char *str)
 int
 init_acl(const char *path)
 {
+    if (path == NULL)
+    {
+        return -1;
+    }
+
     // initialize ipset
     ipset_init_library();
 

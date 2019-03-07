@@ -1,3 +1,52 @@
+shadowsocks-libev (3.2.4-1) unstable; urgency=medium
+
+  * Fix a crash with MinGW.
+  * Refine SIP003 plugin interface.
+  * Remove connection timeout from all clients.
+
+ -- Max Lv <max.c.lv@gmail.com>  Tue, 26 Feb 2019 09:40:18 +0800
+
+shadowsocks-libev (3.2.3-1) unstable; urgency=medium
+
+  * Fix the alignment issue again.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 28 Nov 2018 00:27:40 -0800
+
+shadowsocks-libev (3.2.2-1) unstable; urgency=medium
+
+  * Fix a bug on 32-bit arch.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 26 Nov 2018 20:07:21 -0800
+
+shadowsocks-libev (3.2.1-1) unstable; urgency=medium
+
+  * Add TCP fast open support to ss-tunnel by @PantherJohn.
+  * Fix several security issues.
+
+ -- Max Lv <max.c.lv@gmail.com>  Wed, 07 Nov 2018 22:31:59 -0800
+
+shadowsocks-libev (3.2.0-1) unstable; urgency=medium
+
+  * Add MinGW support by @linusyang.
+  * Refine c-ares integration by @xnoreq.
+  * Fix building issues with GCC8 by @FlyingheartCN.
+  * Minor bug fixes.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 28 May 2018 19:46:21 -0700
+
+shadowsocks-libev (3.1.3-1) unstable; urgency=medium
+
+  * Fix a bug in UDP relay.
+
+ -- Max Lv <max.c.lv@gmail.com>  Mon, 15 Jan 2018 17:19:31 -0800
+
+shadowsocks-libev (3.1.2-1) unstable; urgency=medium
+
+  * Fix a bug in DNS resolver.
+  * Add new TFO API support.
+
+ -- Max Lv <max.c.lv@gmail.com>  Thu, 28 Dec 2017 21:01:56 -0800
+
 shadowsocks-libev (3.1.1-1) unstable; urgency=high
 
   * Fix a security issue in ss-manager. (CVE-2017-15924)

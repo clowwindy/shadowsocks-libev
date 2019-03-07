@@ -18,6 +18,9 @@ include(CheckCSourceCompiles)
 set(CONNECT_IN_PROGRESS "EINPROGRESS")
 set(CONNECT_IN_PROGRESS "EINPROGRESS" CACHE STRING "")
 
+if (CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(CMAKE_REQUIRED_INCLUDES "/usr/local/include" "/usr/include")
+endif ()
 
 check_include_files(dlfcn.h HAVE_DLFCN_H)
 check_include_files(ev.h HAVE_EV_H)
@@ -114,7 +117,7 @@ set(SELECT_TYPE_ARG5 "(struct timeval *)")
 set(STDC_HEADERS 1)
 
 
-check_include_files(sys/time.h time.h TIME_WITH_SYS_TIME)
+check_include_files("sys/time.h;time.h" TIME_WITH_SYS_TIME)
 
 
 # If the compiler supports a TLS storage class define it to that here
