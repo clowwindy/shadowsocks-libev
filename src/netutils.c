@@ -295,6 +295,8 @@ is_ipv6only(ss_addr_t *servers, size_t server_num)
             if (ip.version != 6) {
                 return 0;
             }
+        } else {
+            return 0;
         }
     }
     return 1;
