@@ -1,3 +1,9 @@
+shadowsocks-libev (3.2.5-1) unstable; urgency=medium
+
+  * Fix a bug of port parser.
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 09 Mar 2019 18:54:36 +0800
+
 shadowsocks-libev (3.2.4-1) unstable; urgency=medium
 
   * Fix a crash with MinGW.
