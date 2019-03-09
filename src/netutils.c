@@ -285,17 +285,17 @@ validate_hostname(const char *hostname, const int hostname_len)
 }
 
 int
-is_ipv6only(ss_addr_t *servers, size_t server_num)
+is_ipv6only(ss_addr_t *servers, size_t server_num, int ipv6first)
 {
-    struct cork_ip ip;
     int i;
     for (i = 0; i < server_num; i++)
     {
-        if (cork_ip_init(&ip, servers[i].host) != -1) {
-            if (ip.version != 6) {
-                return 0;
-            }
-        } else {
+        struct sockaddr_storage storage;
+        memset(&storage, 0, sizeof(struct sockaddr_storage));
+        if (get_sockaddr(servers[i].host, servers[i].port, &storage, 1, ipv6first) == -1) {
+            FATAL("failed to resolve the provided hostname");
+        }
+        if (storage.ss_family != AF_INET6) {
             return 0;
         }
     }

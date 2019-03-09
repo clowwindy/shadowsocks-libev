@@ -1067,7 +1067,7 @@ main(int argc, char **argv)
             FATAL("failed to find a free port");
         }
         snprintf(tmp_port, 8, "%d", port);
-        if (is_ipv6only(remote_addr, remote_num)) {
+        if (is_ipv6only(remote_addr, remote_num, ipv6first)) {
             plugin_host = "::1";
         } else {
             plugin_host = "127.0.0.1";
@@ -1099,7 +1099,11 @@ main(int argc, char **argv)
 #endif
 
     if (local_addr == NULL) {
-        local_addr = "127.0.0.1";
+        if (is_ipv6only(remote_addr, remote_num, ipv6first)) {
+            local_addr = "::1";
+        } else {
+            local_addr = "127.0.0.1";
+        }
     }
 
     if (fast_open == 1) {

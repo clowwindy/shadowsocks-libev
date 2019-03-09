@@ -1835,7 +1835,7 @@ main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (is_ipv6only(server_addr, server_num)) {
+    if (is_ipv6only(server_addr, server_num, ipv6first)) {
         plugin_host = "::1";
     } else {
         plugin_host = "127.0.0.1";

@@ -108,6 +108,6 @@ int sockaddr_cmp_addr(struct sockaddr_storage *addr1,
 
 int validate_hostname(const char *hostname, const int hostname_len);
 
-int is_ipv6only(ss_addr_t *servers, size_t server_num);
+int is_ipv6only(ss_addr_t *servers, size_t server_num, int ipv6first);
 
 #endif
