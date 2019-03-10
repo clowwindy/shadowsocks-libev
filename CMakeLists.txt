@@ -6,7 +6,7 @@ set(PROJECT_VERSION "3.2.5")
 set(PROJECT_DESC "a lightweight secured socks5 proxy")
 set(PROJECT_URL "https://shadowsocks.org")
 set(PROJECT_ISSUES_URL "https://github.com/shadowsocks/shadowsocks-libev")
-project(${PROJECT_NAME})
+project(${PROJECT_NAME} VERSION ${PROJECT_VERSION})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 
@@ -35,6 +35,11 @@ option(WITH_EMBEDDED_SRC "build with embedded libcork, libipset, and libbloom so
 # Will set GIT_EXECUTABLE and GIT_FOUND
 # find_package(Git)
 
+# When choose to not use embedded libcork, libipset and libboom, use libs shipped by system
+if (NOT WITH_EMBEDDED_SRC)
+    set(USE_SYSTEM_SHARED_LIB TRUE)
+endif ()
+
 # Run platform tests
 include(${CMAKE_SOURCE_DIR}/cmake/configure.cmake)
 configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.cmake ${CMAKE_BINARY_DIR}/src/config.h)
@@ -49,7 +54,7 @@ configure_file(
 )
 install(FILES
         ${CMAKE_BINARY_DIR}/pkgconfig/shadowsocks-libev.pc
-        DESTINATION pkgconfig
+        DESTINATION lib/pkgconfig
         )
 
 if (WITH_EMBEDDED_SRC)
