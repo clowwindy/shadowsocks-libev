@@ -49,7 +49,7 @@ configure_file(
 )
 install(FILES
         ${CMAKE_BINARY_DIR}/pkgconfig/shadowsocks-libev.pc
-        DESTINATION pkgconfig
+        DESTINATION lib/pkgconfig
         )
 
 if (WITH_EMBEDDED_SRC)
