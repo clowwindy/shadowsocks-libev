@@ -6,7 +6,7 @@ set(PROJECT_VERSION "3.2.5")
 set(PROJECT_DESC "a lightweight secured socks5 proxy")
 set(PROJECT_URL "https://shadowsocks.org")
 set(PROJECT_ISSUES_URL "https://github.com/shadowsocks/shadowsocks-libev")
-project(${PROJECT_NAME})
+project(${PROJECT_NAME} VERSION ${PROJECT_VERSION})
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 
