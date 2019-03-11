@@ -35,7 +35,7 @@ option(WITH_EMBEDDED_SRC "build with embedded libcork, libipset, and libbloom so
 # Will set GIT_EXECUTABLE and GIT_FOUND
 # find_package(Git)
 
-# When choose to not use embedded libcork, libipset and libboom, use libs shipped by system
+# When choose to not use embedded libcork, libipset and libbloom, use libs shipped by system
 if (NOT WITH_EMBEDDED_SRC)
     set(USE_SYSTEM_SHARED_LIB TRUE)
 endif ()
