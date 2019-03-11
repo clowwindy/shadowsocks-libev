@@ -69,13 +69,19 @@ if (NOT WITH_DOC_MAN)
     set_target_properties(doc-man PROPERTIES EXCLUDE_FROM_ALL TRUE)
 else ()
     install(DIRECTORY ${CMAKE_BINARY_DIR}/man/
-            DESTINATION man)
+            DESTINATION share/man/man1
+            FILES_MATCHING PATTERN "*.1"
+            )
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/man/
+            DESTINATION share/man/man8
+            FILES_MATCHING PATTERN "*.8"
+            )
 endif ()
 if (NOT WITH_DOC_HTML)
     set_target_properties(doc-html PROPERTIES EXCLUDE_FROM_ALL TRUE)
 else ()
     install(DIRECTORY ${CMAKE_BINARY_DIR}/html/
-            DESTINATION doc/html)
+            DESTINATION share/doc/${PROJECT_NAME})
 endif ()
 
 # This is required for custom command
