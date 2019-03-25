@@ -33,6 +33,7 @@
 #endif
 
 #include "rule.h"
+#include "netutils.h"
 #include "utils.h"
 #include "cache.h"
 #include "acl.h"
@@ -193,7 +194,8 @@ init_acl(const char *path)
         return -1;
     }
 
-    char buf[257];
+    char buf[MAX_HOSTNAME_LEN];
+
     while (!feof(f))
         if (fgets(buf, 256, f)) {
             // Discards the whole line if longer than 255 characters
@@ -256,7 +258,7 @@ init_acl(const char *path)
                 continue;
             }
 
-            char host[257];
+            char host[MAX_HOSTNAME_LEN];
             int cidr;
             parse_addr_cidr(line, host, &cidr);
 
