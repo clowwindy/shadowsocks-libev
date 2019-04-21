@@ -101,9 +101,15 @@ multi-interface environment.
 Not available in redir mode.
 
 -b <local_address>::
-Specify local address to bind.
+Specify the local address to bind.
 +
-Not available in server nor manager mode.
+For servers: Specify the local address to use while this server is making 
+outbound connections to remote servers on behalf of the clients.
++
+For clients: Specify the local address to use while this client is making 
+outbound connections to the server.
++
+Not available in manager mode.
 
 -u::
 Enable UDP relay.

@@ -408,6 +408,13 @@ you may refer to the man pages of the applications, respectively.
                                   (not available in redir mode)
 
        [-b <local_address>]       Local address to bind.
+                                  For servers: Specify the local address to use 
+                                  while this server is making outbound 
+                                  connections to remote servers on behalf of the
+                                  clients.
+                                  For clients: Specify the local address to use 
+                                  while this client is making outbound 
+                                  connections to the server.
 
        [-u]                       Enable UDP relay.
                                   (TPROXY is required in redir mode)
