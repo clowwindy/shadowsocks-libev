@@ -49,7 +49,7 @@ EOF
 
 loger() {
 	# 1.alert 2.crit 3.err 4.warn 5.notice 6.info 7.debug
-	logger -st ss-rules[$$] -p$1 $2
+	logger -st ss-nat[$$] -p$1 $2
 }
 
 flush_r() {
