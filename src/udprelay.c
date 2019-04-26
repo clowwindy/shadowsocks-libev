@@ -488,7 +488,8 @@ create_server_socket(const char *host, const char *port)
 #ifdef IP_TOS
         // Set QoS flag
         int tos = 46;
-        setsockopt(server_sock, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+        int proto = rp->ai_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+        setsockopt(server_sock, proto, IP_TOS, &tos, sizeof(tos));
 #endif
 
 #ifdef MODULE_REDIR
@@ -649,7 +650,8 @@ resolv_cb(struct sockaddr *addr, void *data)
 #ifdef IP_TOS
                 // Set QoS flag
                 int tos = 46;
-                setsockopt(remotefd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+                int proto = addr->sa_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+                setsockopt(remotefd, proto, IP_TOS, &tos, sizeof(tos));
 #endif
 #ifdef SET_INTERFACE
                 if (query_ctx->server_ctx->iface) {
@@ -822,7 +824,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         goto CLEAN_UP;
     }
     int opt = 1;
-    if (setsockopt(src_fd, SOL_IP, IP_TRANSPARENT, &opt, sizeof(opt))) {
+    int sol = remote_ctx->src_addr.ss_family == AF_INET6 ? SOL_IPV6 : SOL_IP;
+    if (setsockopt(src_fd, sol, IP_TRANSPARENT, &opt, sizeof(opt))) {
         ERROR("[udp] remote_recv_setsockopt");
         close(src_fd);
         goto CLEAN_UP;
@@ -835,7 +838,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef IP_TOS
     // Set QoS flag
     int tos = 46;
-    setsockopt(src_fd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+    int proto = remote_ctx->src_addr.ss_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+    setsockopt(src_fd, proto, IP_TOS, &tos, sizeof(tos));
 #endif
     if (bind(src_fd, (struct sockaddr *)&dst_addr, remote_dst_addr_len) != 0) {
         ERROR("[udp] remote_recv_bind");
@@ -1256,7 +1260,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef IP_TOS
                 // Set QoS flag
                 int tos = 46;
-                setsockopt(remotefd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+                int proto = dst_addr.ss_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+                setsockopt(remotefd, proto, IP_TOS, &tos, sizeof(tos));
 #endif
 #ifdef SET_INTERFACE
                 if (server_ctx->iface) {
