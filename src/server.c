@@ -66,10 +66,6 @@
 #define EWOULDBLOCK EAGAIN
 #endif
 
-#ifndef BUF_SIZE
-#define BUF_SIZE 2048
-#endif
-
 #ifndef SSMAXCONN
 #define SSMAXCONN 1024
 #endif
@@ -163,13 +159,13 @@ stat_update_cb(EV_P_ ev_timer *watcher, int revents)
     struct sockaddr_un svaddr, claddr;
     int sfd = -1;
     size_t msgLen;
-    char resp[BUF_SIZE];
+    char resp[SOCKET_BUF_SIZE];
 
     if (verbose) {
         LOGI("update traffic stat: tx: %" PRIu64 " rx: %" PRIu64 "", tx, rx);
     }
 
-    snprintf(resp, BUF_SIZE, "stat: {\"%s\":%" PRIu64 "}", remote_port, tx + rx);
+    snprintf(resp, SOCKET_BUF_SIZE, "stat: {\"%s\":%" PRIu64 "}", remote_port, tx + rx);
     msgLen = strlen(resp) + 1;
 
     ss_addr_t ip_addr = { .host = NULL, .port = NULL };
@@ -728,7 +724,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
-    ssize_t r = recv(server->fd, buf->data, BUF_SIZE, 0);
+    ssize_t r = recv(server->fd, buf->data, SOCKET_BUF_SIZE, 0);
 
     if (r == 0) {
         // connection closed
@@ -754,7 +750,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     tx      += r;
     buf->len = r;
 
-    int err = crypto->decrypt(buf, server->d_ctx, BUF_SIZE);
+    int err = crypto->decrypt(buf, server->d_ctx, SOCKET_BUF_SIZE);
 
     if (err == CRYPTO_ERROR) {
         report_addr(server->fd, MALICIOUS, "authentication error");
@@ -946,7 +942,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 // XXX: should handle buffer carefully
                 if (server->buf->len > 0) {
-                    brealloc(remote->buf, server->buf->len, BUF_SIZE);
+                    brealloc(remote->buf, server->buf->len, SOCKET_BUF_SIZE);
                     memcpy(remote->buf->data, server->buf->data + server->buf->idx,
                            server->buf->len);
                     remote->buf->len = server->buf->len;
@@ -1110,7 +1106,7 @@ resolv_cb(struct sockaddr *addr, void *data)
 
             // XXX: should handle buffer carefully
             if (server->buf->len > 0) {
-                brealloc(remote->buf, server->buf->len, BUF_SIZE);
+                brealloc(remote->buf, server->buf->len, SOCKET_BUF_SIZE);
                 memcpy(remote->buf->data, server->buf->data + server->buf->idx,
                        server->buf->len);
                 remote->buf->len = server->buf->len;
@@ -1140,7 +1136,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     ev_timer_again(EV_A_ & server->recv_ctx->watcher);
 
-    ssize_t r = recv(remote->fd, server->buf->data, BUF_SIZE, 0);
+    ssize_t r = recv(remote->fd, server->buf->data, SOCKET_BUF_SIZE, 0);
 
     if (r == 0) {
         // connection closed
@@ -1166,7 +1162,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     rx += r;
 
     server->buf->len = r;
-    int err = crypto->encrypt(server->buf, server->e_ctx, BUF_SIZE);
+    int err = crypto->encrypt(server->buf, server->e_ctx, SOCKET_BUF_SIZE);
 
     if (err) {
         LOGE("invalid password or cipher");
@@ -1341,7 +1337,7 @@ new_remote(int fd)
     remote->recv_ctx = ss_malloc(sizeof(remote_ctx_t));
     remote->send_ctx = ss_malloc(sizeof(remote_ctx_t));
     remote->buf      = ss_malloc(sizeof(buffer_t));
-    balloc(remote->buf, BUF_SIZE);
+    balloc(remote->buf, SOCKET_BUF_SIZE);
     memset(remote->recv_ctx, 0, sizeof(remote_ctx_t));
     memset(remote->send_ctx, 0, sizeof(remote_ctx_t));
     remote->fd                  = fd;
@@ -1404,7 +1400,7 @@ new_server(int fd, listen_ctx_t *listener)
     server->buf      = ss_malloc(sizeof(buffer_t));
     memset(server->recv_ctx, 0, sizeof(server_ctx_t));
     memset(server->send_ctx, 0, sizeof(server_ctx_t));
-    balloc(server->buf, BUF_SIZE);
+    balloc(server->buf, SOCKET_BUF_SIZE);
     server->fd                  = fd;
     server->recv_ctx->server    = server;
     server->recv_ctx->connected = 0;
