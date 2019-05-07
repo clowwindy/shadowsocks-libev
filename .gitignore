@@ -92,6 +92,7 @@ doc/*.html
 *.tar.bz2
 *.tar.gz
 *.tgz
+*.snap
 #
 
 # Visual Studio Code
