@@ -88,7 +88,11 @@ int set_reuseport(int socket);
 int setinterface(int socket_fd, const char *interface_name);
 #endif
 
-int bind_to_address(int socket_fd, const char *address);
+int parse_local_addr(struct sockaddr_storage *storage_v4,
+                     struct sockaddr_storage *storage_v6,
+                     const char *host);
+
+int bind_to_addr(struct sockaddr_storage *storage, int socket_fd);
 
 /**
  * Compare two sockaddrs. Imposes an ordering on the addresses.

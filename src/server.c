@@ -109,7 +109,10 @@ static void resolv_free_cb(void *data);
 
 int verbose      = 0;
 int reuse_port   = 0;
-char *local_addr = NULL;
+
+int is_bind_local_addr = 0;
+struct sockaddr_storage local_addr_v4;
+struct sockaddr_storage local_addr_v6;
 
 static crypto_t *crypto;
 
@@ -496,12 +499,16 @@ connect_to_remote(EV_P_ struct addrinfo *res,
     if (setnonblocking(sockfd) == -1)
         ERROR("setnonblocking");
 
-    if (local_addr != NULL)
-        if (bind_to_address(sockfd, local_addr) == -1) {
-            ERROR("bind_to_address");
+    if (is_bind_local_addr)
+    {
+        struct sockaddr_storage *local_addr =
+            res->ai_family == AF_INET ? &local_addr_v4 : &local_addr_v6;
+        if (bind_to_addr(local_addr, sockfd) == -1) {
+            ERROR("bind_to_addr");
             close(sockfd);
             return NULL;
         }
+    }
 
 #ifdef SET_INTERFACE
     if (iface) {
@@ -1678,7 +1685,8 @@ main(int argc, char **argv)
             }
             break;
         case 'b':
-            local_addr = optarg;
+            if (parse_local_addr(&local_addr_v4, &local_addr_v6, optarg) == 0)
+                is_bind_local_addr = 1;
             break;
         case 'p':
             server_port = optarg;
@@ -1801,8 +1809,13 @@ main(int argc, char **argv)
         if (fast_open == 0) {
             fast_open = conf->fast_open;
         }
-        if (local_addr == NULL) {
-            local_addr = conf->local_addr;
+        if (is_bind_local_addr == 0) {
+            if (parse_local_addr(&local_addr_v4, &local_addr_v6, conf->local_addr) == 0)
+                is_bind_local_addr = 1;
+            if (parse_local_addr(&local_addr_v4, &local_addr_v6, conf->local_addr_v4) == 0)
+                is_bind_local_addr = 1;
+            if (parse_local_addr(&local_addr_v4, &local_addr_v6, conf->local_addr_v6) == 0)
+                is_bind_local_addr = 1;
         }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {

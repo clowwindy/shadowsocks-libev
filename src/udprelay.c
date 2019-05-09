@@ -98,7 +98,10 @@ extern int reuse_port;
 #ifdef MODULE_REMOTE
 extern uint64_t tx;
 extern uint64_t rx;
-extern char *local_addr;
+
+extern int is_bind_local_addr;
+extern struct sockaddr_storage local_addr_v4;
+extern struct sockaddr_storage local_addr_v6;
 #endif
 
 static int packet_size                               = DEFAULT_PACKET_SIZE;
@@ -371,9 +374,9 @@ create_remote_socket(int ipv6)
             return -1;
         }
 #ifdef MODULE_REMOTE
-        if (local_addr != NULL) {
-            if (bind_to_address(remote_sock, local_addr) == -1) {
-                ERROR("bind_to_address");
+        if (is_bind_local_addr) {
+            if (bind_to_addr(&local_addr_v6, remote_sock) == -1) {
+                ERROR("bind_to_addr");
                 FATAL("[udp] cannot bind remote");
                 return -1;
             }
@@ -399,9 +402,9 @@ create_remote_socket(int ipv6)
             return -1;
         }
 #ifdef MODULE_REMOTE
-        if (local_addr != NULL) {
-            if (bind_to_address(remote_sock, local_addr) == -1) {
-                ERROR("bind_to_address");
+        if (is_bind_local_addr) {
+            if (bind_to_addr(&local_addr_v4, remote_sock) == -1) {
+                ERROR("bind_to_addr");
                 FATAL("[udp] cannot bind remote");
                 return -1;
             }
