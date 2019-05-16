@@ -61,10 +61,6 @@
 #define EWOULDBLOCK EAGAIN
 #endif
 
-#ifndef SOCKET_BUF_SIZE
-#define SOCKET_BUF_SIZE 2048
-#endif
-
 #ifndef IP6T_SO_ORIGINAL_DST
 #define IP6T_SO_ORIGINAL_DST 80
 #endif
