@@ -54,6 +54,7 @@ int send_traffic_stat(uint64_t tx, uint64_t rx);
 #define STAGE_SNI        3  /* Parse HTTP/SNI header            */
 #define STAGE_RESOLVE    4  /* Resolve the hostname             */
 #define STAGE_STREAM     5  /* Stream between client and server */
+#define STAGE_STOP       6  /* Server stop to response          */
 
 /* Vals for long options */
 enum {

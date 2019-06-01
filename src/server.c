@@ -93,7 +93,6 @@ static void server_recv_cb(EV_P_ ev_io *w, int revents);
 static void remote_recv_cb(EV_P_ ev_io *w, int revents);
 static void remote_send_cb(EV_P_ ev_io *w, int revents);
 static void server_timeout_cb(EV_P_ ev_timer *watcher, int revents);
-static void block_list_clear_cb(EV_P_ ev_timer *watcher, int revents);
 
 static remote_t *new_remote(int fd);
 static server_t *new_server(int fd, listen_ctx_t *listener);
@@ -138,7 +137,6 @@ uint64_t rx               = 0;
 #ifndef __MINGW32__
 ev_timer stat_update_watcher;
 #endif
-ev_timer block_list_watcher;
 
 static struct ev_signal sigint_watcher;
 static struct ev_signal sigterm_watcher;
@@ -269,43 +267,19 @@ get_peer_name(int fd)
     return peer_name;
 }
 
-#ifdef __linux__
 static void
-set_linger(int fd)
+stop_server(EV_P_ server_t *server)
 {
-    struct linger so_linger;
-    memset(&so_linger, 0, sizeof(struct linger));
-    so_linger.l_onoff  = 1;
-    so_linger.l_linger = 0;
-    setsockopt(fd, SOL_SOCKET, SO_LINGER, &so_linger, sizeof so_linger);
-}
-
-#endif
-
-static void
-reset_addr(int fd)
-{
-    char *peer_name;
-    peer_name = get_peer_name(fd);
-    if (peer_name != NULL) {
-        remove_from_block_list(peer_name);
-    }
+    server->stage = STAGE_STOP;
 }
 
 static void
-report_addr(int fd, int err_level, const char *info)
+report_addr(int fd, const char *info)
 {
-#ifdef __linux__
-    set_linger(fd);
-#endif
-
     char *peer_name;
     peer_name = get_peer_name(fd);
     if (peer_name != NULL) {
         LOGE("failed to handshake with %s: %s", peer_name, info);
-        // Avoid block local plugins
-        if (strcmp(peer_name, "127.0.0.1") != 0)
-            update_block_list(peer_name, err_level);
     }
 }
 
@@ -724,10 +698,16 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     buffer_t *buf = server->buf;
 
+    // Ignore any new packet if the server is stopped
+    if (server->stage == STAGE_STOP) {
+        return;
+    }
+
     if (server->stage == STAGE_STREAM) {
         remote = server->remote;
         buf    = remote->buf;
 
+        // Only timer the watcher if a valid connection is established
         ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
@@ -760,15 +740,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     int err = crypto->decrypt(buf, server->d_ctx, SOCKET_BUF_SIZE);
 
     if (err == CRYPTO_ERROR) {
-        report_addr(server->fd, MALICIOUS, "authentication error");
-        close_and_free_remote(EV_A_ remote);
-        close_and_free_server(EV_A_ server);
+        report_addr(server->fd, "authentication error");
+        stop_server(EV_A_ server);
         return;
     } else if (err == CRYPTO_NEED_MORE) {
         if (server->stage != STAGE_STREAM && server->frag > MAX_FRAG) {
-            report_addr(server->fd, MALICIOUS, "malicious fragmentation");
-            close_and_free_remote(EV_A_ remote);
-            close_and_free_server(EV_A_ server);
+            report_addr(server->fd, "malicious fragmentation");
+            stop_server(EV_A_ server);
             return;
         }
         server->frag++;
@@ -830,8 +808,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                           host, INET_ADDRSTRLEN);
                 offset += in_addr_len;
             } else {
-                report_addr(server->fd, MALFORMED, "invalid length for ipv4 address");
-                close_and_free_server(EV_A_ server);
+                report_addr(server->fd, "invalid length for ipv4 address");
+                stop_server(EV_A_ server);
                 return;
             }
             addr->sin_port   = *(uint16_t *)(server->buf->data + offset);
@@ -847,8 +825,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 memcpy(host, server->buf->data + offset + 1, name_len);
                 offset += name_len + 1;
             } else {
-                report_addr(server->fd, MALFORMED, "invalid host name length");
-                close_and_free_server(EV_A_ server);
+                report_addr(server->fd, "invalid host name length");
+                stop_server(EV_A_ server);
                 return;
             }
             if (acl && outbound_block_match_host(host) == 1) {
@@ -880,8 +858,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 }
             } else {
                 if (!validate_hostname(host, name_len)) {
-                    report_addr(server->fd, MALFORMED, "invalid host name");
-                    close_and_free_server(EV_A_ server);
+                    report_addr(server->fd, "invalid host name");
+                    stop_server(EV_A_ server);
                     return;
                 }
                 need_query = 1;
@@ -898,8 +876,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 offset += in6_addr_len;
             } else {
                 LOGE("invalid header with addr type %d", atyp);
-                report_addr(server->fd, MALFORMED, "invalid length for ipv6 address");
-                close_and_free_server(EV_A_ server);
+                report_addr(server->fd, "invalid length for ipv6 address");
+                stop_server(EV_A_ server);
                 return;
             }
             addr->sin6_port  = *(uint16_t *)(server->buf->data + offset);
@@ -911,8 +889,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         if (offset == 1) {
-            report_addr(server->fd, MALFORMED, "invalid address type");
-            close_and_free_server(EV_A_ server);
+            report_addr(server->fd, "invalid address type");
+            stop_server(EV_A_ server);
             return;
         }
 
@@ -921,8 +899,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         offset += 2;
 
         if (server->buf->len < offset) {
-            report_addr(server->fd, MALFORMED, "invalid request length");
-            close_and_free_server(EV_A_ server);
+            report_addr(server->fd, "invalid request length");
+            stop_server(EV_A_ server);
             return;
         } else {
             server->buf->len -= offset;
@@ -1037,12 +1015,6 @@ server_send_cb(EV_P_ ev_io *w, int revents)
 }
 
 static void
-block_list_clear_cb(EV_P_ ev_timer *watcher, int revents)
-{
-    clear_block_list();
-}
-
-static void
 server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
 {
     server_ctx_t *server_ctx
@@ -1134,6 +1106,11 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     remote_ctx_t *remote_recv_ctx = (remote_ctx_t *)w;
     remote_t *remote              = remote_recv_ctx->remote;
     server_t *server              = remote->server;
+
+    // Ignore any new packet if the server is stopped
+    if (server->stage == STAGE_STOP) {
+        return;
+    }
 
     if (server == NULL) {
         LOGE("invalid server");
@@ -1265,9 +1242,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 LOGI("remote connected");
             }
             remote_send_ctx->connected = 1;
-
-            // Clear the state of this address in the block list
-            reset_addr(server->fd);
 
             if (remote->buf->len == 0) {
                 server->stage = STAGE_STREAM;
@@ -1554,25 +1528,13 @@ accept_cb(EV_P_ ev_io *w, int revents)
 
     char *peer_name = get_peer_name(serverfd);
     if (peer_name != NULL) {
-        int in_white_list = 0;
         if (acl) {
             if ((get_acl_mode() == BLACK_LIST && acl_match_host(peer_name) == 1)
                 || (get_acl_mode() == WHITE_LIST && acl_match_host(peer_name) >= 0)) {
                 LOGE("Access denied from %s", peer_name);
                 close(serverfd);
                 return;
-            } else if (acl_match_host(peer_name) == -1) {
-                in_white_list = 1;
             }
-        }
-        if (!in_white_list && plugin == NULL
-            && check_block_list(peer_name)) {
-            LOGE("block all requests from %s", peer_name);
-#ifdef __linux__
-            set_linger(serverfd);
-#endif
-            close(serverfd);
-            return;
         }
     }
 
@@ -2101,9 +2063,6 @@ main(int argc, char **argv)
     }
 #endif
 
-    ev_timer_init(&block_list_watcher, block_list_clear_cb, UPDATE_INTERVAL, UPDATE_INTERVAL);
-    ev_timer_start(EV_DEFAULT, &block_list_watcher);
-
 #ifndef __MINGW32__
     // setuid
     if (user != NULL && !run_as(user)) {
@@ -2115,9 +2074,6 @@ main(int argc, char **argv)
     }
 #endif
 
-    // init block list
-    init_block_list();
-
     // Init connections
     cork_dllist_init(&connections);
 
@@ -2128,16 +2084,11 @@ main(int argc, char **argv)
         LOGI("closed gracefully");
     }
 
-    // Free block list
-    free_block_list();
-
 #ifndef __MINGW32__
     if (manager_addr != NULL) {
         ev_timer_stop(EV_DEFAULT, &stat_update_watcher);
     }
 #endif
-
-    ev_timer_stop(EV_DEFAULT, &block_list_watcher);
 
     if (plugin != NULL) {
         stop_plugin();

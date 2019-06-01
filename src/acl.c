@@ -49,74 +49,9 @@ static struct cork_dllist white_list_rules;
 
 static int acl_mode = BLACK_LIST;
 
-static struct cache *block_list;
-
 static struct ip_set outbound_block_list_ipv4;
 static struct ip_set outbound_block_list_ipv6;
 static struct cork_dllist outbound_block_list_rules;
-
-void
-init_block_list()
-{
-    cache_create(&block_list, 256, NULL);
-}
-
-void
-free_block_list()
-{
-    cache_clear(block_list, 0); // Remove all items
-}
-
-int
-remove_from_block_list(char *addr)
-{
-    size_t addr_len = strlen(addr);
-    return cache_remove(block_list, addr, addr_len);
-}
-
-void
-clear_block_list()
-{
-    cache_clear(block_list, 3600); // Clear items older than 1 hour
-}
-
-int
-check_block_list(char *addr)
-{
-    size_t addr_len = strlen(addr);
-
-    if (cache_key_exist(block_list, addr, addr_len)) {
-        int *count = NULL;
-        cache_lookup(block_list, addr, addr_len, &count);
-
-        if (count != NULL && *count > MAX_TRIES)
-            return 1;
-    }
-
-    return 0;
-}
-
-int
-update_block_list(char *addr, int err_level)
-{
-    size_t addr_len = strlen(addr);
-
-    if (cache_key_exist(block_list, addr, addr_len)) {
-        int *count = NULL;
-        cache_lookup(block_list, addr, addr_len, &count);
-        if (count != NULL) {
-            if (*count > MAX_TRIES)
-                return 1;
-            (*count) += err_level;
-        }
-    } else if (err_level > 0) {
-        int *count = (int *)ss_malloc(sizeof(int));
-        *count = 1;
-        cache_insert(block_list, addr, addr_len, count);
-    }
-
-    return 0;
-}
 
 static void
 parse_addr_cidr(const char *str, char *host, int *cidr)
