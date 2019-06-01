@@ -29,13 +29,11 @@
 #include <sys/socket.h>
 #endif
 
-#ifdef HAVE_LINUX_TCP_H
+#if defined(HAVE_LINUX_TCP_H)
 #include <linux/tcp.h>
 #elif defined(HAVE_NETINET_TCP_H)
 #include <netinet/tcp.h>
-#endif
-
-#ifdef HAVE_NETDB_H
+#elif defined(HAVE_NETDB_H)
 #include <netdb.h>
 #endif
 
