@@ -332,6 +332,9 @@ stop_plugin()
 {
     if (sub != NULL) {
         cork_subprocess_abort(sub);
+        if (cork_subprocess_wait(sub) == -1) {
+            LOGE("error on terminating the plugin.");
+        }
         cork_subprocess_free(sub);
     }
 }
