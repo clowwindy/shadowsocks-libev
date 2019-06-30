@@ -252,8 +252,8 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
             if (storage != NULL) {
                 struct sockaddr_in *addr = (struct sockaddr_in *)storage;
                 addr->sin_family = AF_INET;
-                addr->sin_addr   = *(struct in_addr *)(buf + offset);
-                addr->sin_port   = *(uint16_t *)(buf + offset + in_addr_len);
+                memcpy(&addr->sin_addr, buf + offset, sizeof(struct in_addr));
+                memcpy(&addr->sin_port, buf + offset + in_addr_len, sizeof(uint16_t));
             }
             if (host != NULL) {
                 inet_ntop(AF_INET, (const void *)(buf + offset),
@@ -273,12 +273,12 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
                     if (ip.version == 4) {
                         struct sockaddr_in *addr = (struct sockaddr_in *)storage;
                         inet_pton(AF_INET, tmp, &(addr->sin_addr));
-                        addr->sin_port   = *(uint16_t *)(buf + offset + 1 + name_len);
+                        memcpy(&addr->sin_port, buf + offset + 1 + name_len, sizeof(uint16_t));
                         addr->sin_family = AF_INET;
                     } else if (ip.version == 6) {
                         struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
                         inet_pton(AF_INET, tmp, &(addr->sin6_addr));
-                        addr->sin6_port   = *(uint16_t *)(buf + offset + 1 + name_len);
+                        memcpy(&addr->sin6_port, buf + offset + 1 + name_len, sizeof(uint16_t));
                         addr->sin6_family = AF_INET6;
                     }
                 }
@@ -295,8 +295,8 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
             if (storage != NULL) {
                 struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage;
                 addr->sin6_family = AF_INET6;
-                addr->sin6_addr   = *(struct in6_addr *)(buf + offset);
-                addr->sin6_port   = *(uint16_t *)(buf + offset + in6_addr_len);
+                memcpy(&addr->sin6_addr, buf + offset, sizeof(struct in6_addr));
+                memcpy(&addr->sin6_port, buf + offset + in6_addr_len, sizeof(uint16_t));
             }
             if (host != NULL) {
                 inet_ntop(AF_INET6, (const void *)(buf + offset),
@@ -312,7 +312,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
     }
 
     if (port != NULL) {
-        sprintf(port, "%d", ntohs(*(uint16_t *)(buf + offset)));
+        sprintf(port, "%d", load16_be(buf + offset));
     }
     offset += 2;
 
@@ -327,19 +327,21 @@ get_addr_str(const struct sockaddr *sa)
     char addr[INET6_ADDRSTRLEN] = { 0 };
     char port[PORTSTRLEN]       = { 0 };
     uint16_t p;
+    struct sockaddr_in sa_in;
+    struct sockaddr_in6 sa_in6;
 
     switch (sa->sa_family) {
     case AF_INET:
-        inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr),
-                  addr, INET_ADDRSTRLEN);
-        p = ntohs(((struct sockaddr_in *)sa)->sin_port);
+        memcpy(&sa_in, sa, sizeof(struct sockaddr_in));
+        inet_ntop(AF_INET, &sa_in.sin_addr, addr, INET_ADDRSTRLEN);
+        p = ntohs(sa_in.sin_port);
         sprintf(port, "%d", p);
         break;
 
     case AF_INET6:
-        inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sa)->sin6_addr),
-                  addr, INET6_ADDRSTRLEN);
-        p = ntohs(((struct sockaddr_in *)sa)->sin_port);
+        memcpy(&sa_in6, sa, sizeof(struct sockaddr_in6));
+        inet_ntop(AF_INET6, &sa_in6.sin6_addr, addr, INET6_ADDRSTRLEN);
+        p = ntohs(sa_in6.sin6_port);
         sprintf(port, "%d", p);
         break;
 

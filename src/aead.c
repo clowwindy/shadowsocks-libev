@@ -591,7 +591,7 @@ aead_chunk_decrypt(cipher_ctx_t *ctx, uint8_t *p, uint8_t *c, uint8_t *n,
         return CRYPTO_ERROR;
     assert(*plen == CHUNK_SIZE_LEN);
 
-    mlen = ntohs(*(uint16_t *)len_buf);
+    mlen = load16_be(len_buf);
     mlen = mlen & CHUNK_SIZE_MASK;
 
     if (mlen == 0)

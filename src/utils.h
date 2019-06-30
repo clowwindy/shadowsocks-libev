@@ -247,7 +247,13 @@ void *ss_realloc(void *ptr, size_t new_size);
 #endif
 
 int ss_is_ipv6addr(const char *addr);
-
 char *get_default_conf(void);
+
+inline uint16_t load16_be(const void *s)
+{
+    const uint8_t *in = (const uint8_t *)s;
+    return ((uint16_t)in[0] << 8)
+        | ((uint16_t)in[1]);
+}
 
 #endif // _UTILS_H

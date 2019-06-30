@@ -381,7 +381,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         abuf->len += in_addr_len + 2;
 
         if (acl || verbose) {
-            uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in_addr_len));
+            uint16_t p = load16_be(buf->data + request_len + in_addr_len);
             if (!inet_ntop(AF_INET, (const void *)(buf->data + request_len),
                            ip, INET_ADDRSTRLEN)) {
                 LOGI("inet_ntop(AF_INET): %s", strerror(errno));
@@ -399,8 +399,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         abuf->len += name_len + 2;
 
         if (acl || verbose) {
-            uint16_t p =
-                ntohs(*(uint16_t *)(buf->data + request_len + 1 + name_len));
+            uint16_t p = load16_be(buf->data + request_len + 1 + name_len);
             memcpy(host, buf->data + request_len + 1, name_len);
             host[name_len] = '\0';
             sprintf(port, "%d", p);
@@ -414,7 +413,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         abuf->len += in6_addr_len + 2;
 
         if (acl || verbose) {
-            uint16_t p = ntohs(*(uint16_t *)(buf->data + request_len + in6_addr_len));
+            uint16_t p = load16_be(buf->data + request_len + in6_addr_len);
             if (!inet_ntop(AF_INET6, (const void *)(buf->data + request_len),
                            ip, INET6_ADDRSTRLEN)) {
                 LOGI("inet_ntop(AF_INET6): %s", strerror(errno));
@@ -437,7 +436,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
     int hostname_len = 0;
 
     char *hostname;
-    uint16_t dst_port = ntohs(*(uint16_t *)(abuf->data + abuf->len - 2));
+    uint16_t dst_port = load16_be(abuf->data + abuf->len - 2);
 
     if (atyp == SOCKS5_ATYP_IPV4 || atyp == SOCKS5_ATYP_IPV6) {
         if (dst_port == http_protocol->default_port)
