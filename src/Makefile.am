@@ -1,6 +1,6 @@
 VERSION_INFO = 2:0:0
 
-AM_CFLAGS = -g -O2 -Wall -Werror -Wno-deprecated-declarations -Wcast-align -std=gnu99 -D_GNU_SOURCE
+AM_CFLAGS = -g -O2 -Wall -Werror -Wno-deprecated-declarations -Wcast-align -fno-strict-aliasing -std=gnu99 -D_GNU_SOURCE
 AM_CFLAGS += $(PTHREAD_CFLAGS)
 if !USE_SYSTEM_SHARED_LIB
 AM_CFLAGS += -I$(top_srcdir)/libbloom

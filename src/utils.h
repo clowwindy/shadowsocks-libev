@@ -24,6 +24,7 @@
 #define _UTILS_H
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
