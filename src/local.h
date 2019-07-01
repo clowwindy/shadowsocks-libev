@@ -49,13 +49,13 @@ typedef struct listen_ctx {
     int fd;
     int mptcp;
     struct sockaddr **remote_addr;
-} listen_ctx_t;
+} __attribute__((aligned(4))) listen_ctx_t;
 
 typedef struct server_ctx {
     ev_io io;
     int connected;
     struct server *server;
-} server_ctx_t;
+} __attribute__((aligned(4))) server_ctx_t;
 
 typedef struct server {
     int fd;
@@ -74,7 +74,7 @@ typedef struct server {
     ev_timer delayed_connect_watcher;
 
     struct cork_dllist_item entries;
-} server_t;
+} __attribute__((aligned(4))) server_t;
 
 typedef struct remote_ctx {
     ev_io io;
@@ -82,7 +82,7 @@ typedef struct remote_ctx {
 
     int connected;
     struct remote *remote;
-} remote_ctx_t;
+} __attribute__((aligned(4))) remote_ctx_t;
 
 typedef struct remote {
     int fd;
@@ -100,6 +100,6 @@ typedef struct remote {
     struct remote_ctx *send_ctx;
     struct server *server;
     struct sockaddr_storage addr;
-} remote_t;
+} __attribute__((aligned(4))) remote_t;
 
 #endif // _LOCAL_H

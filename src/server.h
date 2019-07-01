@@ -49,14 +49,14 @@ typedef struct listen_ctx {
     int timeout;
     char *iface;
     struct ev_loop *loop;
-} listen_ctx_t;
+} __attribute__((aligned(4))) listen_ctx_t;
 
 typedef struct server_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct server *server;
-} server_ctx_t;
+} __attribute__((aligned(4))) server_ctx_t;
 
 #ifdef USE_NFCONNTRACK_TOS
 
@@ -68,7 +68,7 @@ struct dscptracker {
     long unsigned int mark;
     unsigned int dscp;
     unsigned int packet_count;
-};
+} __attribute__((aligned(4)));
 
 #endif
 
@@ -94,18 +94,18 @@ typedef struct server {
 #ifdef USE_NFCONNTRACK_TOS
     struct dscptracker *tracker;
 #endif
-} server_t;
+} __attribute__((aligned(4))) server_t;
 
 typedef struct query {
     server_t *server;
     char hostname[MAX_HOSTNAME_LEN];
-} query_t;
+} __attribute__((aligned(4))) query_t;
 
 typedef struct remote_ctx {
     ev_io io;
     int connected;
     struct remote *remote;
-} remote_ctx_t;
+} __attribute__((aligned(4))) remote_ctx_t;
 
 typedef struct remote {
     int fd;
@@ -117,6 +117,6 @@ typedef struct remote {
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
-} remote_t;
+} __attribute__((aligned(4))) remote_t;
 
 #endif // _SERVER_H

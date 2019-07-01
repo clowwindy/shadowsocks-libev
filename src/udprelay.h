@@ -65,7 +65,7 @@ typedef struct server_ctx {
 #ifdef MODULE_REMOTE
     struct ev_loop *loop;
 #endif
-} server_ctx_t;
+} __attribute__((aligned(4))) server_ctx_t;
 
 #ifdef MODULE_REMOTE
 typedef struct query_ctx {
@@ -75,7 +75,7 @@ typedef struct query_ctx {
     char addr_header[MAX_ADDR_HEADER_SIZE];
     struct server_ctx *server_ctx;
     struct remote_ctx *remote_ctx;
-} query_ctx_t;
+} __attribute__((aligned(4))) query_ctx_t;
 #endif
 
 typedef struct remote_ctx {
@@ -88,6 +88,6 @@ typedef struct remote_ctx {
     struct sockaddr_storage dst_addr;
 #endif
     struct server_ctx *server_ctx;
-} remote_ctx_t;
+} __attribute__((aligned(4))) remote_ctx_t;
 
 #endif // _UDPRELAY_H

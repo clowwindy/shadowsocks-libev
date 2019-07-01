@@ -39,13 +39,13 @@ typedef struct listen_ctx {
     int mptcp;
     int tos;
     struct sockaddr **remote_addr;
-} listen_ctx_t;
+} __attribute__((aligned(4))) listen_ctx_t;
 
 typedef struct server_ctx {
     ev_io io;
     int connected;
     struct server *server;
-} server_ctx_t;
+} __attribute__((aligned(4))) server_ctx_t;
 
 typedef struct server {
     int fd;
@@ -60,14 +60,14 @@ typedef struct server {
 
     struct sockaddr_storage destaddr;
     ev_timer delayed_connect_watcher;
-} server_t;
+} __attribute__((aligned(4))) server_t;
 
 typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct remote *remote;
-} remote_ctx_t;
+} __attribute__((aligned(4))) remote_ctx_t;
 
 typedef struct remote {
     int fd;
@@ -77,6 +77,6 @@ typedef struct remote {
     struct server *server;
     uint32_t counter;
     struct sockaddr *addr;
-} remote_t;
+} __attribute__((aligned(4))) remote_t;
 
 #endif // _REDIR_H
