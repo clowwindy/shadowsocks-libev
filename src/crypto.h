@@ -92,7 +92,7 @@ typedef struct buffer {
     size_t len;
     size_t capacity;
     char   *data;
-} __attribute__((aligned(4))) buffer_t;
+} buffer_t;
 
 typedef struct {
     int method;
@@ -102,7 +102,7 @@ typedef struct {
     size_t key_len;
     size_t tag_len;
     uint8_t key[MAX_KEY_LENGTH];
-} __attribute__((aligned(4))) cipher_t;
+} cipher_t;
 
 typedef struct {
     uint32_t init;
@@ -114,7 +114,7 @@ typedef struct {
     uint8_t salt[MAX_KEY_LENGTH];
     uint8_t skey[MAX_KEY_LENGTH];
     uint8_t nonce[MAX_NONCE_LENGTH];
-} __attribute__((aligned(4))) cipher_ctx_t;
+} cipher_ctx_t;
 
 typedef struct crypto {
     cipher_t *cipher;
@@ -126,7 +126,7 @@ typedef struct crypto {
 
     void(*const ctx_init) (cipher_t *, cipher_ctx_t *, int);
     void(*const ctx_release) (cipher_ctx_t *);
-} __attribute__((aligned(4))) crypto_t;
+} crypto_t;
 
 int balloc(buffer_t *, size_t);
 int brealloc(buffer_t *, size_t, size_t);

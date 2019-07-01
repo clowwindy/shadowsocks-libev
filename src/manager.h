@@ -63,7 +63,7 @@ struct manager_ctx {
 #ifdef HAVE_SETRLIMIT
     int nofile;
 #endif
-} __attribute__((aligned(4)));
+};
 
 struct server {
     char port[8];
@@ -75,6 +75,6 @@ struct server {
     char *plugin;
     char *plugin_opts;
     uint64_t traffic;
-} __attribute__((aligned(4)));
+};
 
 #endif // _MANAGER_H
