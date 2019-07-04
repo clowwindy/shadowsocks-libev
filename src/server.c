@@ -710,9 +710,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     if (server->stage == STAGE_STREAM) {
         remote = server->remote;
         buf    = remote->buf;
-
-        // Only timer the watcher if a valid connection is established
-        ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
     ssize_t r = recv(server->fd, buf->data, SOCKET_BUF_SIZE, 0);
@@ -1122,8 +1119,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    ev_timer_again(EV_A_ & server->recv_ctx->watcher);
-
     ssize_t r = recv(remote->fd, server->buf->data, SOCKET_BUF_SIZE, 0);
 
     if (r == 0) {
@@ -1408,7 +1403,7 @@ new_server(int fd, listen_ctx_t *listener)
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
-                  request_timeout, listener->timeout);
+                  request_timeout, 0);
 
     cork_dllist_add(&connections, &server->entries);
 
