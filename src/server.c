@@ -716,9 +716,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (r == 0) {
         // connection closed
-        if (verbose) {
-            LOGI("server_recv close the connection");
-        }
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
@@ -975,9 +972,6 @@ server_send_cb(EV_P_ ev_io *w, int revents)
 
     if (server->buf->len == 0) {
         // close and free
-        if (verbose) {
-            LOGI("server_send close the connection");
-        }
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
@@ -1123,9 +1117,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (r == 0) {
         // connection closed
-        if (verbose) {
-            LOGI("remote_recv close the connection");
-        }
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
@@ -1235,11 +1226,13 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         struct sockaddr_storage addr;
         socklen_t len = sizeof(struct sockaddr_storage);
         memset(&addr, 0, len);
+
         int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
+
         if (r == 0) {
-            if (verbose) {
-                LOGI("remote connected");
-            }
+            // connection connected, stop the request timeout timer
+            ev_timer_stop(EV_A_ & server->recv_ctx->watcher);
+
             remote_send_ctx->connected = 1;
 
             if (remote->buf->len == 0) {
@@ -1260,9 +1253,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
 
     if (remote->buf->len == 0) {
         // close and free
-        if (verbose) {
-            LOGI("remote_send close the connection");
-        }
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
@@ -1309,6 +1299,7 @@ new_remote(int fd)
 {
     if (verbose) {
         remote_conn++;
+        LOGI("new connection to remote, %d opened remote connections", remote_conn);
     }
 
     remote_t *remote = ss_malloc(sizeof(remote_t));
@@ -1358,7 +1349,7 @@ close_and_free_remote(EV_P_ remote_t *remote)
         free_remote(remote);
         if (verbose) {
             remote_conn--;
-            LOGI("current remote connection: %d", remote_conn);
+            LOGI("close a connection to remote, %d opened remote connections", remote_conn);
         }
     }
 }
@@ -1368,6 +1359,7 @@ new_server(int fd, listen_ctx_t *listener)
 {
     if (verbose) {
         server_conn++;
+        LOGI("new connection from client, %d opened client connections", server_conn);
     }
 
     server_t *server;
@@ -1462,7 +1454,7 @@ close_and_free_server(EV_P_ server_t *server)
         free_server(server);
         if (verbose) {
             server_conn--;
-            LOGI("current server connection: %d", server_conn);
+            LOGI("close a connection from client, %d opened client connections", server_conn);
         }
     }
 }
@@ -1543,10 +1535,6 @@ accept_cb(EV_P_ ev_io *w, int revents)
     setsockopt(serverfd, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
 #endif
     setnonblocking(serverfd);
-
-    if (verbose) {
-        LOGI("accept a connection");
-    }
 
     server_t *server = new_server(serverfd, listener);
     ev_io_start(EV_A_ & server->recv_ctx->io);
