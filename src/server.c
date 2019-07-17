@@ -106,8 +106,8 @@ static void close_and_free_server(EV_P_ server_t *server);
 static void resolv_cb(struct sockaddr *addr, void *data);
 static void resolv_free_cb(void *data);
 
-int verbose      = 0;
-int reuse_port   = 0;
+int verbose    = 0;
+int reuse_port = 0;
 
 int is_bind_local_addr = 0;
 struct sockaddr_storage local_addr_v4;
@@ -118,7 +118,7 @@ static crypto_t *crypto;
 static int acl       = 0;
 static int mode      = TCP_ONLY;
 static int ipv6first = 0;
-       int fast_open = 0;
+int fast_open        = 0;
 static int no_delay  = 0;
 static int ret_val   = 0;
 
@@ -475,8 +475,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
     if (setnonblocking(sockfd) == -1)
         ERROR("setnonblocking");
 
-    if (is_bind_local_addr)
-    {
+    if (is_bind_local_addr) {
         struct sockaddr_storage *local_addr =
             res->ai_family == AF_INET ? &local_addr_v4 : &local_addr_v6;
         if (bind_to_addr(local_addr, sockfd) == -1) {
@@ -1584,7 +1583,7 @@ main(int argc, char **argv)
 #ifdef __linux__
         { "mptcp",           no_argument,       NULL, GETOPT_VAL_MPTCP       },
 #endif
-        { NULL,                              0, NULL,                      0 }
+        { NULL,              0,                 NULL, 0                      }
     };
 
     opterr = 0;
@@ -2034,7 +2033,8 @@ main(int argc, char **argv)
                 LOGI("udp server listening at %s:%s", host ? host : "0.0.0.0", port);
             // Setup UDP
             int err = init_udprelay(host, port, mtu, crypto, atoi(timeout), iface);
-            if (err == -1) continue;
+            if (err == -1)
+                continue;
             num_listen_ctx++;
         }
 

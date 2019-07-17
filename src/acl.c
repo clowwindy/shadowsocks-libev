@@ -100,8 +100,7 @@ trimwhitespace(char *str)
 int
 init_acl(const char *path)
 {
-    if (path == NULL)
-    {
+    if (path == NULL) {
         return -1;
     }
 

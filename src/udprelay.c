@@ -109,7 +109,7 @@ static int buf_size                                  = DEFAULT_PACKET_SIZE * 2;
 static int server_num                                = 0;
 static server_ctx_t *server_ctx_list[MAX_REMOTE_NUM] = { NULL };
 
-const char* s_port = NULL;
+const char *s_port = NULL;
 
 #ifndef __MINGW32__
 static int
@@ -492,8 +492,8 @@ create_server_socket(const char *host, const char *port)
         }
 #ifdef IP_TOS
         // Set QoS flag
-        int tos = 46;
-        int proto = rp->ai_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+        int tos   = 46;
+        int proto = rp->ai_family == AF_INET6 ? IPPROTO_IP : IPPROTO_IPV6;
         setsockopt(server_sock, proto, IP_TOS, &tos, sizeof(tos));
 #endif
 
@@ -654,8 +654,8 @@ resolv_cb(struct sockaddr *addr, void *data)
 #endif
 #ifdef IP_TOS
                 // Set QoS flag
-                int tos = 46;
-                int proto = addr->sa_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+                int tos   = 46;
+                int proto = addr->sa_family == AF_INET6 ? IPPROTO_IP : IPPROTO_IPV6;
                 setsockopt(remotefd, proto, IP_TOS, &tos, sizeof(tos));
 #endif
 #ifdef SET_INTERFACE
@@ -664,9 +664,9 @@ resolv_cb(struct sockaddr *addr, void *data)
                         ERROR("setinterface");
                 }
 #endif
-                remote_ctx                  = new_remote(remotefd, query_ctx->server_ctx);
-                remote_ctx->src_addr        = query_ctx->src_addr;
-                remote_ctx->server_ctx      = query_ctx->server_ctx;
+                remote_ctx             = new_remote(remotefd, query_ctx->server_ctx);
+                remote_ctx->src_addr   = query_ctx->src_addr;
+                remote_ctx->server_ctx = query_ctx->server_ctx;
             } else {
                 ERROR("[udp] bind() error");
             }
@@ -842,8 +842,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 #ifdef IP_TOS
     // Set QoS flag
-    int tos = 46;
-    int proto = remote_ctx->src_addr.ss_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+    int tos   = 46;
+    int proto = remote_ctx->src_addr.ss_family == AF_INET6 ? IPPROTO_IP : IPPROTO_IPV6;
     setsockopt(src_fd, proto, IP_TOS, &tos, sizeof(tos));
 #endif
     if (bind(src_fd, (struct sockaddr *)&dst_addr, remote_dst_addr_len) != 0) {
@@ -1014,7 +1014,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
 #ifdef MODULE_REDIR
     char addr_header[MAX_ADDR_HEADER_SIZE] = { 0 };
-    int addr_header_len   = construct_udprelay_header(&dst_addr, addr_header);
+    int addr_header_len                    = construct_udprelay_header(&dst_addr, addr_header);
 
     if (addr_header_len == 0) {
         LOGE("[udp] failed to parse tproxy addr");
@@ -1030,11 +1030,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #elif MODULE_TUNNEL
 
     char addr_header[MAX_ADDR_HEADER_SIZE] = { 0 };
-    char *host            = server_ctx->tunnel_addr.host;
-    char *port            = server_ctx->tunnel_addr.port;
-    uint16_t port_num     = (uint16_t)atoi(port);
-    uint16_t port_net_num = htons(port_num);
-    int addr_header_len   = 0;
+    char *host                             = server_ctx->tunnel_addr.host;
+    char *port                             = server_ctx->tunnel_addr.port;
+    uint16_t port_num                      = (uint16_t)atoi(port);
+    uint16_t port_net_num                  = htons(port_num);
+    int addr_header_len                    = 0;
 
     struct cork_ip ip;
     if (cork_ip_init(&ip, host) != -1) {
@@ -1086,7 +1086,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #else
 
     char host[MAX_HOSTNAME_LEN] = { 0 };
-    char port[MAX_PORT_STR_LEN]  = { 0 };
+    char port[MAX_PORT_STR_LEN] = { 0 };
     struct sockaddr_storage dst_addr;
     memset(&dst_addr, 0, sizeof(struct sockaddr_storage));
 
@@ -1264,8 +1264,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #endif
 #ifdef IP_TOS
                 // Set QoS flag
-                int tos = 46;
-                int proto = dst_addr.ss_family == AF_INET6 ? IPPROTO_IP: IPPROTO_IPV6;
+                int tos   = 46;
+                int proto = dst_addr.ss_family == AF_INET6 ? IPPROTO_IP : IPPROTO_IPV6;
                 setsockopt(remotefd, proto, IP_TOS, &tos, sizeof(tos));
 #endif
 #ifdef SET_INTERFACE
@@ -1274,9 +1274,9 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                         ERROR("setinterface");
                 }
 #endif
-                remote_ctx                  = new_remote(remotefd, server_ctx);
-                remote_ctx->src_addr        = src_addr;
-                remote_ctx->server_ctx      = server_ctx;
+                remote_ctx             = new_remote(remotefd, server_ctx);
+                remote_ctx->src_addr   = src_addr;
+                remote_ctx->server_ctx = server_ctx;
                 memcpy(&remote_ctx->dst_addr, &dst_addr, sizeof(struct sockaddr_storage));
             } else {
                 ERROR("[udp] bind() error");

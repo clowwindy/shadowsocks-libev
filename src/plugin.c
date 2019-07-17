@@ -112,10 +112,12 @@ start_ss_plugin(const char *plugin,
     exec = cork_exec_new(plugin);
     cork_exec_add_param(exec, plugin);  // argv[0]
     extern int fast_open;
-    if (fast_open) cork_exec_add_param(exec, "--fast-open");
+    if (fast_open)
+        cork_exec_add_param(exec, "--fast-open");
 #ifdef __ANDROID__
     extern int vpn;
-    if (vpn) cork_exec_add_param(exec, "-V");
+    if (vpn)
+        cork_exec_add_param(exec, "-V");
 #endif
 
     cork_exec_set_env(exec, env);
@@ -166,7 +168,7 @@ start_obfsproxy(const char *plugin,
 {
     char *pch;
     char *opts_dump = NULL;
-    char *buf       = NULL;
+    char *buf = NULL;
     int ret, buf_size = 0;
 
     if (plugin_opts != NULL) {

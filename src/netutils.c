@@ -301,8 +301,7 @@ int
 is_ipv6only(ss_addr_t *servers, size_t server_num, int ipv6first)
 {
     int i;
-    for (i = 0; i < server_num; i++)
-    {
+    for (i = 0; i < server_num; i++) {
         struct sockaddr_storage storage;
         memset(&storage, 0, sizeof(struct sockaddr_storage));
         if (get_sockaddr(servers[i].host, servers[i].port, &storage, 1, ipv6first) == -1) {

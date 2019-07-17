@@ -552,9 +552,10 @@ get_default_conf(void)
 #endif
 }
 
-uint16_t load16_be(const void *s)
+uint16_t
+load16_be(const void *s)
 {
     const uint8_t *in = (const uint8_t *)s;
     return ((uint16_t)in[0] << 8)
-        | ((uint16_t)in[1]);
+           | ((uint16_t)in[1]);
 }

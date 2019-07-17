@@ -59,7 +59,7 @@ static int parse_extensions(const char *, size_t, char **);
 static int parse_server_name_extension(const char *, size_t, char **);
 
 static const protocol_t tls_protocol_st = {
-    .default_port =               443,
+    .default_port = 443,
     .parse_packet = &parse_tls_header,
 };
 const protocol_t *const tls_protocol = &tls_protocol_st;

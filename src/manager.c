@@ -212,8 +212,7 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
     }
-    if (manager->workdir)
-    {
+    if (manager->workdir) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -D \"%s\"", manager->workdir);
     }
@@ -705,12 +704,12 @@ manager_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (parse_traffic(buf, r, port, &traffic) == -1) {
             LOGE("invalid command: %s:%s", buf, get_data(buf, r));
-	    goto ERROR_MSG;
+            goto ERROR_MSG;
         }
 
         update_stat(port, traffic);
 
-	char msg[3] = "ok";
+        char msg[3] = "ok";
         if (sendto(manager->fd, msg, 2, 0, (struct sockaddr *)&claddr, len) != 2) {
             ERROR("stat_sendto");
         }
@@ -901,7 +900,7 @@ main(int argc, char **argv)
         { "password",        required_argument, NULL, GETOPT_VAL_PASSWORD    },
         { "workdir",         required_argument, NULL, GETOPT_VAL_WORKDIR     },
         { "help",            no_argument,       NULL, GETOPT_VAL_HELP        },
-        { NULL,                              0, NULL,                      0 }
+        { NULL,              0,                 NULL, 0                      }
     };
 
     opterr = 0;
@@ -1055,8 +1054,7 @@ main(int argc, char **argv)
         if (ipv6first == 0) {
             ipv6first = conf->ipv6_first;
         }
-        if (workdir == NULL)
-        {
+        if (workdir == NULL) {
             workdir = conf->workdir;
         }
         if (acl == NULL) {
@@ -1161,7 +1159,7 @@ main(int argc, char **argv)
     }
 #endif
 
-    struct passwd *pw   = getpwuid(getuid());
+    struct passwd *pw = getpwuid(getuid());
 
     if (workdir == NULL || strlen(workdir) == 0) {
         workdir = pw->pw_dir;
@@ -1171,11 +1169,11 @@ main(int argc, char **argv)
         }
 
         working_dir_size = strlen(workdir) + 15;
-        working_dir = ss_malloc(working_dir_size);
+        working_dir      = ss_malloc(working_dir_size);
         snprintf(working_dir, working_dir_size, "%s/.shadowsocks", workdir);
     } else {
         working_dir_size = strlen(workdir) + 2;
-        working_dir = ss_malloc(working_dir_size);
+        working_dir      = ss_malloc(working_dir_size);
         snprintf(working_dir, working_dir_size, "%s", workdir);
     }
     LOGI("working directory points to %s", working_dir);
