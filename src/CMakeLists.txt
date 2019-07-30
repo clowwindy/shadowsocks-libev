@@ -180,7 +180,7 @@ target_compile_definitions(ss-tunnel PUBLIC -DMODULE_TUNNEL)
 target_compile_definitions(ss-manager PUBLIC -DMODULE_MANAGER)
 target_compile_definitions(ss-local PUBLIC -DMODULE_LOCAL)
 target_compile_definitions(ss-redir PUBLIC -DMODULE_REDIR)
-target_compile_definitions(shadowsocks-libev PUBLIC -DMODULE_LOCAL)
+target_compile_definitions(shadowsocks-libev PUBLIC -DMODULE_LOCAL -DLIB_ONLY)
 
 target_link_libraries(ss-server cork ipset ${DEPS})
 target_link_libraries(ss-tunnel cork ${DEPS})
