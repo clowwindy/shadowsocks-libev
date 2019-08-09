@@ -701,11 +701,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     buffer_t *buf = server->buf;
 
-    // Ignore any new packet if the server is stopped
-    if (server->stage == STAGE_STOP) {
-        return;
-    }
-
     if (server->stage == STAGE_STREAM) {
         remote = server->remote;
         buf    = remote->buf;
@@ -729,6 +724,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             close_and_free_server(EV_A_ server);
             return;
         }
+    }
+
+    // Ignore any new packet if the server is stopped
+    if (server->stage == STAGE_STOP) {
+        return;
     }
 
     tx      += r;
@@ -1101,11 +1101,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     remote_t *remote              = remote_recv_ctx->remote;
     server_t *server              = remote->server;
 
-    // Ignore any new packet if the server is stopped
-    if (server->stage == STAGE_STOP) {
-        return;
-    }
-
     if (server == NULL) {
         LOGE("invalid server");
         close_and_free_remote(EV_A_ remote);
@@ -1133,6 +1128,11 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
     }
 
     rx += r;
+
+    // Ignore any new packet if the server is stopped
+    if (server->stage == STAGE_STOP) {
+        return;
+    }
 
     server->buf->len = r;
     int err = crypto->encrypt(server->buf, server->e_ctx, SOCKET_BUF_SIZE);
