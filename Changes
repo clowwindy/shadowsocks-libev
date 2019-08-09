@@ -1,3 +1,11 @@
+shadowsocks-libev (3.3.1-1) unstable; urgency=high
+
+  * Fix a high CPU bug introduced in 3.3.0. (#2449)
+  * Fix MinGW build. (#2438)
+  * Minor bug fixes. (#2402, #2412, #2427, #2443)
+
+ -- Max Lv <max.c.lv@gmail.com>  Fri, 09 Aug 2019 15:02:34 +0800
+
 shadowsocks-libev (3.3.0-1) unstable; urgency=medium
 
   * Enlarge the socket buffer size to 16KB.

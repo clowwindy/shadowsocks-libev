@@ -1,6 +1,6 @@
 base: core18
 name: shadowsocks-libev
-version: 3.3.0-1
+version: 3.3.1-1
 summary: libev port of shadowsocks
 description: |
   Shadowsocks-libev is a lightweight and secure SOCKS5 proxy for embedded
@@ -40,7 +40,7 @@ passthrough:
 parts:
  shadowsocks-libev:
     plugin: autotools
-    source: https://github.com/shadowsocks/shadowsocks-libev/releases/download/v3.3.0/shadowsocks-libev-3.3.0.tar.gz
+    source: https://github.com/shadowsocks/shadowsocks-libev/releases/download/v3.3.1/shadowsocks-libev-3.3.1.tar.gz
     build-packages:
       - libpcre3-dev
       - asciidoc
