@@ -67,6 +67,22 @@ try `configure --help`.
 
 ### Debian & Ubuntu
 
+#### Install from snapcraft.io
+
+Snap is the recommended way to install the latest binaries.
+
+Stable channel:
+
+```bash
+sudo snap install shadowsocks-libev
+```
+
+Edge channel:
+
+```bash
+sudo snap install shadowsocks-libev --edge
+```
+
 #### Install from repository
 
 Shadowsocks-libev is available in the official repository for following distributions:
@@ -98,15 +114,6 @@ For more info about backports, you can refer [Debian Backports](https://backport
 sudo sh -c 'printf "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/stretch-backports.list'
 sudo apt update
 sudo apt -t stretch-backports install shadowsocks-libev
-```
-
-For **Ubuntu 14.04 and 16.04** users, please install from PPA:
-
-```bash
-sudo apt-get install software-properties-common -y
-sudo add-apt-repository ppa:max-c-lv/shadowsocks-libev -y
-sudo apt-get update
-sudo apt install shadowsocks-libev
 ```
 
 #### Build deb package from source
