@@ -42,7 +42,7 @@ You have to install libsodium at least 1.0.8, but recommended 1.0.12 or later ve
 ### Distribution-specific guide
 
 - [Debian & Ubuntu](#debian--ubuntu)
-    + [Install from snapcraft.io](#install-from-snapcraft-io)
+    + [Install from snapcraft.io](#install-from-snapcraftio)
     + [Install from repository](#install-from-repository)
     + [Build deb package from source](#build-deb-package-from-source)
     + [Configure and start the service](#configure-and-start-the-service)
