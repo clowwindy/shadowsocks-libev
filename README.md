@@ -21,28 +21,33 @@ to be a lightweight implementation of shadowsocks protocol, in order to keep the
 For a full list of feature comparison between different versions of shadowsocks,
 refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature-Comparison-across-Different-Versions).
 
-## Prerequisites
+## Quick Start
 
-### Get the latest source code
+Snap is the recommended way to install the latest binaries.
 
-To get the latest source code, you should also update the submodules as following:
+### Install snap core
+
+https://snapcraft.io/core
+
+### Install from snapcraft.io
+
+Stable channel:
 
 ```bash
-git clone https://github.com/shadowsocks/shadowsocks-libev.git
-cd shadowsocks-libev
-git submodule update --init --recursive
+sudo snap install shadowsocks-libev
 ```
 
-### Build and install with recent libsodium
+Edge channel:
 
-You have to install libsodium at least 1.0.8, but recommended 1.0.12 or later version before building. See [Directly build and install on UNIX-like system](#linux).
+```bash
+sudo snap install shadowsocks-libev --edge
+```
 
 ## Installation
 
 ### Distribution-specific guide
 
 - [Debian & Ubuntu](#debian--ubuntu)
-    + [Install from snapcraft.io](#install-from-snapcraftio)
     + [Install from repository](#install-from-repository)
     + [Build deb package from source](#build-deb-package-from-source)
     + [Configure and start the service](#configure-and-start-the-service)
@@ -67,22 +72,6 @@ For a complete list of available configure-time option,
 try `configure --help`.
 
 ### Debian & Ubuntu
-
-#### Install from snapcraft.io
-
-Snap is the recommended way to install the latest binaries.
-
-Stable channel:
-
-```bash
-sudo snap install shadowsocks-libev
-```
-
-Edge channel:
-
-```bash
-sudo snap install shadowsocks-libev --edge
-```
 
 #### Install from repository
 
