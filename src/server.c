@@ -120,6 +120,7 @@ static int mode      = TCP_ONLY;
 static int ipv6first = 0;
 int fast_open        = 0;
 static int no_delay  = 0;
+static int long_idle = 0;
 static int ret_val   = 0;
 
 #ifdef HAVE_SETRLIMIT
@@ -704,6 +705,11 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     if (server->stage == STAGE_STREAM) {
         remote = server->remote;
         buf    = remote->buf;
+
+        if (!long_idle) {
+            // Only timer the watcher if a valid connection is established
+            ev_timer_again(EV_A_ & server->recv_ctx->watcher);
+        }
     }
 
     ssize_t r = recv(server->fd, buf->data, SOCKET_BUF_SIZE, 0);
@@ -1107,6 +1113,11 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+    if (long_idle)
+        ev_timer_stop(EV_A_ & server->recv_ctx->watcher);
+    else
+        ev_timer_again(EV_A_ & server->recv_ctx->watcher);
+
     ssize_t r = recv(remote->fd, server->buf->data, SOCKET_BUF_SIZE, 0);
 
     if (r == 0) {
@@ -1229,9 +1240,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
         int r = getpeername(remote->fd, (struct sockaddr *)&addr, &len);
 
         if (r == 0) {
-            // connection connected, stop the request timeout timer
-            ev_timer_stop(EV_A_ & server->recv_ctx->watcher);
-
             remote_send_ctx->connected = 1;
 
             if (remote->buf->len == 0) {
@@ -1391,10 +1399,12 @@ new_server(int fd, listen_ctx_t *listener)
     int request_timeout = min(MAX_REQUEST_TIMEOUT, listener->timeout)
                           + rand() % MAX_REQUEST_TIMEOUT;
 
+    int repeat_interval = long_idle ? 0 : listener->timeout;
+
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
-                  request_timeout, 0);
+                  request_timeout, repeat_interval);
 
     cork_dllist_add(&connections, &server->entries);
 
@@ -1571,6 +1581,7 @@ main(int argc, char **argv)
         { "fast-open",       no_argument,       NULL, GETOPT_VAL_FAST_OPEN   },
         { "reuse-port",      no_argument,       NULL, GETOPT_VAL_REUSE_PORT  },
         { "no-delay",        no_argument,       NULL, GETOPT_VAL_NODELAY     },
+        { "long-idle",       no_argument,       NULL, GETOPT_VAL_LONGIDLE    },
         { "acl",             required_argument, NULL, GETOPT_VAL_ACL         },
         { "manager-address", required_argument, NULL,
           GETOPT_VAL_MANAGER_ADDRESS },
@@ -1599,6 +1610,10 @@ main(int argc, char **argv)
         case GETOPT_VAL_NODELAY:
             no_delay = 1;
             LOGI("enable TCP no-delay");
+            break;
+        case GETOPT_VAL_LONGIDLE:
+            long_idle = 1;
+            LOGI("enable TCP long idle connections");
             break;
         case GETOPT_VAL_ACL:
             LOGI("initializing acl...");
