@@ -446,6 +446,8 @@ you may refer to the man pages of the applications, respectively.
 
        [--no-delay]               Enable TCP_NODELAY.
 
+       [--long-idle]              Enable TCP long idle connections.
+
        [--executable <path>]      Path to the executable of ss-server.
                                   (only available in manager mode)
 
