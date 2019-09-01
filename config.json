@@ -1,0 +1,12 @@
+{
+    "server":"la.maxlv.net",
+    "server_port":1080,
+    "local_address":"0.0.0.0",
+    "local_port":1080,
+    "password":"CCCCCCCC",
+    "method":"aes-256-gcm",
+    "timeout":60,
+    "mode":"tcp_and_udp",
+    "plugin":"obfs-local",
+    "plugin_opts":"obfs=http;obfs-host=www.CCCCCCC.com"
+}

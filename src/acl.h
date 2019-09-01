@@ -1,7 +1,7 @@
 /*
  * acl.h - Define the ACL interface
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2019, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,17 +16,25 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _ACL_H
 #define _ACL_H
 
+#define BLACK_LIST 0
+#define WHITE_LIST 1
+
 int init_acl(const char *path);
 void free_acl(void);
 
-int acl_contains_ip(const char* ip);
-int acl_contains_domain(const char* domain);
+int acl_match_host(const char *ip);
+int acl_add_ip(const char *ip);
+int acl_remove_ip(const char *ip);
+
+int get_acl_mode(void);
+
+int outbound_block_match_host(const char *host);
 
 #endif // _ACL_H

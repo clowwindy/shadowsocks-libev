@@ -1,7 +1,7 @@
 /*
  * tunnel.h - Define tunnel's buffers and callbacks
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2019, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,83 +16,76 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _TUNNEL_H
 #define _TUNNEL_H
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
 #include <ev.h>
-#include "encrypt.h"
+#endif
+
+#ifdef __MINGW32__
+#include "winsock.h"
+#endif
+
+#include "crypto.h"
 #include "jconf.h"
 
-#include "include.h"
+#include "common.h"
 
-struct listen_ctx
-{
+typedef struct listen_ctx {
     ev_io io;
     ss_addr_t tunnel_addr;
-    ss_addr_t *remote_addr;
     char *iface;
     int remote_num;
-    int method;
     int timeout;
     int fd;
-    struct sockaddr sock;
-};
+    int mptcp;
+    struct sockaddr **remote_addr;
+} listen_ctx_t;
 
-struct server_ctx
-{
+typedef struct server_ctx {
     ev_io io;
     int connected;
     struct server *server;
-};
+} server_ctx_t;
 
-struct server
-{
+typedef struct server {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // server send from, remote recv into
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+
+    buffer_t *buf;
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
     ss_addr_t destaddr;
-};
+} server_t;
 
-struct remote_ctx
-{
+typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct remote *remote;
-};
+} remote_ctx_t;
 
-struct remote
-{
+typedef struct remote {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // remote send from, server recv into
+#ifdef TCP_FASTOPEN_WINSOCK
+    OVERLAPPED olap;
+    int connect_ex_done;
+#endif
+    buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
-};
-
-static void accept_cb (EV_P_ ev_io *w, int revents);
-static void server_recv_cb (EV_P_ ev_io *w, int revents);
-static void server_send_cb (EV_P_ ev_io *w, int revents);
-static void remote_recv_cb (EV_P_ ev_io *w, int revents);
-static void remote_send_cb (EV_P_ ev_io *w, int revents);
-static void free_remote(struct remote *remote);
-static void close_and_free_remote(EV_P_ struct remote *remote);
-static void free_server(struct server *server);
-static void close_and_free_server(EV_P_ struct server *server);
-
-struct remote* new_remote(int fd, int timeout);
-struct server* new_server(int fd, int method);
+    struct sockaddr *addr;
+    uint32_t counter;
+} remote_t;
 
 #endif // _TUNNEL_H
