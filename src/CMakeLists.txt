@@ -86,6 +86,17 @@ set(SS_REDIR_SOURCE
         ${SS_PLUGIN_SOURCE}
         )
 
+if (CMAKE_SYSTEM_NAME STREQUAL Darwin)
+find_path(LIBSODIUM_INCLUDE_DIR sodium.h
+        PATHS
+        $ENV{LIBSODIUM_INCLUDE_DIR}
+        $ENV{LIBSODIUM_DIR}/include
+        /usr/local/libsodium/include
+        /opt/libsodium/include
+        /usr/local/include
+)
+include_directories(${LIBSODIUM_INCLUDE_DIR})
+endif ()
 
 if (WITH_STATIC)
 find_library(LIBSODIUM libsodium.a)
@@ -169,7 +180,7 @@ target_compile_definitions(ss-tunnel PUBLIC -DMODULE_TUNNEL)
 target_compile_definitions(ss-manager PUBLIC -DMODULE_MANAGER)
 target_compile_definitions(ss-local PUBLIC -DMODULE_LOCAL)
 target_compile_definitions(ss-redir PUBLIC -DMODULE_REDIR)
-target_compile_definitions(shadowsocks-libev PUBLIC -DMODULE_LOCAL)
+target_compile_definitions(shadowsocks-libev PUBLIC -DMODULE_LOCAL -DLIB_ONLY)
 
 target_link_libraries(ss-server cork ipset ${DEPS})
 target_link_libraries(ss-tunnel cork ${DEPS})
@@ -228,6 +239,7 @@ target_link_libraries(shadowsocks-libev-shared ${DEPS_SHARED})
 # Misc
 # Recommend to install shared by default
 install(DIRECTORY ${RUNTIME_SHARED_OUTPUT_DIRECTORY}/
+        USE_SOURCE_PERMISSIONS
         DESTINATION bin)
 
 if (WITH_STATIC)

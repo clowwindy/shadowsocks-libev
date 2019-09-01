@@ -23,7 +23,7 @@ FROM debian:testing
 ARG REPO=shadowsocks
 ARG REV=master
 
-ADD prepare.sh /
+ADD docker/mingw/prepare.sh /
 
 RUN \
   /bin/bash -c "source /prepare.sh && dk_prepare" && \
@@ -32,12 +32,15 @@ RUN \
 
 RUN /bin/bash -c "source /prepare.sh && dk_download"
 
-ADD deps.sh /
+ADD docker/mingw/deps.sh /
 RUN /bin/bash -c "source /deps.sh && dk_deps"
 
-ADD build.sh /
+ADD docker/mingw/build.sh /
 
 ARG REBUILD=0
-ARG PLUGIN=true
 
-RUN /bin/bash -c "source /build.sh && dk_build && dk_package"
+ADD . /build/src/proj
+
+RUN /bin/bash -c "source /build.sh && dk_build"
+
+RUN /bin/bash -c "source /build.sh && dk_package"

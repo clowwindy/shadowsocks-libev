@@ -1,5 +1,7 @@
 # shadowsocks-libev
 
+[![Build Status](https://travis-ci.com/shadowsocks/shadowsocks-libev.svg?branch=master)](https://travis-ci.com/shadowsocks/shadowsocks-libev) [![Snap Status](https://build.snapcraft.io/badge/shadowsocks/shadowsocks-libev.svg)](https://build.snapcraft.io/user/shadowsocks/shadowsocks-libev)
+
 ## Intro
 
 [Shadowsocks-libev](https://shadowsocks.org) is a lightweight secured SOCKS5
@@ -9,9 +11,7 @@ It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
 created by [@clowwindy](https://github.com/clowwindy), and maintained by
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 3.2.0 | [Changelog](debian/changelog)
-
-Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg?branch=master)](https://travis-ci.org/shadowsocks/shadowsocks-libev)
+Current version: 3.3.1 | [Changelog](debian/changelog)
 
 ## Features
 
@@ -21,21 +21,27 @@ to be a lightweight implementation of shadowsocks protocol, in order to keep the
 For a full list of feature comparison between different versions of shadowsocks,
 refer to the [Wiki page](https://github.com/shadowsocks/shadowsocks/wiki/Feature-Comparison-across-Different-Versions).
 
-## Prerequisites
+## Quick Start
 
-### Get the latest source code
+Snap is the recommended way to install the latest binaries.
 
-To get the latest source code, you should also update the submodules as following:
+### Install snap core
+
+https://snapcraft.io/core
+
+### Install from snapcraft.io
+
+Stable channel:
 
 ```bash
-git clone https://github.com/shadowsocks/shadowsocks-libev.git
-cd shadowsocks-libev
-git submodule update --init --recursive
+sudo snap install shadowsocks-libev
 ```
 
-### Build and install with recent libsodium
+Edge channel:
 
-You have to install libsodium at least 1.0.8, but recommended 1.0.12 or later version before building. See [Directly build and install on UNIX-like system](#linux).
+```bash
+sudo snap install shadowsocks-libev --edge
+```
 
 ## Installation
 
@@ -98,15 +104,6 @@ For more info about backports, you can refer [Debian Backports](https://backport
 sudo sh -c 'printf "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/stretch-backports.list'
 sudo apt update
 sudo apt -t stretch-backports install shadowsocks-libev
-```
-
-For **Ubuntu 14.04 and 16.04** users, please install from PPA:
-
-```bash
-sudo apt-get install software-properties-common -y
-sudo add-apt-repository ppa:max-c-lv/shadowsocks-libev -y
-sudo apt-get update
-sudo apt install shadowsocks-libev
 ```
 
 #### Build deb package from source
@@ -269,8 +266,8 @@ sudo yum install gettext gcc autoconf libtool automake make asciidoc xmlto c-are
 ## Arch
 sudo pacman -S gettext gcc autoconf libtool automake make asciidoc xmlto c-ares libev
 
-# Installation of Libsodium
-export LIBSODIUM_VER=1.0.13
+# Installation of libsodium
+export LIBSODIUM_VER=1.0.16
 wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
 tar xvf libsodium-$LIBSODIUM_VER.tar.gz
 pushd libsodium-$LIBSODIUM_VER
@@ -284,7 +281,7 @@ export MBEDTLS_VER=2.6.0
 wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
 tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
 pushd mbedtls-$MBEDTLS_VER
-make SHARED=1 CFLAGS=-fPIC
+make SHARED=1 CFLAGS="-O2 -fPIC"
 sudo make DESTDIR=/usr install
 popd
 sudo ldconfig
@@ -383,7 +380,7 @@ you may refer to the man pages of the applications, respectively.
 
        -k <password>              Password of your remote server.
 
-       -m <encrypt_method>        Encrypt method: rc4-md5, 
+       -m <encrypt_method>        Encrypt method: rc4-md5,
                                   aes-128-gcm, aes-192-gcm, aes-256-gcm,
                                   aes-128-cfb, aes-192-cfb, aes-256-cfb,
                                   aes-128-ctr, aes-192-ctr, aes-256-ctr,
@@ -395,19 +392,26 @@ you may refer to the man pages of the applications, respectively.
                                   The default cipher is chacha20-ietf-poly1305.
 
        [-a <user>]                Run as another user.
-       
+
        [-f <pid_file>]            The file path to store pid.
 
        [-t <timeout>]             Socket timeout in seconds.
 
        [-c <config_file>]         The path to config file.
-       
+
        [-n <number>]              Max number of open files.
 
        [-i <interface>]           Network interface to bind.
                                   (not available in redir mode)
 
        [-b <local_address>]       Local address to bind.
+                                  For servers: Specify the local address to use 
+                                  while this server is making outbound 
+                                  connections to remote servers on behalf of the
+                                  clients.
+                                  For clients: Specify the local address to use 
+                                  while this client is making outbound 
+                                  connections to the server.
 
        [-u]                       Enable UDP relay.
                                   (TPROXY is required in redir mode)
@@ -419,43 +423,48 @@ you may refer to the man pages of the applications, respectively.
                                   for local port forwarding.
                                   (only available in tunnel mode)
 
-       [-6]                       Resovle hostname to IPv6 address first.
+       [-6]                       Resolve hostname to IPv6 address first.
 
        [-d <addr>]                Name servers for internal DNS resolver.
                                   (only available in server mode)
-       
+
        [--reuse-port]             Enable port reuse.
-       
+
        [--fast-open]              Enable TCP fast open.
                                   with Linux kernel > 3.7.0.
                                   (only available in local and server mode)
-  
+
        [--acl <acl_file>]         Path to ACL (Access Control List).
                                   (only available in local and server mode)
-       
+
        [--manager-address <addr>] UNIX domain socket address.
                                   (only available in server and manager mode)
 
        [--mtu <MTU>]              MTU of your network interface.
-       
+
        [--mptcp]                  Enable Multipath TCP on MPTCP Kernel.
-       
+
        [--no-delay]               Enable TCP_NODELAY.
+
+       [--long-idle]              Enable TCP long idle connections.
 
        [--executable <path>]      Path to the executable of ss-server.
                                   (only available in manager mode)
-       
+
+       [-D <path>]                Path to the working directory of ss-manager.
+                                  (only available in manager mode)
+
        [--key <key_in_base64>]    Key of your remote server.
-       
+
        [--plugin <name>]          Enable SIP003 plugin. (Experimental)
-       
+
        [--plugin-opts <options>]  Set SIP003 plugin options. (Experimental)
 
        [-v]                       Verbose mode.
 
 ## Transparent proxy
 
-The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use a OpenWRT-powered router.
+The latest shadowsocks-libev has provided a *redir* mode. You can configure your Linux-based box or router to proxy all TCP traffic transparently, which is handy if you use an OpenWRT-powered router.
 
     # Create new chain
     iptables -t nat -N SHADOWSOCKS
@@ -492,28 +501,10 @@ The latest shadowsocks-libev has provided a *redir* mode. You can configure your
     # Start the shadowsocks-redir
     ss-redir -u -c /etc/config/shadowsocks.json -f /var/run/shadowsocks.pid
 
-## Shadowsocks over KCP
-
-It's quite easy to use shadowsocks and [KCP](https://github.com/skywind3000/kcp) together with [kcptun](https://github.com/xtaci/kcptun).
-
-The goal of shadowsocks over KCP is to provide a fully configurable, UDP based protocol to improve poor connections, e.g. a high packet loss 3G network.
-
-### Setup your server
-
-```bash
-server_linux_amd64 -l :21 -t 127.0.0.1:443 --crypt none --mtu 1200 --nocomp --mode normal --dscp 46 &
-ss-server -s 0.0.0.0 -p 443 -k passwd -m chacha20 -u
-```
-
-### Setup your client
-
-```bash
-client_linux_amd64 -l 127.0.0.1:1090 -r <server_ip>:21 --crypt none --mtu 1200 --nocomp --mode normal --dscp 46 &
-ss-local -s 127.0.0.1 -p 1090 -k passwd -m chacha20 -l 1080 -b 0.0.0.0 &
-ss-local -s <server_ip> -p 443 -k passwd -m chacha20 -l 1080 -U -b 0.0.0.0
-```
 
 ## Security Tips
+
+For any public server, to avoid users accessing localhost of your server, please add `--acl acl/server_block_local.acl` to the command line.
 
 Although shadowsocks-libev can handle thousands of concurrent connections nicely, we still recommend
 setting up your server's firewall rules to limit connections from each user:

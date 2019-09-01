@@ -1,7 +1,7 @@
 /*
  * plugin.c - Manage plugins
  *
- * Copyright (C) 2013 - 2018, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2019, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -109,10 +109,15 @@ start_ss_plugin(const char *plugin,
     if (plugin_opts != NULL)
         cork_env_add(env, "SS_PLUGIN_OPTIONS", plugin_opts);
 
+    exec = cork_exec_new(plugin);
+    cork_exec_add_param(exec, plugin);  // argv[0]
+    extern int fast_open;
+    if (fast_open)
+        cork_exec_add_param(exec, "--fast-open");
 #ifdef __ANDROID__
-    exec = cork_exec_new_with_params("sh", "-c", plugin, NULL);
-#else
-    exec = cork_exec_new_with_params(plugin, NULL);
+    extern int vpn;
+    if (vpn)
+        cork_exec_add_param(exec, "-V");
 #endif
 
     cork_exec_set_env(exec, env);
@@ -163,7 +168,7 @@ start_obfsproxy(const char *plugin,
 {
     char *pch;
     char *opts_dump = NULL;
-    char *buf       = NULL;
+    char *buf = NULL;
     int ret, buf_size = 0;
 
     if (plugin_opts != NULL) {
@@ -305,7 +310,7 @@ get_local_port()
     }
 
     struct sockaddr_in serv_addr;
-    bzero((char *)&serv_addr, sizeof(serv_addr));
+    memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family      = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port        = 0;
@@ -329,6 +334,11 @@ stop_plugin()
 {
     if (sub != NULL) {
         cork_subprocess_abort(sub);
+#ifndef __MINGW32__
+        if (cork_subprocess_wait(sub) == -1) {
+            LOGI("error on terminating the plugin.");
+        }
+#endif
         cork_subprocess_free(sub);
     }
 }
