@@ -28,7 +28,6 @@ _arguments "-h::" \
            "--mtu::" \
            "--mptcp::" \
            "--no-delay::" \
-           "--long-idle::" \
            "--key:key in base64:" \
            "--plugin:plugin name:" \
            "--plugin-opts:plugin options:" \
