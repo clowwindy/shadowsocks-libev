@@ -245,6 +245,12 @@ aead_cipher_decrypt(cipher_ctx_t *cipher_ctx,
         return CRYPTO_ERROR;
     }
 
+    // The success return value ln libsodium and mbedTLS are both 0
+    if (err != 0)
+        // Although we never return any library specific value in the caller,
+        // here we still set the error code to CRYPTO_ERROR to avoid confusion.
+        err = CRYPTO_ERROR;
+
     return err;
 }
 
