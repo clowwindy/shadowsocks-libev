@@ -54,7 +54,7 @@ sudo snap install shadowsocks-libev --edge
 - [Fedora & RHEL](#fedora--rhel)
     + [Build from source with centos](#build-from-source-with-centos)
     + [Install from repository](#install-from-repository-1)
-- [Archlinux](#archlinux)
+- [Archlinux & Manjaro](#archlinux--manjaro)
 - [NixOS](#nixos)
 - [Nix](#nix)
 - [Directly build and install on UNIX-like system](#linux)
@@ -213,7 +213,7 @@ su -c 'yum install shadowsocks-libev'
 ```
 The repository is maintained by [@librehat](https://github.com/librehat), any issues, please report [here](https://github.com/librehat/shadowsocks-libev/issues)
 
-### Archlinux
+### Archlinux & Manjaro
 
 ```bash
 sudo pacman -S shadowsocks-libev
