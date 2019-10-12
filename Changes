@@ -1,3 +1,10 @@
+shadowsocks-libev (3.3.2-1) unstable; urgency=medium
+
+  * Refine the handling of fragment request.
+  * Minor bug fixes. (#2463, #2481, #2508)
+
+ -- Max Lv <max.c.lv@gmail.com>  Sat, 12 Oct 2019 08:42:24 +0800
+
 shadowsocks-libev (3.3.1-1) unstable; urgency=high
 
   * Fix a high CPU bug introduced in 3.3.0. (#2449)
