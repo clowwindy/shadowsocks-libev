@@ -74,10 +74,6 @@
 #define MAX_FRAG 1
 #endif
 
-#ifndef FRAG_TIMEOUT
-#define FRAG_TIMEOUT 0.5f
-#endif
-
 #ifdef USE_NFCONNTRACK_TOS
 
 #ifndef MARK_MAX_PACKET
@@ -710,11 +706,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         buf    = remote->buf;
 
         // Only timer the watcher if a valid connection is established
-        ev_timer_again(EV_A_ & server->recv_ctx->watcher);
-    } else if (server->stage == STAGE_INIT && server->frag > 0) {
-
-        // reset the timer for fragment request
-        ev_timer_set(&server->recv_ctx->watcher, MAX_REQUEST_TIMEOUT, MAX_REQUEST_TIMEOUT);
+        int timeout = max(MIN_TCP_IDLE_TIMEOUT, server->listen_ctx->timeout);
+        ev_timer_set(&server->recv_ctx->watcher, timeout, timeout);
         ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
@@ -754,8 +747,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     } else if (err == CRYPTO_NEED_MORE) {
         if (server->stage != STAGE_STREAM) {
-            ev_timer_set(&server->recv_ctx->watcher, FRAG_TIMEOUT, FRAG_TIMEOUT);
-            ev_timer_again(EV_A_ & server->recv_ctx->watcher);
             if (server->frag > MAX_FRAG) {
                 report_addr(server->fd, "malicious fragmentation");
                 stop_server(EV_A_ server);
@@ -1123,6 +1114,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
+    int timeout = max(MIN_TCP_IDLE_TIMEOUT, server->listen_ctx->timeout);
+    ev_timer_set(&server->recv_ctx->watcher, timeout, timeout);
     ev_timer_again(EV_A_ & server->recv_ctx->watcher);
 
     ssize_t r = recv(remote->fd, server->buf->data, SOCKET_BUF_SIZE, 0);
@@ -1403,16 +1396,12 @@ new_server(int fd, listen_ctx_t *listener)
     crypto->ctx_init(crypto->cipher, server->e_ctx, 1);
     crypto->ctx_init(crypto->cipher, server->d_ctx, 0);
 
-    int request_timeout = min(MAX_REQUEST_TIMEOUT, listener->timeout)
-                          + rand() % MAX_REQUEST_TIMEOUT;
-
-    int repeat_interval = max(MIN_TCP_IDLE_TIMEOUT, listener->timeout)
-                          + rand() % listener->timeout;
+    int request_timeout = min(MAX_REQUEST_TIMEOUT, listener->timeout);
 
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
-                  request_timeout, repeat_interval);
+                  request_timeout, request_timeout);
 
     cork_dllist_add(&connections, &server->entries);
 
