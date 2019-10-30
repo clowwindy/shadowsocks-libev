@@ -706,8 +706,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         buf    = remote->buf;
 
         // Only timer the watcher if a valid connection is established
-        int timeout = max(MIN_TCP_IDLE_TIMEOUT, server->listen_ctx->timeout);
-        ev_timer_set(&server->recv_ctx->watcher, timeout, timeout);
         ev_timer_again(EV_A_ & server->recv_ctx->watcher);
     }
 
@@ -1114,8 +1112,6 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    int timeout = max(MIN_TCP_IDLE_TIMEOUT, server->listen_ctx->timeout);
-    ev_timer_set(&server->recv_ctx->watcher, timeout, timeout);
     ev_timer_again(EV_A_ & server->recv_ctx->watcher);
 
     ssize_t r = recv(remote->fd, server->buf->data, SOCKET_BUF_SIZE, 0);
@@ -1396,12 +1392,11 @@ new_server(int fd, listen_ctx_t *listener)
     crypto->ctx_init(crypto->cipher, server->e_ctx, 1);
     crypto->ctx_init(crypto->cipher, server->d_ctx, 0);
 
-    int request_timeout = min(MAX_REQUEST_TIMEOUT, listener->timeout);
-
+    int timeout = max(MIN_TCP_IDLE_TIMEOUT, server->listen_ctx->timeout);
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
-                  request_timeout, request_timeout);
+                  timeout, timeout);
 
     cork_dllist_add(&connections, &server->entries);
 
