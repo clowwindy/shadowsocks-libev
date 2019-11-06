@@ -81,7 +81,7 @@ try `configure --help`.
 
 Shadowsocks-libev is available in the official repository for following distributions:
 
-* Debian 8 or higher, including oldstable (jessie), stable (stretch), testing (buster) and unstable (sid)
+* Debian 8 or higher, including oldoldstable (jessie), old stable (stretch), stable (buster), testing (bullseye) and unstable (sid)
 * Ubuntu 16.10 or higher
 
 ```bash
