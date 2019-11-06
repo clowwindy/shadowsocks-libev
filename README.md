@@ -89,17 +89,6 @@ sudo apt update
 sudo apt install shadowsocks-libev
 ```
 
-For **Debian 8 (Jessie)** users, please install it from `jessie-backports-sloppy`:
-We strongly encourage you to install shadowsocks-libev from `jessie-backports-sloppy`.
-For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
-
-```bash
-sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports main\n" > /etc/apt/sources.list.d/jessie-backports.list'
-sudo sh -c 'printf "deb http://deb.debian.org/debian jessie-backports-sloppy main" >> /etc/apt/sources.list.d/jessie-backports.list'
-sudo apt update
-sudo apt -t jessie-backports-sloppy install shadowsocks-libev
-```
-
 For **Debian 9 (Stretch)** users, please install it from `stretch-backports`:
 We strongly encourage you to install shadowsocks-libev from `stretch-backports`.
 For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
