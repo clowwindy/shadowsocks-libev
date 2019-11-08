@@ -1081,7 +1081,7 @@ main(int argc, char **argv)
     }
 
     if (manager_address == NULL) {
-        manager_address = "127.0.0.1:8839";
+        manager_address = "/tmp/ss-manager.socks";
         LOGI("using the default manager address: %s", manager_address);
     }
 
