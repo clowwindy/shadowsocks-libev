@@ -377,15 +377,17 @@ create_remote_socket(int ipv6)
         }
 #ifdef MODULE_REMOTE
         if (is_bind_local_addr) {
-            if (bind_to_addr(&local_addr_v6, remote_sock) == -1) {
-                ERROR("bind_to_addr");
-                FATAL("[udp] cannot bind remote");
-                return -1;
+            if (local_addr_v6.ss_family == AF_INET6) {
+                if (bind_to_addr(&local_addr_v6, remote_sock) == -1) {
+                    ERROR("bind_to_addr");
+                    FATAL("[udp] cannot bind socket");
+                    return -1;
+                }
             }
         } else {
 #endif
         if (bind(remote_sock, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
-            FATAL("[udp] cannot bind remote");
+            FATAL("[udp] cannot bind socket");
             return -1;
         }
 #ifdef MODULE_REMOTE
@@ -405,10 +407,12 @@ create_remote_socket(int ipv6)
         }
 #ifdef MODULE_REMOTE
         if (is_bind_local_addr) {
-            if (bind_to_addr(&local_addr_v4, remote_sock) == -1) {
-                ERROR("bind_to_addr");
-                FATAL("[udp] cannot bind remote");
-                return -1;
+            if (local_addr_v4.ss_family == AF_INET) {
+                if (bind_to_addr(&local_addr_v4, remote_sock) == -1) {
+                    ERROR("bind_to_addr");
+                    FATAL("[udp] cannot bind socket");
+                    return -1;
+                }
             }
         } else {
 #endif

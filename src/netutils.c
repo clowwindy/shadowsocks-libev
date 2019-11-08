@@ -99,18 +99,18 @@ parse_local_addr(struct sockaddr_storage *storage_v4,
                 inet_pton(AF_INET, host, &addr->sin_addr);
                 addr->sin_family = AF_INET;
                 LOGI("binding to outbound IPv4 addr: %s", host);
-                return 0;
+                return AF_INET;
             } else if (ip.version == 6) {
                 memset(storage_v6, 0, sizeof(struct sockaddr_storage));
                 struct sockaddr_in6 *addr = (struct sockaddr_in6 *)storage_v6;
                 inet_pton(AF_INET6, host, &addr->sin6_addr);
                 addr->sin6_family = AF_INET6;
                 LOGI("binding to outbound IPv6 addr: %s", host);
-                return 0;
+                return AF_INET6;
             }
         }
     }
-    return -1;
+    return 0;
 }
 
 int
