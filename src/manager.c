@@ -212,10 +212,6 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -d \"%s\"", manager->nameservers);
     }
-    if (manager->workdir) {
-        int len = strlen(cmd);
-        snprintf(cmd + len, BUF_SIZE - len, " -D \"%s\"", manager->workdir);
-    }
     for (i = 0; i < manager->host_num; i++) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -s %s", manager->hosts[i]);

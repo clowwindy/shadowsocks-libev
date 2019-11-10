@@ -1767,8 +1767,6 @@ main(int argc, char **argv)
         }
         if (is_bind_local_addr == 0) {
             is_bind_local_addr += parse_local_addr(&local_addr_v4, &local_addr_v6, conf->local_addr_v4);
-        }
-        if (is_bind_local_addr == 0) {
             is_bind_local_addr += parse_local_addr(&local_addr_v4, &local_addr_v6, conf->local_addr_v6);
         }
 #ifdef HAVE_SETRLIMIT
