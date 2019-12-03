@@ -1131,8 +1131,9 @@ main(int argc, char **argv)
     }
 
     if (manager_address == NULL) {
-        manager_address = ss_malloc(PATH_MAX);
-        snprintf(manager_address, PATH_MAX, "%s/.ss-manager.socks", workdir);
+        size_t manager_address_size = strlen(workdir) + 20;
+        manager_address = ss_malloc(manager_address_size);
+        snprintf(manager_address, manager_address_size, "%s/.ss-manager.socks", workdir);
         LOGI("using the default manager address: %s", manager_address);
     }
 
