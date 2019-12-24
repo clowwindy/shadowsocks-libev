@@ -1,5 +1,6 @@
+#!/bin/bash
 #
-# Dockerfile for building MinGW port
+# Functions for building MinGW port in Docker
 #
 # This file is part of the shadowsocks-libev.
 #
@@ -18,31 +19,13 @@
 # <http://www.gnu.org/licenses/>.
 #
 
-FROM debian:stretch
+# Exit on error
+set -e
 
-ARG REPO=shadowsocks
-ARG REV=master
+# Build steps
 
-ADD docker/mingw/apt.sh /
-
-RUN \
-  /bin/bash -c "source /apt.sh && dk_prepare" && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /build
-
-ADD docker/mingw/prepare.sh /
-
-RUN /bin/bash -c "source /prepare.sh && dk_download"
-
-ADD docker/mingw/deps.sh /
-RUN /bin/bash -c "source /deps.sh && dk_deps"
-
-ADD docker/mingw/build.sh /
-
-ARG REBUILD=0
-
-ADD . /build/src/proj
-
-RUN /bin/bash -c "source /build.sh && dk_build"
-
-RUN /bin/bash -c "source /build.sh && dk_package"
+dk_prepare() {
+    apt-get update -y
+    apt-get install --no-install-recommends -y \
+      mingw-w64 aria2 git make automake autoconf libtool ca-certificates
+}

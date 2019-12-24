@@ -48,9 +48,9 @@ MBEDTLS_SRC=mbedtls-${MBEDTLS_VER}
 MBEDTLS_URL=https://tls.mbed.org/download/mbedtls-${MBEDTLS_VER}-apache.tgz
 
 ## Sodium
-SODIUM_VER=1.0.16
-SODIUM_SRC=libsodium-${SODIUM_VER}
-SODIUM_URL=https://download.libsodium.org/libsodium/releases/${SODIUM_SRC}.tar.gz
+SODIUM_VER=1.0.18
+SODIUM_SRC=libsodium-${SODIUM_VER}-RELEASE
+SODIUM_URL=https://github.com/jedisct1/libsodium/archive/${SODIUM_VER}-RELEASE.tar.gz
 
 ## PCRE
 PCRE_VER=8.41
@@ -63,12 +63,6 @@ CARES_SRC=c-ares-${CARES_VER}
 CARES_URL=https://c-ares.haxx.se/download/${CARES_SRC}.tar.gz
 
 # Build steps
-
-dk_prepare() {
-    apt-get update -y
-    apt-get install --no-install-recommends -y \
-      mingw-w64 aria2 git make automake autoconf libtool ca-certificates
-}
 
 dk_download() {
     mkdir -p "${SRC}"
