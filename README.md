@@ -11,7 +11,7 @@ It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
 created by [@clowwindy](https://github.com/clowwindy), and maintained by
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 3.3.3 | [Changelog](debian/changelog)
+Current version: 3.3.4 | [Changelog](debian/changelog)
 
 ## Features
 
