@@ -156,6 +156,7 @@ crypto_init(const char *password, const char *key, const char *method)
                 break;
             }
         if (m != -1) {
+            LOGI("Stream ciphers are insecure, therefore deprecated, and should be almost always avoided.");
             cipher_t *cipher = stream_init(password, key, method);
             if (cipher == NULL)
                 return NULL;
