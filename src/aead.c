@@ -653,12 +653,12 @@ aead_decrypt(buffer_t *ciphertext, cipher_ctx_t *cipher_ctx, size_t capacity)
 
         memcpy(cipher_ctx->salt, cipher_ctx->chunk->data, salt_len);
 
-        aead_cipher_ctx_set_key(cipher_ctx, 0);
-
         if (ppbloom_check((void *)cipher_ctx->salt, salt_len) == 1) {
             LOGE("crypto: AEAD: repeat salt detected");
             return CRYPTO_ERROR;
         }
+
+        aead_cipher_ctx_set_key(cipher_ctx, 0);
 
         memmove(cipher_ctx->chunk->data, cipher_ctx->chunk->data + salt_len,
                 cipher_ctx->chunk->len - salt_len);
