@@ -223,7 +223,7 @@ crypto_derive_key(const char *pass, uint8_t *key, size_t key_len)
 
     if (pass == NULL)
         return key_len;
-    if (mbedtls_md_setup(&c, md, 1))
+    if (mbedtls_md_setup(&c, md, 0))
         return 0;
 
     for (j = 0, addmd = 0; j < key_len; addmd++) {
