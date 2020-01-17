@@ -497,8 +497,14 @@ create_server_socket(const char *host, const char *port)
 #ifdef IP_TOS
         // Set QoS flag
         int tos   = 46 << 2;
-        int proto = rp->ai_family == AF_INET6 ? IPPROTO_IP : IPPROTO_IPV6;
-        setsockopt(server_sock, proto, IP_TOS, &tos, sizeof(tos));
+        int rc = setsockopt(server_sock, IPPROTO_IP, IP_TOS, &tos, sizeof(tos));
+        if (rc < 0 && errno != ENOPROTOOPT) {
+            LOGE("setting ipv4 dscp failed: %d", errno);
+        }
+        rc = setsockopt(server_sock, IPPROTO_IPV6, IPV6_TCLASS, &tos, sizeof(tos));
+        if (rc < 0 && errno != ENOPROTOOPT) {
+            LOGE("setting ipv6 dscp failed: %d", errno);
+        }
 #endif
 
 #ifdef MODULE_REDIR
