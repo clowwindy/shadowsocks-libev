@@ -654,10 +654,10 @@ setTosFromConnmark(remote_t *remote, server_t *server)
         socklen_t len;
         struct sockaddr_storage sin;
         len = sizeof(sin);
-        if (getsockname(remote->fd, (struct sockaddr *)&sin, &len) == 0) {
+        if (getpeername(remote->fd, (struct sockaddr *)&sin, &len) == 0) {
             struct sockaddr_storage from_addr;
             len = sizeof from_addr;
-            if (getpeername(remote->fd, (struct sockaddr *)&from_addr, &len) == 0) {
+            if (getsockname(remote->fd, (struct sockaddr *)&from_addr, &len) == 0) {
                 if ((server->tracker = (struct dscptracker *)ss_malloc(sizeof(struct dscptracker)))) {
                     if ((server->tracker->ct = nfct_new())) {
                         // Build conntrack query SELECT
