@@ -77,7 +77,7 @@ try `configure --help`.
 
 ### Debian & Ubuntu
 
-#### Install from repository
+#### Install from repository (not recommended)
 
 Shadowsocks-libev is available in the official repository for following distributions:
 
@@ -87,16 +87,6 @@ Shadowsocks-libev is available in the official repository for following distribu
 ```bash
 sudo apt update
 sudo apt install shadowsocks-libev
-```
-
-For **Debian 9 (Stretch)** users, please install it from `stretch-backports`:
-We strongly encourage you to install shadowsocks-libev from `stretch-backports`.
-For more info about backports, you can refer [Debian Backports](https://backports.debian.org).
-
-```bash
-sudo sh -c 'printf "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/stretch-backports.list'
-sudo apt update
-sudo apt -t stretch-backports install shadowsocks-libev
 ```
 
 #### Build deb package from source
