@@ -150,6 +150,10 @@ set_nosigpipe(int socket_fd)
 #define IP_TRANSPARENT       19
 #endif
 
+#ifndef IPV6_TRANSPARENT
+#define IPV6_TRANSPARENT     75
+#endif
+
 #ifndef IP_RECVORIGDSTADDR
 #ifdef  IP_ORIGDSTADDR
 #define IP_RECVORIGDSTADDR   IP_ORIGDSTADDR
@@ -508,18 +512,17 @@ create_server_socket(const char *host, const char *port)
 #endif
 
 #ifdef MODULE_REDIR
-        if (setsockopt(server_sock, SOL_IP, IP_TRANSPARENT, &opt, sizeof(opt))) {
+        int sol    = rp->ai_family == AF_INET ? SOL_IP : SOL_IPV6;
+        int flag_t = rp->ai_family == AF_INET ? IP_TRANSPARENT : IPV6_TRANSPARENT;
+        int flag_r = rp->ai_family == AF_INET ? IP_RECVORIGDSTADDR : IPV6_TRANSPARENT;
+
+        if (setsockopt(server_sock, sol, flag_t, &opt, sizeof(opt))) {
             ERROR("[udp] setsockopt IP_TRANSPARENT");
             exit(EXIT_FAILURE);
         }
-        if (rp->ai_family == AF_INET) {
-            if (setsockopt(server_sock, SOL_IP, IP_RECVORIGDSTADDR, &opt, sizeof(opt))) {
-                FATAL("[udp] setsockopt IP_RECVORIGDSTADDR");
-            }
-        } else if (rp->ai_family == AF_INET6) {
-            if (setsockopt(server_sock, SOL_IPV6, IPV6_RECVORIGDSTADDR, &opt, sizeof(opt))) {
-                FATAL("[udp] setsockopt IPV6_RECVORIGDSTADDR");
-            }
+
+        if (setsockopt(server_sock, SOL_IP, flag_r, &opt, sizeof(opt))) {
+            FATAL("[udp] setsockopt IP_RECVORIGDSTADDR");
         }
 #endif
 
@@ -844,9 +847,10 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
         ERROR("[udp] remote_recv_socket");
         goto CLEAN_UP;
     }
-    int opt = 1;
-    int sol = remote_ctx->src_addr.ss_family == AF_INET6 ? SOL_IPV6 : SOL_IP;
-    if (setsockopt(src_fd, sol, IP_TRANSPARENT, &opt, sizeof(opt))) {
+    int opt  = 1;
+    int sol  = remote_ctx->src_addr.ss_family == AF_INET6 ? SOL_IPV6 : SOL_IP;
+    int flag = remote_ctx->src_addr.ss_family == AF_INET6 ? IPV6_TRANSPARENT : IP_TRANSPARENT;
+    if (setsockopt(src_fd, sol, flag, &opt, sizeof(opt))) {
         ERROR("[udp] remote_recv_setsockopt");
         close(src_fd);
         goto CLEAN_UP;
