@@ -272,7 +272,7 @@ start_plugin(const char *plugin,
         if (cwd) {
 #else
         char cwd[PATH_MAX];
-        if (!getcwd(cwd, PATH_MAX)) {
+        if (getcwd(cwd, PATH_MAX) != NULL) {
 #endif
             new_path_len = strlen(current_path) + strlen(cwd) + 2;
             new_path     = ss_malloc(new_path_len);
