@@ -502,7 +502,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
     if (fast_open) {
 #if defined(MSG_FASTOPEN) && !defined(TCP_FASTOPEN_CONNECT)
         int s = -1;
-        s = sendto(sockfd, server->buf->data, server->buf->len,
+        s = sendto(sockfd, server->buf->data + server->buf->idx, server->buf->len,
                    MSG_FASTOPEN, res->ai_addr, res->ai_addrlen);
 #elif defined(TCP_FASTOPEN_WINSOCK)
         DWORD s   = -1;
@@ -531,8 +531,8 @@ connect_to_remote(EV_P_ struct addrinfo *res,
             memset(&remote->olap, 0, sizeof(remote->olap));
             remote->connect_ex_done = 0;
             if (ConnectEx(sockfd, res->ai_addr, res->ai_addrlen,
-                          server->buf->data, server->buf->len,
-                          &s, &remote->olap)) {
+                          server->buf->data + server->buf->idx, 
+                          server->buf->len, &s, &remote->olap)) {
                 remote->connect_ex_done = 1;
                 break;
             }
@@ -570,7 +570,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
         FATAL("fast open is not enabled in this build");
 #endif
         if (s == 0)
-            s = send(sockfd, server->buf->data, server->buf->len, 0);
+            s = send(sockfd, server->buf->data + server->buf->idx, server->buf->len, 0);
 #endif
         if (s == -1) {
             if (errno == CONNECT_IN_PROGRESS) {
@@ -908,7 +908,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             return;
         } else {
             server->buf->len -= offset;
-            memmove(server->buf->data, server->buf->data + offset, server->buf->len);
+            server->buf->idx = offset;
         }
 
         if (verbose) {
