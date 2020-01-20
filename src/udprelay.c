@@ -514,7 +514,7 @@ create_server_socket(const char *host, const char *port)
 #ifdef MODULE_REDIR
         int sol    = rp->ai_family == AF_INET ? SOL_IP : SOL_IPV6;
         int flag_t = rp->ai_family == AF_INET ? IP_TRANSPARENT : IPV6_TRANSPARENT;
-        int flag_r = rp->ai_family == AF_INET ? IP_RECVORIGDSTADDR : IPV6_TRANSPARENT;
+        int flag_r = rp->ai_family == AF_INET ? IP_RECVORIGDSTADDR : IPV6_RECVORIGDSTADDR;
 
         if (setsockopt(server_sock, sol, flag_t, &opt, sizeof(opt))) {
             ERROR("[udp] setsockopt IP_TRANSPARENT");
