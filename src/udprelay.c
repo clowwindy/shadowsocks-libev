@@ -521,7 +521,7 @@ create_server_socket(const char *host, const char *port)
             exit(EXIT_FAILURE);
         }
 
-        if (setsockopt(server_sock, SOL_IP, flag_r, &opt, sizeof(opt))) {
+        if (setsockopt(server_sock, sol, flag_r, &opt, sizeof(opt))) {
             FATAL("[udp] setsockopt IP_RECVORIGDSTADDR");
         }
 #endif
