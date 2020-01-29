@@ -80,7 +80,7 @@ ppbloom_add(const void *buffer, int len)
 {
     int err;
     err = bloom_add(ppbloom + current, buffer, len);
-    if (err == -1 || err == 1)
+    if (err == -1)
         return err;
 
     bloom_count[current]++;
