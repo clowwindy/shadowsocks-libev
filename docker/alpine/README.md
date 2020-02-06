@@ -33,7 +33,7 @@ $ docker run -p 8388:8388 -p 8388:8388/udp -d --restart always shadowsocks/shado
 ```
 This starts a container of the latest release with all the default settings, which is equivalent to
 ```bash
-$ ss-server -s 0.0.0.0 -p 8388 -k "$(hostname)" -m aes-256-gcm -t 300 --fast-open -d "8.8.8.8,8.8.4.4" -u
+$ ss-server -s 0.0.0.0 -p 8388 -k "$(hostname)" -m aes-256-gcm -t 300 -d "8.8.8.8,8.8.4.4" -u
 ```
 > **Note**: It's the hostname in the container that is used as the password, not that of the host.
 
