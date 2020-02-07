@@ -1347,12 +1347,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             }
         }
     } else {
-        struct addrinfo hints;
-        memset(&hints, 0, sizeof(struct addrinfo));
-        hints.ai_family   = AF_UNSPEC;
-        hints.ai_socktype = SOCK_DGRAM;
-        hints.ai_protocol = IPPROTO_UDP;
-
         struct query_ctx *query_ctx = new_query_ctx(buf->data + addr_header_len,
                                                     buf->len - addr_header_len);
         query_ctx->server_ctx      = server_ctx;
