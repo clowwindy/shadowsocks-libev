@@ -880,7 +880,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     int s = sendto(src_fd, buf->data, buf->len, 0,
                    (struct sockaddr *)&remote_ctx->src_addr, remote_src_addr_len);
-    if (s == -1) {
+    if (s == -1 && !(errno == EAGAIN || errno == EWOULDBLOCK)) {
         ERROR("[udp] remote_recv_sendto");
         close(src_fd);
         goto CLEAN_UP;
@@ -891,7 +891,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 
     int s = sendto(server_ctx->fd, buf->data, buf->len, 0,
                    (struct sockaddr *)&remote_ctx->src_addr, remote_src_addr_len);
-    if (s == -1) {
+    if (s == -1 && !(errno == EAGAIN || errno == EWOULDBLOCK)) {
         ERROR("[udp] remote_recv_sendto");
         goto CLEAN_UP;
     }
