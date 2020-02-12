@@ -24,9 +24,6 @@ if !BUILD_WINCOMPAT
 bin_PROGRAMS += ss-manager
 endif
 
-sni_src = http.c \
-          tls.c
-
 acl_src = rule.c \
           acl.c
 
@@ -53,7 +50,6 @@ ss_local_SOURCES = local.c \
                    $(common_src) \
                    $(crypto_src) \
                    $(plugin_src) \
-                   $(sni_src) \
                    $(acl_src)
 
 ss_tunnel_SOURCES = tunnel.c \
@@ -66,7 +62,6 @@ ss_server_SOURCES = resolv.c \
                     $(common_src) \
                     $(crypto_src) \
                     $(plugin_src) \
-                    $(sni_src) \
                     ${acl_src}
 
 ss_manager_SOURCES = utils.c \

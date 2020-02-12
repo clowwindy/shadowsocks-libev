@@ -55,8 +55,6 @@
 #include "utils.h"
 #include "socks5.h"
 #include "acl.h"
-#include "http.h"
-#include "tls.h"
 #include "plugin.h"
 #include "local.h"
 #include "winsock.h"
@@ -431,48 +429,17 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         return -1;
     }
 
-    size_t abuf_len  = abuf->len;
-    int sni_detected = 0;
-    int hostname_len = 0;
-
-    char *hostname;
-    uint16_t dst_port = load16_be(abuf->data + abuf->len - 2);
-
-    if (atyp == SOCKS5_ATYP_IPV4 || atyp == SOCKS5_ATYP_IPV6) {
-        if (dst_port == http_protocol->default_port)
-            hostname_len = http_protocol->parse_packet(buf->data + 3 + abuf->len,
-                                                       buf->len - 3 - abuf->len, &hostname);
-        else if (dst_port == tls_protocol->default_port)
-            hostname_len = tls_protocol->parse_packet(buf->data + 3 + abuf->len,
-                                                      buf->len - 3 - abuf->len, &hostname);
-        if (hostname_len == -1 && buf->len < SOCKET_BUF_SIZE && server->stage != STAGE_SNI) {
-            if (server_handshake_reply(EV_A_ w, 0, &response) < 0)
-                return -1;
-            server->stage = STAGE_SNI;
-            ev_timer_start(EV_A_ & server->delayed_connect_watcher);
-            return -1;
-        } else if (hostname_len > 0) {
-            sni_detected = 1;
-            if (acl || verbose) {
-                hostname_len = hostname_len > MAX_HOSTNAME_LEN ? MAX_HOSTNAME_LEN : hostname_len;
-                memcpy(host, hostname, hostname_len);
-                host[hostname_len] = '\0';
-            }
-            ss_free(hostname);
-        }
-    }
-
     if (server_handshake_reply(EV_A_ w, 0, &response) < 0)
         return -1;
     server->stage = STAGE_STREAM;
 
-    buf->len -= (3 + abuf_len);
+    buf->len -= (3 + abuf->len);
     if (buf->len > 0) {
-        memmove(buf->data, buf->data + 3 + abuf_len, buf->len);
+        memmove(buf->data, buf->data + 3 + abuf->len, buf->len);
     }
 
     if (verbose) {
-        if (sni_detected || atyp == SOCKS5_ATYP_DOMAIN)
+        if (atyp == SOCKS5_ATYP_DOMAIN)
             LOGI("connect to %s:%s", host, port);
         else if (atyp == SOCKS5_ATYP_IPV4)
             LOGI("connect to %s:%s", ip, port);
@@ -492,7 +459,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
         int err;
 
         int host_match = 0;
-        if (sni_detected || atyp == SOCKS5_ATYP_DOMAIN)
+        if (atyp == SOCKS5_ATYP_DOMAIN)
             host_match = acl_match_host(host);
 
         if (host_match > 0)
@@ -546,7 +513,7 @@ server_handshake(EV_P_ ev_io *w, buffer_t *buf)
 
         if (bypass) {
             if (verbose) {
-                if (sni_detected || atyp == SOCKS5_ATYP_DOMAIN)
+                if (atyp == SOCKS5_ATYP_DOMAIN)
                     LOGI("bypass %s:%s", host, port);
                 else if (atyp == 1)
                     LOGI("bypass %s:%s", ip, port);
@@ -572,22 +539,6 @@ not_bypass:
     // Not bypass
     if (remote == NULL) {
         remote = create_remote(server->listener, NULL, 0);
-
-        if (sni_detected && acl
-#ifdef __ANDROID__
-            && is_remote_dns
-#endif
-            ) {
-            // Reconstruct address buffer
-            abuf->len               = 0;
-            abuf->data[abuf->len++] = 3;
-            abuf->data[abuf->len++] = hostname_len;
-            memcpy(abuf->data + abuf->len, host, hostname_len);
-            abuf->len += hostname_len;
-            dst_port   = htons(dst_port);
-            memcpy(abuf->data + abuf->len, &dst_port, 2);
-            abuf->len += 2;
-        }
     }
 
     if (remote == NULL) {
@@ -614,7 +565,7 @@ not_bypass:
     server->remote = remote;
     remote->server = server;
 
-    if (buf->len > 0 || sni_detected) {
+    if (buf->len > 0) {
         return 0;
     } else {
         ev_timer_start(EV_A_ & server->delayed_connect_watcher);
@@ -924,8 +875,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
             buf->len = 0;
             return;
-        } else if (server->stage == STAGE_HANDSHAKE ||
-                   server->stage == STAGE_SNI) {
+        } else if (server->stage == STAGE_HANDSHAKE) {
             int ret = server_handshake(EV_A_ w, buf);
             if (ret)
                 return;
