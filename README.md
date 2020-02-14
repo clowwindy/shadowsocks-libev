@@ -34,13 +34,13 @@ https://snapcraft.io/core
 Stable channel:
 
 ```bash
-sudo snap install shadowsocks-libev --classic
+sudo snap install shadowsocks-libev
 ```
 
 Edge channel:
 
 ```bash
-sudo snap install shadowsocks-libev --classic --edge
+sudo snap install shadowsocks-libev --edge
 ```
 
 ## Installation
