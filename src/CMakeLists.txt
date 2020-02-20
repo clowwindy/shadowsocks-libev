@@ -6,11 +6,6 @@ else ()
 endif ()
 
 
-set(SS_SNI_SOURCE
-        http.c
-        tls.c
-        )
-
 set(SS_ACL_SOURCE
         acl.c
         rule.c
@@ -42,7 +37,6 @@ set(LIBSHADOWSOCKS_LIBEV_SOURCE
         local.c
         ${SS_CRYPTO_SOURCE}
         ${SS_PLUGIN_SOURCE}
-        ${SS_SNI_SOURCE}
         ${SS_ACL_SOURCE}
         )
 
@@ -68,7 +62,6 @@ set(SS_SERVER_SOURCE
         server.c
         ${SS_CRYPTO_SOURCE}
         ${SS_PLUGIN_SOURCE}
-        ${SS_SNI_SOURCE}
         ${SS_ACL_SOURCE}
         )
 

@@ -57,6 +57,7 @@
 #include "plugin.h"
 #include "server.h"
 #include "winsock.h"
+#include "resolv.h"
 
 #ifndef EAGAIN
 #define EAGAIN EWOULDBLOCK
@@ -531,7 +532,7 @@ connect_to_remote(EV_P_ struct addrinfo *res,
             memset(&remote->olap, 0, sizeof(remote->olap));
             remote->connect_ex_done = 0;
             if (ConnectEx(sockfd, res->ai_addr, res->ai_addrlen,
-                          server->buf->data + server->buf->idx, 
+                          server->buf->data + server->buf->idx,
                           server->buf->len, &s, &remote->olap)) {
                 remote->connect_ex_done = 1;
                 break;
