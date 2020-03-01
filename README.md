@@ -164,7 +164,7 @@ Supported distributions:
 
 #### Build from source with centos
 
-If you are using CentOS 7, you need to install these prequirement to build from source code:
+If you are using CentOS 7, you need to install these prerequirements to build from source code:
 
 ```bash
 yum install epel-release -y
