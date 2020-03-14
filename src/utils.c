@@ -546,6 +546,7 @@ get_default_conf(void)
         return userconf;
 
     // If not, fall back to the system-wide config.
+    free(userconf);
     return sysconf;
 #else
     return "config.json";
