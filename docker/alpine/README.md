@@ -63,6 +63,7 @@ Besides `PASSWORD`, the image also defines the following environment variables t
 * `METHOD`: encryption method to use, defaults to `aes-256-gcm`
 * `TIMEOUT`: defaults to `300`
 * `DNS_ADDRS`: DNS servers to redirect NS lookup requests to, defaults to `8.8.8.8,8.8.4.4`
+* `TZ`: Timezone, defaults to `UTC`
 
 Additional arguments supported by `ss-server` can be passed with the environment variable `ARGS`, for instance to start in verbose mode:
 ```bash
