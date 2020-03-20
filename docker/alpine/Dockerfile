@@ -11,7 +11,7 @@ ENV PASSWORD=
 ENV METHOD      aes-256-gcm
 ENV TIMEOUT     300
 ENV DNS_ADDRS    8.8.8.8,8.8.4.4
-ENV TZ Asia/Shanghai
+ENV TZ UTC
 ENV ARGS=
 
 COPY . /tmp/repo
