@@ -206,7 +206,7 @@ target_compile_definitions(ss-tunnel-shared PUBLIC -DMODULE_TUNNEL)
 target_compile_definitions(ss-manager-shared PUBLIC -DMODULE_MANAGER)
 target_compile_definitions(ss-local-shared PUBLIC -DMODULE_LOCAL)
 target_compile_definitions(ss-redir-shared PUBLIC -DMODULE_REDIR)
-target_compile_definitions(shadowsocks-libev-shared PUBLIC -DMODULE_LOCAL)
+target_compile_definitions(shadowsocks-libev-shared PUBLIC -DMODULE_LOCAL -DLIB_ONLY)
 
 target_include_directories(shadowsocks-libev-shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
