@@ -111,9 +111,7 @@ start_ss_plugin(const char *plugin,
 
     exec = cork_exec_new(plugin);
     cork_exec_add_param(exec, plugin);  // argv[0]
-    extern int fast_open;
-    if (fast_open)
-        cork_exec_add_param(exec, "--fast-open");
+
 #ifdef __ANDROID__
     extern int vpn;
     if (vpn)
