@@ -20,8 +20,5 @@ override_dh_auto_configure:
 override_dh_installchangelogs:
 	dh_installchangelogs -XChanges
 
-override_dh_missing:
-	dh_missing --fail-missing
-
 %:
 	dh $@
