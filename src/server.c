@@ -1992,7 +1992,7 @@ main(int argc, char **argv)
 
             // Bind to port
             int listenfd;
-            listenfd = create_and_bind(host, server_port, mptcp);
+            listenfd = create_and_bind(host, port, mptcp);
             if (listenfd == -1) {
                 continue;
             }
