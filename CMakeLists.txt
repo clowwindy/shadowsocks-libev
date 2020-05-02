@@ -91,9 +91,13 @@ set(LIBCORK_SOURCE
         libcork/src/libcork/posix/exec.c
         libcork/src/libcork/posix/files.c
         libcork/src/libcork/posix/process.c
-        libcork/src/libcork/posix/subprocess.c
         libcork/src/libcork/pthreads/thread.c
         )
+if (NOT MINGW)
+set(LIBCORK_SOURCE ${LIBCORK_SOURCE} libcork/src/libcork/posix/subprocess.c)
+else ()
+set(LIBCORK_SOURCE ${LIBCORK_SOURCE} libcork/src/libcork/posix/mingw.c)
+endif ()
 
 if (WITH_STATIC)
 add_library(cork STATIC ${LIBCORK_SOURCE})
@@ -103,6 +107,9 @@ endif ()
 add_library(cork-shared SHARED ${LIBCORK_SOURCE})
 target_compile_definitions(cork-shared PUBLIC -DCORK_API=CORK_EXPORT)
 set_target_properties(cork-shared PROPERTIES OUTPUT_NAME cork)
+if (MINGW)
+target_link_libraries(cork-shared ws2_32)
+endif ()
 
 set(LIBIPSET_SOURCE
         libipset/src/libipset/general.c

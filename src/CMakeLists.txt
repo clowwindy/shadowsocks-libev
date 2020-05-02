@@ -1,8 +1,10 @@
 # redir need linux/* stuff
 if (LINUX)
     option(WITH_SS_REDIR "Build ss-redir" ON)
+    option(WITH_SS_MANAGER "Build ss-manager" ON)
 else ()
     option(WITH_SS_REDIR "Build ss-redir" OFF)
+    option(WITH_SS_MANAGER "Build ss-manager" OFF)
 endif ()
 
 
@@ -29,6 +31,9 @@ set(SS_SHARED_SOURCES
         json.c
         netutils.c
         )
+if (MINGW)
+set(SS_SHARED_SOURCES ${SS_SHARED_SOURCES} winsock.c)
+endif ()
 
 set(LIBSHADOWSOCKS_LIBEV_SOURCE
         ${SS_SHARED_SOURCES}
@@ -110,6 +115,11 @@ list(APPEND DEPS
         ${LIBMBEDTLS}
         ${LIBMBEDCRYPTO}
         )
+
+if (MINGW)
+list(APPEND DEPS ws2_32)
+add_compile_definitions(CARES_STATICLIB PCRE_STATIC)
+endif ()
 endif ()
 
 find_library(LIBSODIUM_SHARED sodium)
@@ -158,7 +168,11 @@ if (WITH_STATIC)
 # By default we use normal name for static, all shared targets will add a `-shared' suffix
 add_executable(ss-server ${SS_SERVER_SOURCE})
 add_executable(ss-tunnel ${SS_TUNNEL_SOURCE})
-add_executable(ss-manager ${SS_MANAGER_SOURCE})
+if (WITH_SS_MANAGER)
+    add_executable(ss-manager ${SS_MANAGER_SOURCE})
+else ()
+    add_executable(ss-manager EXCLUDE_FROM_ALL ${SS_MANAGER_SOURCE})
+endif ()
 add_executable(ss-local ${SS_LOCAL_SOURCE})
 if (WITH_SS_REDIR)
     add_executable(ss-redir ${SS_REDIR_SOURCE})
@@ -192,7 +206,11 @@ endif ()
 # For shared binary, we still use the same name as static, without `-shared', but will output to shared directory
 add_executable(ss-server-shared ${SS_SERVER_SOURCE})
 add_executable(ss-tunnel-shared ${SS_TUNNEL_SOURCE})
-add_executable(ss-manager-shared ${SS_MANAGER_SOURCE})
+if (WITH_SS_MANAGER)
+    add_executable(ss-manager-shared ${SS_MANAGER_SOURCE})
+else ()
+    add_executable(ss-manager-shared EXCLUDE_FROM_ALL ${SS_MANAGER_SOURCE})
+endif ()
 add_executable(ss-local-shared ${SS_LOCAL_SOURCE})
 if (WITH_SS_REDIR)
     add_executable(ss-redir-shared ${SS_REDIR_SOURCE})
