@@ -115,8 +115,10 @@ list(APPEND DEPS
         ${LIBMBEDTLS}
         ${LIBMBEDCRYPTO}
         )
+
 if (MINGW)
 list(APPEND DEPS ws2_32)
+add_compile_definitions(CARES_STATICLIB PCRE_STATIC)
 endif ()
 endif ()
 
