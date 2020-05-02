@@ -342,6 +342,8 @@ read_jconf(const char *file)
                 conf.workdir = to_string(value);
             } else if (strcmp(name, "acl") == 0) {
                 conf.acl = to_string(value);
+            } else if (strcmp(name, "manager_address") == 0) {
+                conf.manager_address = to_string(value);
             }
         }
     } else {

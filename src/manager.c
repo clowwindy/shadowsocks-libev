@@ -1054,6 +1054,9 @@ main(int argc, char **argv)
         if (acl == NULL) {
             acl = conf->acl;
         }
+        if (manager_address == NULL) {
+            manager_address = conf->manager_address;
+        }
 #ifdef HAVE_SETRLIMIT
         if (nofile == 0) {
             nofile = conf->nofile;
