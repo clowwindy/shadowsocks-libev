@@ -767,6 +767,7 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_LOCAL
     int err = server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
     if (err) {
+        LOGE("failed to handshake with %s: %s", get_addr_str((struct sockaddr *)&src_addr), "suspicious UDP packet");
         // drop the packet silently
         goto CLEAN_UP;
     }
@@ -984,6 +985,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     int err = server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
     if (err) {
+        LOGE("failed to handshake with %s: %s", get_addr_str((struct sockaddr *)&src_addr), "suspicious UDP packet");
         // drop the packet silently
         goto CLEAN_UP;
     }
