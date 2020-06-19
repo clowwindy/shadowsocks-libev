@@ -324,7 +324,7 @@ parse_udprelay_header(const char *buf, const size_t buf_len,
 }
 
 static char *
-get_addr_str(const struct sockaddr *sa)
+get_addr_str(const struct sockaddr *sa, bool has_port)
 {
     static char s[SS_ADDRSTRLEN];
     memset(s, 0, SS_ADDRSTRLEN);
@@ -356,8 +356,11 @@ get_addr_str(const struct sockaddr *sa)
     int addr_len = strlen(addr);
     int port_len = strlen(port);
     memcpy(s, addr, addr_len);
-    memcpy(s + addr_len + 1, port, port_len);
-    s[addr_len] = ':';
+
+    if (has_port) {
+        memcpy(s + addr_len + 1, port, port_len);
+        s[addr_len] = ':';
+    }
 
     return s;
 }
@@ -767,7 +770,8 @@ remote_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_LOCAL
     int err = server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
     if (err) {
-        LOGE("failed to handshake with %s: %s", get_addr_str((struct sockaddr *)&src_addr), "suspicious UDP packet");
+        LOGE("failed to handshake with %s: %s",
+                get_addr_str((struct sockaddr *)&src_addr, false), "suspicious UDP packet");
         // drop the packet silently
         goto CLEAN_UP;
     }
@@ -985,7 +989,8 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     int err = server_ctx->crypto->decrypt_all(buf, server_ctx->crypto->cipher, buf_size);
     if (err) {
-        LOGE("failed to handshake with %s: %s", get_addr_str((struct sockaddr *)&src_addr), "suspicious UDP packet");
+        LOGE("failed to handshake with %s: %s",
+                get_addr_str((struct sockaddr *)&src_addr, false), "suspicious UDP packet");
         // drop the packet silently
         goto CLEAN_UP;
     }
@@ -1154,12 +1159,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_REDIR
             char src[SS_ADDRSTRLEN];
             char dst[SS_ADDRSTRLEN];
-            strcpy(src, get_addr_str((struct sockaddr *)&src_addr));
-            strcpy(dst, get_addr_str((struct sockaddr *)&dst_addr));
+            strcpy(src, get_addr_str((struct sockaddr *)&src_addr, true));
+            strcpy(dst, get_addr_str((struct sockaddr *)&dst_addr, true));
             LOGI("[%s] [udp] cache miss: %s <-> %s", s_port, dst, src);
 #else
             LOGI("[%s] [udp] cache miss: %s:%s <-> %s", s_port, host, port,
-                 get_addr_str((struct sockaddr *)&src_addr));
+                 get_addr_str((struct sockaddr *)&src_addr, true));
 #endif
         }
     } else {
@@ -1167,12 +1172,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 #ifdef MODULE_REDIR
             char src[SS_ADDRSTRLEN];
             char dst[SS_ADDRSTRLEN];
-            strcpy(src, get_addr_str((struct sockaddr *)&src_addr));
-            strcpy(dst, get_addr_str((struct sockaddr *)&dst_addr));
+            strcpy(src, get_addr_str((struct sockaddr *)&src_addr, true));
+            strcpy(dst, get_addr_str((struct sockaddr *)&dst_addr, true));
             LOGI("[%s] [udp] cache hit: %s <-> %s", s_port, dst, src);
 #else
             LOGI("[%s] [udp] cache hit: %s:%s <-> %s", s_port, host, port,
-                 get_addr_str((struct sockaddr *)&src_addr));
+                 get_addr_str((struct sockaddr *)&src_addr, true));
 #endif
         }
     }
