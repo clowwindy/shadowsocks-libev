@@ -16,8 +16,18 @@ apps:
     command: bin/ss-local
     plugs: [network, network-bind]
 
+  ss-local-daemon:
+    command: bin/ss-local
+    daemon: simple
+    plugs: [network, network-bind]
+
   ss-server:
     command: bin/ss-server
+    plugs: [network, network-bind]
+
+  ss-server-daemon:
+    command: bin/ss-server
+    daemon: simple
     plugs: [network, network-bind]
 
   ss-redir:
