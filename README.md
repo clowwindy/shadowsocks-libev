@@ -48,7 +48,7 @@ sudo snap install shadowsocks-libev --edge
 ### Distribution-specific guide
 
 - [Debian & Ubuntu](#debian--ubuntu)
-    + [Install from repository](#install-from-repository)
+    + [Install from repository](#install-from-repository-not-recommended)
     + [Build deb package from source](#build-deb-package-from-source)
     + [Configure and start the service](#configure-and-start-the-service)
 - [Fedora & RHEL](#fedora--rhel)
