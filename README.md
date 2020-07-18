@@ -398,6 +398,9 @@ you may refer to the man pages of the applications, respectively.
        [-U]                       Enable UDP relay and disable TCP relay.
                                   (not available in local mode)
 
+       [-T]                       Use tproxy instead of redirect. (for tcp)
+                                  (only available in redir mode)
+
        [-L <addr>:<port>]         Destination server address and port
                                   for local port forwarding.
                                   (only available in tunnel mode)
