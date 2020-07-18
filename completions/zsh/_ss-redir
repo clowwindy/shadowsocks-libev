@@ -18,6 +18,7 @@ _arguments "-h::" \
            "-u:enable udp:" \
            "-U:udp only:" \
            "-v:verbose mode:" \
+           "-T:tcp tproxy mode:" \
            "--reuse-port::" \
            "--fast-open::" \
            "--acl:acl file:_files" \
