@@ -95,6 +95,9 @@ TPROXY is required in redir mode. You may need root permission.
 -U::
 Enable UDP relay and disable TCP relay.
 
+-T::
+Use tproxy instead of redirect. (for tcp)
+
 -6::
 Resovle hostname to IPv6 address first.
 
