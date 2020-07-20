@@ -122,6 +122,11 @@ Enable UDP relay and disable TCP relay.
 +
 Not available in local mode.
 
+-T::
+Use tproxy instead of redirect (for tcp).
++
+Only available in redir mode.
+
 -L <addr:port>::
 Specify destination server address and port for local port forwarding.
 +
@@ -199,6 +204,7 @@ The config file equivalent of command line options is listed as example below.
 | -u                                  | "mode": "tcp_and_udp"
 | -U                                  | "mode": "udp_only"
 | no "-u" nor "-U" options (default)  | "mode": "tcp_only"
+| -T                                  | "tcp_tproxy": true
 | (only in ss-manager's config)       | "port_password": {"1234":"PasSworD"}
 |============================================================================
 
