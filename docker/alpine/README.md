@@ -56,6 +56,32 @@ $ docker run -e PASSWORD=9MLSpPmNt -p 8388:8388 -p 8388:8388/udp -d --restart al
 ```
 > :warning: Click [here][6] to generate a strong password to protect your server.
 
+### With password as a mounted file or a Docker secret (swarm only)
+
+Instead of hardcoding a password to the docker-compose file or `docker run` command, you can mount in a file that contains the password. To do so, pass the path that you mounted to the container as the `PASSWORD_FILE` environment variable.
+
+If you are running Docker Swarm, you can also utilize Docker secrets. To do so, pass the name of the secret as the `PASSWORD_SECRET` environment variable. If you specify both `PASSWORD_FILE` and `PASSWORD_SECRET`, the latter will take effect.
+
+This is a sample `docker-compose.yml` file that uses the external Docker secret named `shadowsocks` as the password.
+
+```yaml
+shadowsocks:
+  image: shadowsocks/shadowsocks-libev
+  ports:
+    - "8388:8388"
+  environment:
+    - METHOD=aes-256-gcm
+    - PASSWORD_SECRET=shadowsocks
+  secrets:
+    - shadowsocks
+```
+
+This is a sample `docker service create` command that uses the external Docker secret named `shadowsocks` as the password.
+
+```bash
+docker service create -e PASSWORD_SECRET=shadowsocks -p 8388:8388 -p 8388:8388/udp --secret shadowsocks shadowsocks/shadowsocks-libev
+```
+
 ### With other customizations
 Besides `PASSWORD`, the image also defines the following environment variables that you can customize:
 * `SERVER_ADDR`: the IP/domain to bind to, defaults to `0.0.0.0`
