@@ -186,6 +186,10 @@ construct_command_line(struct manager_ctx *manager, struct server *server)
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " -u");
     }
+    if (manager->iface) {
+        int len = strlen(cmd);
+        snprintf(cmd + len, BUF_SIZE - len, " -i \"%s\"", manager->iface);
+    }
     if (server->fast_open[0] == 0 && manager->fast_open) {
         int len = strlen(cmd);
         snprintf(cmd + len, BUF_SIZE - len, " --fast-open");
