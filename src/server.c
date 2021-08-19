@@ -85,10 +85,6 @@ enum datatypes {
 #define SSMAXCONN 1024
 #endif
 
-#ifndef MAX_FRAG
-#define MAX_FRAG 1
-#endif
-
 #ifdef USE_NFCONNTRACK_TOS
 
 #ifndef MARK_MAX_PACKET
@@ -982,11 +978,6 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         return;
     } else if (err == CRYPTO_NEED_MORE) {
         if (server->stage != STAGE_STREAM) {
-            if (server->frag > MAX_FRAG) {
-                report_addr(server->fd, "malicious fragmentation");
-                stop_server(EV_A_ server);
-                return;
-            }
             server->frag++;
         }
         return;
