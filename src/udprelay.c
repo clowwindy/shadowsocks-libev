@@ -431,6 +431,13 @@ create_remote_socket(int ipv6)
     }
 #endif
     }
+
+#if defined(__linux__)
+    // Disable fragmentation
+    int val = IP_PMTUDISC_DO;
+    setsockopt(remote_sock, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+#endif
+
     return remote_sock;
 }
 
@@ -544,6 +551,12 @@ create_server_socket(const char *host, const char *port)
     }
 
     freeaddrinfo(result);
+
+#if defined(__linux__)
+    // Disable fragmentation
+    int val = IP_PMTUDISC_DO;
+    setsockopt(server_sock, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+#endif
 
     return server_sock;
 }
