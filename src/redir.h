@@ -1,7 +1,6 @@
-/*
- * redir.h - Define the redirector's buffers and callbacks
+/* * redir.h - Define the redirector's buffers and callbacks
  *
- * Copyright (C) 2013 - 2014, Max Lv <max.c.lv@gmail.com>
+ * Copyright (C) 2013 - 2019, Max Lv <max.c.lv@gmail.com>
  *
  * This file is part of the shadowsocks-libev.
  *
@@ -16,79 +15,68 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with pdnsd; see the file COPYING. If not, see
+ * along with shadowsocks-libev; see the file COPYING. If not, see
  * <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _LOCAL_H
-#define _LOCAL_H
+#ifndef _REDIR_H
+#define _REDIR_H
 
+#ifdef HAVE_LIBEV_EV_H
+#include <libev/ev.h>
+#else
 #include <ev.h>
-#include "encrypt.h"
+#endif
+
+#include "crypto.h"
 #include "jconf.h"
 
-struct listen_ctx
-{
+typedef struct listen_ctx {
     ev_io io;
-    ss_addr_t *remote_addr;
     int remote_num;
     int timeout;
     int fd;
-    int method;
-    struct sockaddr sock;
-};
+    int mptcp;
+    int tos;
+    struct sockaddr **remote_addr;
+} listen_ctx_t;
 
-struct server_ctx
-{
+typedef struct server_ctx {
     ev_io io;
     int connected;
     struct server *server;
-};
+} server_ctx_t;
 
-struct server
-{
+typedef struct server {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // server send from, remote recv into
-    struct sockaddr_in destaddr;
-    struct enc_ctx *e_ctx;
-    struct enc_ctx *d_ctx;
+
+    buffer_t *buf;
+
+    cipher_ctx_t *e_ctx;
+    cipher_ctx_t *d_ctx;
     struct server_ctx *recv_ctx;
     struct server_ctx *send_ctx;
     struct remote *remote;
-};
 
-struct remote_ctx
-{
+    struct sockaddr_storage destaddr;
+    ev_timer delayed_connect_watcher;
+} server_t;
+
+typedef struct remote_ctx {
     ev_io io;
     ev_timer watcher;
     int connected;
     struct remote *remote;
-};
+} remote_ctx_t;
 
-struct remote
-{
+typedef struct remote {
     int fd;
-    ssize_t buf_len;
-    ssize_t buf_idx;
-    char *buf; // remote send from, server recv into
+    buffer_t *buf;
     struct remote_ctx *recv_ctx;
     struct remote_ctx *send_ctx;
     struct server *server;
-};
+    uint32_t counter;
+    struct sockaddr *addr;
+} remote_t;
 
-
-static void accept_cb (EV_P_ ev_io *w, int revents);
-static void server_recv_cb (EV_P_ ev_io *w, int revents);
-static void server_send_cb (EV_P_ ev_io *w, int revents);
-static void remote_recv_cb (EV_P_ ev_io *w, int revents);
-static void remote_send_cb (EV_P_ ev_io *w, int revents);
-struct remote* new_remote(int fd, int timeout);
-void free_remote(struct remote *remote);
-void close_and_free_remote(EV_P_ struct remote *remote);
-struct server* new_server(int fd, int method);
-void free_server(struct server *server);
-void close_and_free_server(EV_P_ struct server *server);
-
-#endif // _LOCAL_H
+#endif // _REDIR_H
